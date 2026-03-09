@@ -174,11 +174,17 @@ ob_start();
 
 /* Tab styling improvements */
 .tab-button {
-    transition: all 0.2s ease;
+    transition: all 0.25s ease;
+    position: relative;
+}
+
+.tab-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 102, 179, 0.25);
 }
 
 .tab-button.active {
-    border-bottom-width: 3px;
+    box-shadow: 0 2px 8px rgba(0, 102, 179, 0.25);
 }
 
 /* Helper card styling */
@@ -255,35 +261,33 @@ ob_start();
 
     <!-- Modern Tab Navigation -->
     <div class="mb-6">
-        <div class="border-b border-gray-200">
-            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                <button 
-                    class="tab-button active border-ibc-blue text-ibc-blue whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ease-premium"
-                    data-tab="basic"
-                    type="button"
-                >
-                    <i class="fas fa-info-circle mr-2"></i>
-                    Basisdaten
-                </button>
-                <button 
-                    class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ease-premium"
-                    data-tab="time"
-                    type="button"
-                >
-                    <i class="fas fa-clock mr-2"></i>
-                    Zeit & Einstellungen
-                </button>
-                <button 
-                    id="helper-tab-button"
-                    class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ease-premium <?php echo (!$isEdit || !$event['needs_helpers']) ? 'hidden' : ''; ?>"
-                    data-tab="helpers"
-                    type="button"
-                >
-                    <i class="fas fa-hands-helping mr-2"></i>
-                    Helfer-Planung
-                </button>
-            </nav>
-        </div>
+        <nav class="flex flex-wrap gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl" aria-label="Tabs">
+            <button 
+                class="tab-button active bg-ibc-blue text-white rounded-lg px-5 py-2.5 font-semibold text-sm shadow-md whitespace-nowrap"
+                data-tab="basic"
+                type="button"
+            >
+                <i class="fas fa-info-circle mr-2"></i>
+                Basisdaten
+            </button>
+            <button 
+                class="tab-button text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 hover:text-ibc-blue dark:hover:text-ibc-blue-light rounded-lg px-5 py-2.5 font-semibold text-sm whitespace-nowrap"
+                data-tab="time"
+                type="button"
+            >
+                <i class="fas fa-clock mr-2"></i>
+                Zeit &amp; Einstellungen
+            </button>
+            <button 
+                id="helper-tab-button"
+                class="tab-button text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 hover:text-ibc-blue dark:hover:text-ibc-blue-light rounded-lg px-5 py-2.5 font-semibold text-sm whitespace-nowrap <?php echo (!$isEdit || !$event['needs_helpers']) ? 'hidden' : ''; ?>"
+                data-tab="helpers"
+                type="button"
+            >
+                <i class="fas fa-hands-helping mr-2"></i>
+                Helfer-Planung
+            </button>
+        </nav>
     </div>
 
     <form method="POST" enctype="multipart/form-data" id="eventForm" class="space-y-6">
@@ -807,11 +811,11 @@ document.querySelectorAll('.tab-button').forEach(button => {
         
         // Update buttons
         document.querySelectorAll('.tab-button').forEach(btn => {
-            btn.classList.remove('active', 'border-ibc-blue', 'text-ibc-blue');
-            btn.classList.add('border-transparent', 'text-gray-500');
+            btn.classList.remove('active', 'bg-ibc-blue', 'text-white', 'shadow-md');
+            btn.classList.add('text-gray-600', 'dark:text-gray-300');
         });
-        this.classList.add('active', 'border-ibc-blue', 'text-ibc-blue');
-        this.classList.remove('border-transparent', 'text-gray-500');
+        this.classList.add('active', 'bg-ibc-blue', 'text-white', 'shadow-md');
+        this.classList.remove('text-gray-600', 'dark:text-gray-300');
         
         // Update content
         document.querySelectorAll('.tab-content').forEach(content => {
