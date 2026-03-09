@@ -15,7 +15,8 @@ SET time_zone = "+00:00";
 -- NOTE: For existing databases, run:
 --   ALTER TABLE events MODIFY COLUMN status ENUM('draft','planned','open','closed','running','past') DEFAULT 'planned';
 --   (The created_by column already exists in the schema; no action needed for it.)
---   ALTER TABLE events DROP COLUMN IF EXISTS requires_application;
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS is_internal_project BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Whether the event is an internal project';
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS requires_application BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Whether applicants must submit an application to join an internal project';
 -- ================================================
 CREATE TABLE IF NOT EXISTS `events` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -32,6 +33,8 @@ CREATE TABLE IF NOT EXISTS `events` (
   `external_link` TEXT DEFAULT NULL COMMENT 'Link to external event page',
   `registration_link` VARCHAR(500) DEFAULT NULL COMMENT 'External registration link',
   `needs_helpers` BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Flag indicating if the event needs helpers',
+  `is_internal_project` BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Whether the event is an internal project',
+  `requires_application` BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Whether applicants must submit an application to join an internal project',
   `feedback_contact_user_id` INT UNSIGNED DEFAULT NULL COMMENT 'User ID of the alumni who volunteered as feedback contact',
   `image_path` VARCHAR(500) DEFAULT NULL COMMENT 'Path to event image',
   `contact_person` VARCHAR(255) NULL COMMENT 'Contact person for the event',
