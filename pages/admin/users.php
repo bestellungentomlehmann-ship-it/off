@@ -258,6 +258,7 @@ $users = User::getAll();
 // Get current user data
 $currentUser = Auth::user();
 $currentUserRole = $currentUser['role'] ?? '';
+$canViewLastLogin = in_array($currentUserRole, ['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern']);
 
 $title = 'Benutzerverwaltung - IBC Intranet';
 ob_start();
@@ -474,7 +475,9 @@ ob_start();
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider whitespace-nowrap">Entra-Status</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider whitespace-nowrap">Intranet-Rolle</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider whitespace-nowrap">Status</th>
+                        <?php if ($canViewLastLogin): ?>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider whitespace-nowrap">Letzter Login</th>
+                        <?php endif; ?>
                         <th class="px-6 py-4 text-center text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider whitespace-nowrap">Aktionen</th>
                     </tr>
                 </thead>
@@ -623,6 +626,7 @@ ob_start();
                             <?php endif; ?>
                         </div>
                     </td>
+                    <?php if ($canViewLastLogin): ?>
                     <td class="px-6 py-4 whitespace-nowrap" data-label="Letzter Login">
                         <div class="text-sm">
                             <?php if ($user['last_login']): ?>
@@ -638,6 +642,7 @@ ob_start();
                             <?php endif; ?>
                         </div>
                     </td>
+                    <?php endif; ?>
                     <td class="px-6 py-4 whitespace-nowrap text-center" data-label="Aktionen">
                         <?php if ($user['id'] != $_SESSION['user_id']): ?>
                         <div class="flex flex-col items-center gap-2">
