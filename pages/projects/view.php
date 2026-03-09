@@ -55,8 +55,8 @@ $teamPercentage = $maxConsultants > 0 ? min(100, round(($teamSize / $maxConsulta
 // Internal project flag
 $isInternalProject = ($project['type'] ?? 'internal') === 'internal';
 
-// Requires application flag
-$requiresApplication = (bool)($project['requires_application'] ?? 1);
+// Requires application flag – only meaningful for internal projects; external projects always require an application
+$requiresApplication = !$isInternalProject || (bool)($project['requires_application'] ?? 1);
 
 // Check if user is already a participant (for internal projects)
 $isParticipant = false;
