@@ -1,0 +1,1162 @@
+<?php
+require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../../src/Auth.php';
+require_once __DIR__ . '/../handlers/AuthHandler.php';
+require_once __DIR__ . '/../handlers/CSRFHandler.php';
+
+// DEBUG: Uncomment to force role for testing
+// $_SESSION['user_role'] = 'vorstand_finanzen';
+
+// Enforce onboarding: redirect non-onboarded users to the onboarding page (first login only)
+if (Auth::check() && isset($_SESSION['is_onboarded']) && $_SESSION['is_onboarded'] === false) {
+    $currentPage = basename($_SERVER['PHP_SELF']);
+    if ($currentPage !== 'onboarding.php' && $currentPage !== 'logout.php') {
+        $baseUrl = defined('BASE_URL') ? BASE_URL : '';
+        header('Location: ' . $baseUrl . '/pages/auth/onboarding.php');
+        exit;
+    }
+}
+
+// Check if profile is incomplete and redirect to profile page (unless already on profile page)
+if (Auth::check() && isset($_SESSION['profile_incomplete']) && $_SESSION['profile_incomplete'] === true) {
+    $currentPage = basename($_SERVER['PHP_SELF']);
+    // Allow access only to profile.php and logout
+    if ($currentPage !== 'profile.php' && $currentPage !== 'logout.php') {
+        $baseUrl = defined('BASE_URL') ? BASE_URL : '';
+        header('Location: ' . $baseUrl . '/pages/auth/profile.php');
+        exit;
+    }
+}
+
+$_themeCssVersion = filemtime(__DIR__ . '/../../assets/css/theme.css');
+$_tailwindCssVersion = filemtime(__DIR__ . '/../../assets/css/tailwind.css');
+
+// Ensure $currentUser is defined for the body data-user-theme attribute,
+// even on pages that don't set it before including this layout.
+if (!isset($currentUser)) {
+    $currentUser = Auth::user();
+}
+?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#0066b3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title><?php echo $title ?? 'IBC Intranet'; ?></title>
+    <?php if (!empty($og_title)): ?>
+    <meta property="og:title" content="<?php echo htmlspecialchars($og_title); ?>">
+    <meta property="og:type" content="<?php echo htmlspecialchars($og_type ?? 'website'); ?>">
+    <?php if (!empty($og_url)): ?>
+    <meta property="og:url" content="<?php echo htmlspecialchars($og_url); ?>">
+    <?php endif; ?>
+    <?php if (!empty($og_description)): ?>
+    <meta property="og:description" content="<?php echo htmlspecialchars($og_description); ?>">
+    <?php endif; ?>
+    <?php if (!empty($og_image)): ?>
+    <meta property="og:image" content="<?php echo htmlspecialchars($og_image); ?>">
+    <?php endif; ?>
+    <meta name="twitter:card" content="<?php echo !empty($og_image) ? 'summary_large_image' : 'summary'; ?>">
+    <?php endif; ?>
+    <link rel="icon" type="image/webp" href="<?php echo asset('assets/img/cropped_maskottchen_32x32.webp'); ?>">
+    <link rel="apple-touch-icon" href="<?php echo asset('assets/img/cropped_maskottchen_180x180.webp'); ?>">
+    <link rel="manifest" href="<?php echo asset('manifest.json'); ?>">
+    <!-- DNS prefetch for performance -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.gstatic.com">
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="//cdn-uicons.flaticon.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap" rel="stylesheet">
+    <link rel="preload" href="<?php echo asset('assets/css/theme.css') . '?v=' . $_themeCssVersion; ?>" as="style">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="<?php echo asset('assets/css/theme.css') . '?v=' . $_themeCssVersion; ?>">
+    <link rel="stylesheet" href="<?php echo asset('assets/css/tailwind.css') . '?v=' . $_tailwindCssVersion; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css">
+    <style>
+        /* Mobile topbar and menu button */
+        #mobile-menu-btn {
+            border: none;
+            outline: none;
+        }
+        #mobile-menu-btn:focus-visible {
+            outline: 2px solid rgba(255,255,255,0.8);
+            outline-offset: 2px;
+        }
+
+        /* Mobile view improvements */
+        @media (max-width: 767px) {
+            .sidebar .sidebar-scroll {
+                padding-bottom: 2rem !important;
+            }
+
+            /* Better logo sizing on mobile */
+            .sidebar img[alt="IBC Logo"] {
+                max-width: 90% !important;
+                margin: 0 auto !important;
+            }
+
+            /* Fix text overflow in cards */
+            .card p, .card div, .card span {
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                hyphens: auto;
+            }
+
+            /* Better spacing on mobile - add top padding for floating menu button */
+            main {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+                padding-bottom: 1rem !important;
+                padding-top: 4.5rem !important;
+                margin-left: 0 !important;
+            }
+
+            /* Prevent horizontal overflow on tables */
+            table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                border-radius: 8px;
+            }
+            table thead { display: table-header-group; }
+            table tbody { display: table-row-group; }
+            th, td { white-space: nowrap; }
+
+            /* Better form inputs on mobile (prevents iOS zoom-in) */
+            form input, form select, form textarea {
+                font-size: 16px;
+                padding: 0.875rem !important;
+                border-radius: 10px !important;
+            }
+
+            /* Improve heading sizes on mobile */
+            main h1 { font-size: 1.75rem !important; line-height: 1.2; margin-bottom: 1rem; }
+            main h2 { font-size: 1.5rem !important; line-height: 1.3; margin-bottom: 0.875rem; }
+            main h3 { font-size: 1.25rem !important; line-height: 1.4; margin-bottom: 0.75rem; }
+
+            /* Responsive large text elements that aren't headings */
+            main .text-4xl { font-size: 1.75rem !important; }
+            main .text-5xl { font-size: 2rem !important; }
+            main .text-6xl, main .text-7xl, main .text-8xl, main .text-9xl { font-size: 2.25rem !important; }
+
+            /* Better image scaling on mobile */
+            img:not([class*="w-"]) { max-width: 100%; height: auto; }
+
+            /* Ensure grids stack on mobile - use .grid-no-stack to opt out */
+            .grid:not(.grid-no-stack):not(.grid-cols-1) {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+
+            /* Improved stat cards on mobile */
+            .stat-icon { width: 48px !important; height: 48px !important; font-size: 1.25rem !important; }
+
+            /* Better badge sizing */
+            .badge, [class*="badge"] { padding: 0.375rem 0.75rem !important; font-size: 0.875rem !important; }
+
+            /* Larger touch targets and better spacing for sidebar nav on mobile */
+            .sidebar nav a {
+                padding: 0.875rem 1rem !important;
+                margin: 2px 8px !important;
+                font-size: 0.9375rem !important;
+                border-radius: 8px !important;
+            }
+            .submenu a {
+                padding-left: 2.25rem !important;
+                font-size: 0.875rem !important;
+            }
+        }
+
+        /* Tablet view improvements */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            main { padding: 1.5rem !important; }
+
+            /* 2-column grid on tablets */
+            .grid:not(.grid-no-stack):not(.grid-cols-1) {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            main h1 { font-size: 2rem !important; }
+            main h2 { font-size: 1.625rem !important; }
+        }
+
+        /* Desktop and larger */
+        @media (min-width: 1025px) {
+            main { padding: 2rem !important; }
+            .container { max-width: 1400px; margin: 0 auto; }
+        }
+
+        /* Extra large screens */
+        @media (min-width: 1536px) {
+            main { padding: 2.5rem !important; }
+            .container { max-width: 1600px; }
+        }
+
+        /* Landscape mobile optimization */
+        @media (max-height: 500px) and (orientation: landscape) and (max-width: 767px) {
+            .sidebar { width: 14rem !important; }
+            .sidebar nav a { padding: 0.5rem 1rem !important; font-size: 0.875rem !important; }
+            main { padding-top: 4rem !important; }
+        }
+
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+            .card { border-width: 0.5px; }
+        }
+
+        /* Touch device optimizations: larger targets, better tap feedback */
+        @media (hover: none) and (pointer: coarse) {
+            a, button, input[type="submit"], input[type="button"] { min-height: 44px; min-width: 44px; }
+            a:active, button:active { opacity: 0.7; transform: scale(0.98); transition: all 0.1s ease; }
+            .card:hover { transform: translateY(-2px); }
+        }
+
+        /* Ensure long text doesn't overflow */
+        .text-sm, .text-xs, .text-base, p, span, li, h1, h2, h3 { overflow-wrap: break-word; word-break: break-word; }
+
+        /* Skip link accessibility */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #00a651;
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            z-index: 100;
+            border-radius: 0 0 4px 0;
+            font-weight: 600;
+        }
+        .skip-link:focus { top: 0; }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 overflow-x-hidden" data-user-theme="<?php echo htmlspecialchars($currentUser['theme_preference'] ?? 'auto'); ?>">
+    <!-- Skip to main content link for accessibility -->
+    <a href="#main-content" class="skip-link">Zum Hauptinhalt springen</a>
+    
+    <script>
+        // Apply theme immediately to prevent flash of unstyled content (FOUC)
+        (function() {
+            const userTheme = document.body.getAttribute('data-user-theme') || 'auto';
+            const savedTheme = localStorage.getItem('theme') || userTheme;
+            
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode', 'dark');
+                document.documentElement.classList.add('dark-mode', 'dark');
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.style.colorScheme = 'dark';
+            } else if (savedTheme === 'light') {
+                document.body.classList.remove('dark-mode', 'dark');
+                document.documentElement.classList.remove('dark-mode', 'dark');
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.style.colorScheme = 'light';
+            } else { // auto
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.body.classList.add('dark-mode', 'dark');
+                    document.documentElement.classList.add('dark-mode', 'dark');
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.documentElement.style.colorScheme = 'dark';
+                }
+            }
+        })();
+    </script>
+    <!-- Mobile Menu Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <!-- Mobile Floating Menu Button (replaces the full topbar on small screens) -->
+    <button id="mobile-menu-btn" class="md:hidden fixed top-4 left-4 z-[1061] flex items-center justify-center w-11 h-11 rounded-full shadow-lg transition-all duration-200 active:scale-95" style="background: var(--ibc-blue); border: 1px solid rgba(255,255,255,0.2);" aria-label="Menü öffnen" aria-expanded="false" aria-controls="sidebar">
+        <svg class="w-5 h-5 text-white" id="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path id="menu-icon-top" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16" class="transition-all duration-300"></path>
+            <path id="menu-icon-middle" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 12h16" class="transition-all duration-300"></path>
+            <path id="menu-icon-bottom" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 18h16" class="transition-all duration-300"></path>
+        </svg>
+    </button>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar fixed left-0 top-0 h-screen w-64 md:w-72 transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40 text-white shadow-2xl flex flex-col" aria-label="Seitenleiste">
+        <?php 
+        $currentUser = Auth::user();
+        $userRole = $currentUser['role'] ?? '';
+        ?>
+        <div class="p-5 flex-1 overflow-y-auto sidebar-scroll">
+            <!-- IBC Logo in Navbar -->
+            <div class="mb-6 px-3 pt-2">
+                <img src="<?php echo asset('assets/img/ibc_logo_original_navbar.webp'); ?>" alt="IBC Logo" class="w-full h-auto drop-shadow-lg" decoding="async">
+            </div>
+            
+            <nav aria-label="Hauptnavigation">
+                <!-- Dashboard (All) -->
+                <a href="<?php echo asset('pages/dashboard/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/dashboard/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/dashboard/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-home w-5 mr-3" aria-hidden="true"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <!-- Alumni (All) -->
+                <a href="<?php echo asset('pages/alumni/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/alumni/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/alumni/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-user-graduate w-5 mr-3" aria-hidden="true"></i>
+                    <span>Alumni-Datenbank</span>
+                </a>
+
+                <!-- Blog (All) -->
+                <a href="<?php echo asset('pages/blog/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/blog/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/blog/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-newspaper w-5 mr-3" aria-hidden="true"></i>
+                    <span>Blog</span>
+                </a>
+
+                <!-- Job- & Praktikumsbörse (All) -->
+                <a href="<?php echo asset('pages/jobs/index.php'); ?>"
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/jobs/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/jobs/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-briefcase w-5 mr-3" aria-hidden="true"></i>
+                    <span>Job- &amp; Praktikumsbörse</span>
+                </a>
+
+                <!-- Events (All) -->
+                <a href="<?php echo asset('pages/events/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/events/') && !isActivePath('/events/helpers.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/events/') && !isActivePath('/events/helpers.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-calendar w-5 mr-3" aria-hidden="true"></i>
+                    <span>Events</span>
+                </a>
+
+                <!-- Helfersystem (All) -->
+                <a href="<?php echo asset('pages/events/helpers.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/events/helpers.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/events/helpers.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-hands-helping w-5 mr-3" aria-hidden="true"></i>
+                    <span>Helfersystem</span>
+                </a>
+
+                <!-- Ideenbox (Members, Candidates, Head, Board) -->
+                <?php if (Auth::canAccessPage('ideas')): ?>
+                <a href="<?php echo asset('pages/ideas/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/ideas/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/ideas/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-lightbulb w-5 mr-3" aria-hidden="true"></i>
+                    <span>Ideenbox</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Inventar (All) -->
+                <a href="<?php echo asset('pages/inventory/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/inventory/') && !isActivePath('/my_rentals.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/inventory/') && !isActivePath('/my_rentals.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-box w-5 mr-3" aria-hidden="true"></i>
+                    <span>Inventar</span>
+                </a>
+
+                <!-- Ausleihe (All) -->
+                <a href="<?php echo asset('pages/inventory/my_rentals.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/my_rentals.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/my_rentals.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-clipboard-list w-5 mr-3" aria-hidden="true"></i>
+                    <span>Ausleihe</span>
+                </a>
+
+                <!-- Mitglieder (Board, Head, Member, Candidate) -->
+                <?php if (Auth::canAccessPage('members')): ?>
+                <a href="<?php echo asset('pages/members/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/members/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/members/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-users w-5 mr-3" aria-hidden="true"></i>
+                    <span>Mitglieder-Datenbank</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Nützliche Links (Board + Alumni Vorstand + Alumni Finanzprüfer) -->
+                <?php if (in_array($userRole, ['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'alumni_vorstand', 'alumni_finanz'])): ?>
+                <a href="<?php echo asset('pages/links/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/links/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/links/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-link w-5 mr-3" aria-hidden="true"></i>
+                    <span>Nützliche Links</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Projekte (All) -->
+                <a href="<?php echo asset('pages/projects/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/projects/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/projects/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-project-diagram w-5 mr-3" aria-hidden="true"></i>
+                    <span>Projekte</span>
+                </a>
+
+                <!-- Rechnungen (All roles) -->
+                <?php if (Auth::canAccessPage('invoices')): ?>
+                <a href="<?php echo asset('pages/invoices/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/invoices/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/invoices/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-file-invoice-dollar w-5 mr-3" aria-hidden="true"></i>
+                    <span>Rechnungen</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Schulungsanfrage (Alumni, Alumni-Board) -->
+                <?php if (Auth::canAccessPage('training_requests')): ?>
+                <a href="<?php echo asset('pages/alumni/requests.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/alumni/requests.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/alumni/requests.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-chalkboard-teacher w-5 mr-3" aria-hidden="true"></i>
+                    <span>Schulungsanfrage</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Shop (All authenticated users) -->
+                <a href="<?php echo asset('pages/shop/index.php'); ?>"
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/shop/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/shop/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-shopping-cart w-5 mr-3" aria-hidden="true"></i>
+                    <span>Shop</span>
+                    <?php
+                        $sidebarCartCount = 0;
+                        if (!empty($_SESSION['shop_cart'])) {
+                            $sidebarCartCount = array_sum(array_column($_SESSION['shop_cart'], 'quantity'));
+                        }
+                        if ($sidebarCartCount > 0):
+                    ?>
+                    <span class="ml-auto bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                        <?php echo $sidebarCartCount > 99 ? '99+' : $sidebarCartCount; ?>
+                    </span>
+                    <?php endif; ?>
+                </a>
+
+                <!-- Umfragen (Polls - All authenticated users) -->
+                <?php if (Auth::canAccessPage('polls')): ?>
+                <a href="<?php echo asset('pages/polls/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/polls/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/polls/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-poll w-5 mr-3" aria-hidden="true"></i>
+                    <span>Umfragen</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Admin Section Divider -->
+                <?php if (Auth::canManageUsers() || Auth::isAdmin() || Auth::canApproveReturns()): ?>
+                <div class="my-3 mx-4">
+                    <div class="border-t border-white/10"></div>
+                    <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40 mt-3 px-2 text-left">Administration</p>
+                </div>
+                <?php endif; ?>
+
+                <!-- Benutzerverwaltung (All board members who can manage users) -->
+                <?php if (Auth::canManageUsers()): ?>
+                <a href="<?php echo asset('pages/admin/users.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/users.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/users.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-users-cog w-5 mr-3" aria-hidden="true"></i>
+                    <span>Benutzerverwaltung</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Admin Dashboard -->
+                <?php if (Auth::isAdmin()): ?>
+                <a href="<?php echo asset('pages/admin/index.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/index.php') || (isActivePath('/admin/') && !isActivePath('/admin/users') && !isActivePath('/admin/stats') && !isActivePath('/admin/audit') && !isActivePath('/admin/db_maintenance') && !isActivePath('/admin/settings')) ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/index.php') || (isActivePath('/admin/') && !isActivePath('/admin/users') && !isActivePath('/admin/stats') && !isActivePath('/admin/audit') && !isActivePath('/admin/db_maintenance') && !isActivePath('/admin/settings')) ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-tachometer-alt w-5 mr-3" aria-hidden="true"></i>
+                    <span>Dashboard</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Inventarverwaltung -->
+                <?php if (Auth::hasRole(['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'ressortleiter']) || Auth::isAdmin()): ?>
+                <a href="<?php echo asset('pages/admin/rental_returns.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/rental_returns.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/rental_returns.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-clipboard-check w-5 mr-3" aria-hidden="true"></i>
+                    <span>Inventarverwaltung</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Bewerbungsverwaltung (Board only) -->
+                <?php if (Auth::isBoard()): ?>
+                <a href="<?php echo asset('pages/admin/project_applications.php'); ?>"
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/project_applications.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/project_applications.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-file-alt w-5 mr-3" aria-hidden="true"></i>
+                    <span>Bewerbungsverwaltung</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Alumni-Anfragen (Alumni-Führung + Vorstand) -->
+                <?php if (Auth::hasRole(['alumni_finanz', 'alumni_vorstand', 'vorstand_finanzen', 'vorstand_extern', 'vorstand_intern'])): ?>
+                <a href="<?php echo asset('pages/admin/alumni_requests.php'); ?>"
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/alumni_requests.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/alumni_requests.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-user-graduate w-5 mr-3" aria-hidden="true"></i>
+                    <span>Alumni-Anfragen</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Masseneinladungen (Admins only) -->
+                <?php if (Auth::isAdmin()): ?>
+                <a href="<?php echo asset('pages/admin/mass_invitations.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/mass_invitations.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/mass_invitations.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-mail-bulk w-5 mr-3" aria-hidden="true"></i>
+                    <span>Masseneinladungen</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Shop-Verwaltung (Board + Resortleiter) -->
+                <?php if (Auth::hasRole(['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'ressortleiter'])): ?>
+                <a href="<?php echo asset('pages/admin/shop_manage.php'); ?>"
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/shop_manage.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/shop_manage.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-store w-5 mr-3" aria-hidden="true"></i>
+                    <span>Shop-Verwaltung</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Systemeinstellungen (Board roles + alumni_vorstand + alumni_finanz) -->
+                <?php if (Auth::canAccessSystemSettings()): ?>
+                <a href="<?php echo asset('pages/admin/settings.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/settings.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/settings.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-cogs w-5 mr-3" aria-hidden="true"></i>
+                    <span>Systemeinstellungen</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Statistiken Section Divider -->
+                <?php if (Auth::isAdmin() || Auth::hasRole(['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'ressortleiter'])): ?>
+                <div class="my-3 mx-4">
+                    <div class="border-t border-white/10"></div>
+                    <p class="text-[11px] font-semibold uppercase tracking-widest text-white/40 mt-3 px-2 text-left">Statistiken</p>
+                </div>
+                <?php endif; ?>
+
+                <!-- Event-Statistiken (Admin roles only) -->
+                <?php if (Auth::isAdmin()): ?>
+                <a href="<?php echo asset('pages/admin/event_stats.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/event_stats.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/event_stats.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-chart-bar w-5 mr-3" aria-hidden="true"></i>
+                    <span>Event-Statistiken</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Shop-Statistiken (Board + Resortleiter) -->
+                <?php if (Auth::hasRole(['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'ressortleiter'])): ?>
+                <a href="<?php echo asset('pages/admin/shop_stats.php'); ?>"
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/shop_stats.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/shop_stats.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-chart-line w-5 mr-3" aria-hidden="true"></i>
+                    <span>Shop-Statistiken</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Statistiken (All board members) -->
+                <?php if (Auth::isAdmin()): ?>
+                <a href="<?php echo asset('pages/admin/stats.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/stats.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/stats.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-chart-pie w-5 mr-3" aria-hidden="true"></i>
+                    <span>Statistiken</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- Audit Logs (All board members) -->
+                <?php if (Auth::isAdmin()): ?>
+                <a href="<?php echo asset('pages/admin/audit.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/audit.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/audit.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-clipboard-list w-5 mr-3" aria-hidden="true"></i>
+                    <span>Audit Logs</span>
+                </a>
+                <?php endif; ?>
+
+                <!-- System Health (All board members) -->
+                <?php if (Auth::isAdmin()): ?>
+                <a href="<?php echo asset('pages/admin/db_maintenance.php'); ?>" 
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/db_maintenance.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/db_maintenance.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-database w-5 mr-3" aria-hidden="true"></i>
+                    <span>System Health</span>
+                </a>
+                <?php endif; ?>
+
+            </nav>
+        </div>
+
+        <!-- User Profile Section -->
+        <div class='sidebar-footer mt-auto pt-2 pb-2 px-3'>
+            <?php 
+            $currentUser = Auth::user();
+            
+            // Initialize default values
+            $firstname = '';
+            $lastname = '';
+            $email = '';
+            $role = 'User';
+            $navProfileImageUrl = '';
+            $displayRoles = [];
+            
+            // Only try to get profile if user is logged in
+            if ($currentUser && isset($currentUser['id'])) {
+                // Try to get name from alumni_profiles table first
+                require_once __DIR__ . '/../models/Alumni.php';
+                $profile = Alumni::getProfileByUserId($currentUser['id']);
+                
+                // Resolve profile image for the desktop top navbar using avatar_path as single source of truth:
+                // If avatar_path is set AND the file physically exists → show image
+                // Otherwise → show initials (no image URL set)
+                $_defaultImg = defined('DEFAULT_PROFILE_IMAGE') ? DEFAULT_PROFILE_IMAGE : 'assets/img/default_profil.png';
+                require_once __DIR__ . '/../models/User.php';
+                // Pass $currentUser as $userData to avoid a redundant DB query (Auth::user() already
+                // fetched avatar_path via SELECT *).
+                $_resolved = User::getProfilePictureUrl($currentUser['id'], $currentUser);
+                if ($_resolved !== $_defaultImg) {
+                    $navProfileImageUrl = $_resolved;
+                }
+                
+                // Profile data may be user-edited, so don't transform it
+                if ($profile && !empty($profile['first_name'])) {
+                    $firstname = $profile['first_name'];
+                    $lastname = $profile['last_name'] ?? '';
+                } elseif (!empty($currentUser['first_name'])) {
+                    $firstname = $currentUser['first_name'];
+                    $lastname = $currentUser['last_name'] ?? '';
+                }
+                
+                $email = $currentUser['email'] ?? '';
+                $role = $currentUser['role'] ?? 'User';
+                
+                // Check for Entra roles - priority: entra_roles from user table, then session azure_roles, then fallback to internal role
+                $displayRoles = [];
+                
+                // Debug logging for role determination
+                if (!empty($currentUser['entra_roles'])) {
+                    error_log("main_layout.php: User " . intval($currentUser['id']) . " has entra_roles in database: " . $currentUser['entra_roles']);
+                }
+                if (!empty($_SESSION['azure_roles'])) {
+                    error_log("main_layout.php: Session azure_roles for user " . intval($currentUser['id']) . ": " . (is_array($_SESSION['azure_roles']) ? json_encode($_SESSION['azure_roles']) : $_SESSION['azure_roles']));
+                }
+                if (!empty($_SESSION['entra_roles'])) {
+                    error_log("main_layout.php: Session entra_roles for user " . intval($currentUser['id']) . ": " . (is_array($_SESSION['entra_roles']) ? json_encode($_SESSION['entra_roles']) : $_SESSION['entra_roles']));
+                }
+                
+                if (!empty($currentUser['entra_roles'])) {
+                    // Parse JSON array from database.
+                    // entra_roles stores App Role value strings (e.g. ["mitglied"]).
+                    // Apply translateAzureRole so they are rendered as human-readable German names.
+                    $rolesArray = json_decode($currentUser['entra_roles'], true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($rolesArray)) {
+                        foreach ($rolesArray as $r) {
+                            $label = is_array($r) && isset($r['displayName'])
+                                ? $r['displayName']
+                                : translateAzureRole($r);
+                            if (!empty($label)) {
+                                $displayRoles[] = $label;
+                            }
+                        }
+                    } else {
+                        error_log("Failed to decode entra_roles in main_layout for user ID " . intval($currentUser['id']) . ": " . json_last_error_msg());
+                    }
+                } elseif (!empty($_SESSION['entra_roles'])) {
+                    // Prefer entra_roles from session (groups from Microsoft Graph)
+                    if (is_array($_SESSION['entra_roles'])) {
+                        // Extract displayName from each group object (groups now contain both id and displayName)
+                        $displayRoles = extractGroupDisplayNames($_SESSION['entra_roles']);
+                    }
+                } elseif (!empty($_SESSION['azure_roles'])) {
+                    // Check session variable as alternative (App Roles from JWT)
+                    if (is_array($_SESSION['azure_roles'])) {
+                        $displayRoles = array_filter(array_map('translateAzureRole', $_SESSION['azure_roles']));
+                    } else {
+                        // Try to decode if it's JSON string
+                        $sessionRoles = json_decode($_SESSION['azure_roles'], true);
+                        if (json_last_error() === JSON_ERROR_NONE && is_array($sessionRoles)) {
+                            $displayRoles = array_filter(array_map('translateAzureRole', $sessionRoles));
+                        }
+                    }
+                }
+                
+                // If no Entra roles found, use internal role as fallback
+                if (empty($displayRoles)) {
+                    $displayRoles = [translateRole($role)];
+                }
+            }
+            
+            // Generate initials with proper fallbacks
+            if (!empty($firstname) && !empty($lastname)) {
+                $initials = strtoupper(substr($firstname, 0, 1) . substr($lastname, 0, 1));
+            } elseif (!empty($firstname)) {
+                $initials = strtoupper(substr($firstname, 0, 1));
+            } elseif (!empty($lastname)) {
+                $initials = strtoupper(substr($lastname, 0, 1));
+            } elseif (!empty($email)) {
+                $initials = strtoupper(substr($email, 0, 1));
+            } else {
+                $initials = 'U';
+            }
+            ?>
+
+            <!-- User Info -->
+            <div class='flex items-start gap-2 mb-2'>
+                <?php if (!empty($navProfileImageUrl)): ?>
+                <img src="<?php echo htmlspecialchars(asset($navProfileImageUrl)); ?>" alt="Profilbild" class="w-9 h-9 rounded-full object-cover shadow border border-white/20 shrink-0" style="aspect-ratio:1/1;">
+                <?php else: ?>
+                <div class='w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow border border-white/20 shrink-0'>
+                    <?php echo $initials; ?>
+                </div>
+                <?php endif; ?>
+                <div class='flex-1 min-w-0'>
+                    <?php if (!empty($firstname) || !empty($lastname)): ?>
+                    <p class='text-xs font-semibold text-white truncate leading-snug mb-0.5' title='<?php echo htmlspecialchars($firstname . ' ' . $lastname); ?>'>
+                        <?php echo htmlspecialchars($firstname . ' ' . $lastname); ?>
+                    </p>
+                    <?php endif; ?>
+                    <p class='text-[11px] text-white/70 truncate leading-snug' title='<?php echo htmlspecialchars($email); ?>'>
+                        <?php echo htmlspecialchars($email); ?>
+                    </p>
+                    <?php if (!empty($displayRoles)): ?>
+                    <span class='text-[10px] text-white/60 bg-white/10 px-2 py-0.5 rounded-full inline-block mt-1 truncate max-w-full' title='<?php echo htmlspecialchars(implode(', ', $displayRoles)); ?>' aria-label='Rolle: <?php echo htmlspecialchars($displayRoles[0]); ?>'>
+                        <?php echo htmlspecialchars($displayRoles[0]); ?>
+                    </span>
+                    <?php elseif (!empty($role) && $role !== 'User'): ?>
+                    <span class='text-[10px] text-white/60 bg-white/10 px-2 py-0.5 rounded-full inline-block mt-1 truncate max-w-full' title='<?php echo htmlspecialchars(getFormattedRoleName($role)); ?>' aria-label='Rolle: <?php echo htmlspecialchars(getFormattedRoleName($role)); ?>'>
+                        <?php echo htmlspecialchars(getFormattedRoleName($role)); ?>
+                    </span>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+            <!-- Profile Navigation -->
+            <a href='<?php echo asset('pages/auth/profile.php'); ?>' 
+               class='sidebar-footer-btn <?php echo isActivePath('/auth/profile.php') ? 'active-btn' : ''; ?>'
+               <?php echo isActivePath('/auth/profile.php') ? 'aria-current="page"' : ''; ?>>
+                <i class='fas fa-user' aria-hidden="true"></i>
+                <span>Mein Profil</span>
+            </a>
+
+            <a href='<?php echo asset('pages/auth/settings.php'); ?>' 
+               class='sidebar-footer-btn <?php echo isActivePath('/auth/settings.php') ? 'active-btn' : ''; ?>'
+               <?php echo isActivePath('/auth/settings.php') ? 'aria-current="page"' : ''; ?>>
+                <i class='fas fa-cog' aria-hidden="true"></i>
+                <span>Einstellungen</span>
+            </a>
+
+            <!-- Dark/Light Mode Toggle -->
+            <button id="theme-toggle" class='sidebar-footer-btn' aria-label="Zwischen hellem und dunklem Modus wechseln">
+                <i id="theme-icon" class='fas fa-moon' aria-hidden="true"></i>
+                <span id="theme-text">Darkmode</span>
+            </button>
+
+            <!-- Logout -->
+            <a href='<?php echo asset('pages/auth/logout.php'); ?>' 
+               class='sidebar-footer-btn sidebar-logout-btn'>
+                <i class='fas fa-sign-out-alt' aria-hidden="true"></i>
+                <span>Abmelden</span>
+            </a>
+
+            
+            <!-- Live Clock -->
+            <div class='mt-2 pt-2 border-t border-white/20 text-center'>
+                <div id="live-clock" class='text-xs text-white/80 font-mono'>
+                    <!-- JavaScript will update this -->
+                </div>
+            </div>
+        </div>
+    </aside>
+
+
+    <!-- Main Content -->
+    <main id="main-content" role="main" class="md:ml-64 lg:ml-72 min-h-screen p-4 pt-16 md:p-6 lg:p-10" style="padding-bottom: max(1rem, env(safe-area-inset-bottom, 0))">
+        <?php if (isset($_SESSION['show_2fa_nudge']) && $_SESSION['show_2fa_nudge']): ?>
+        <div id="tfa-nudge-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1070] p-4" role="dialog" aria-modal="true" aria-labelledby="tfa-nudge-title">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden transform transition-all">
+                <!-- Modal Header -->
+                <div class="bg-gradient-to-r from-blue-600 to-green-600 px-6 py-4">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-shield-alt text-white text-2xl" aria-hidden="true"></i>
+                        </div>
+                        <h3 id="tfa-nudge-title" class="text-xl font-bold text-white">Sicherheitshinweis</h3>
+                    </div>
+                </div>
+                
+                <!-- Modal Body -->
+                <div class="px-6 py-6 overflow-y-auto flex-1">
+                    <p class="text-slate-800 dark:text-slate-200 text-lg mb-2 font-semibold">
+                        Erhöhe deine Sicherheit!
+                    </p>
+                    <p class="text-slate-800 dark:text-slate-200 mb-6">
+                        Aktiviere jetzt die 2-Faktor-Authentifizierung für zusätzlichen Schutz deines Kontos.
+                    </p>
+                    
+                    <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-blue-600 dark:text-blue-400 mt-1 mr-3" aria-hidden="true"></i>
+                            <p class="text-sm text-slate-800 dark:text-slate-200">
+                                Die 2-Faktor-Authentifizierung macht dein Konto deutlich sicherer, indem bei der Anmeldung ein zusätzlicher Code erforderlich ist.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700 flex flex-col sm:flex-row gap-3">
+                    <a href="<?php echo asset('pages/auth/profile.php'); ?>" class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-green-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        <i class="fas fa-shield-alt mr-2" aria-hidden="true"></i>
+                        Jetzt einrichten
+                    </a>
+                    <button onclick="dismissTfaNudge()" class="flex-1 px-6 py-3 bg-gray-300 dark:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg font-semibold hover:bg-gray-400 dark:hover:bg-slate-500 transition-all duration-300">
+                        Später
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        // Dismiss modal
+        function dismissTfaNudge() {
+            document.getElementById('tfa-nudge-modal').style.display = 'none';
+        }
+        </script>
+        <?php 
+            unset($_SESSION['show_2fa_nudge']);
+        endif; 
+        ?>
+
+        <?php if (isset($_SESSION['show_role_notice']) && $_SESSION['show_role_notice']): ?>
+        <!-- Role Notice Modal -->
+        <div id="role-notice-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1060] p-4" role="dialog" aria-modal="true" aria-labelledby="role-notice-title" aria-describedby="role-notice-description">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden transform transition-all">
+                <!-- Modal Header -->
+                <div class="bg-gradient-to-r from-orange-500 to-yellow-500 px-6 py-4">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-user-tag text-white text-2xl" aria-hidden="true"></i>
+                        </div>
+                        <h3 id="role-notice-title" class="text-xl font-bold text-white">Rollenhinweis</h3>
+                    </div>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="px-6 py-6 overflow-y-auto flex-1">
+                    <p class="text-slate-800 dark:text-slate-200 text-lg mb-2 font-semibold">
+                        Stimmt deine Rolle?
+                    </p>
+                    <p id="role-notice-description" class="text-slate-800 dark:text-slate-200 mb-6">
+                        Dir wurde automatisch die Rolle <strong>Mitglied</strong> zugewiesen, da in Microsoft keine Rolle hinterlegt ist. Falls deine Rolle nicht korrekt ist, kannst du einen Änderungsantrag stellen.
+                    </p>
+
+                    <div class="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-orange-600 dark:text-orange-400 mt-1 mr-3" aria-hidden="true"></i>
+                            <p class="text-sm text-slate-800 dark:text-slate-200">
+                                Bitte wende dich an den Vorstand oder stelle einen Änderungsantrag, wenn deine Rolle angepasst werden muss.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700 flex flex-col sm:flex-row gap-3">
+                    <a href="<?php echo asset('pages/auth/settings.php'); ?>#aenderungsantrag" class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-yellow-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        <i class="fas fa-file-alt mr-2" aria-hidden="true"></i>
+                        Zum Änderungsantrag
+                    </a>
+                    <button onclick="dismissRoleNotice()" class="flex-1 px-6 py-3 bg-gray-300 dark:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg font-semibold hover:bg-gray-400 dark:hover:bg-slate-500 transition-all duration-300">
+                        Später
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        function dismissRoleNotice() {
+            document.getElementById('role-notice-modal').style.display = 'none';
+        }
+        </script>
+        <?php
+            unset($_SESSION['show_role_notice']);
+        endif;
+        ?>
+        
+        <?php echo $content ?? ''; ?>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('mobile-menu-btn');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const menuIconTop = document.getElementById('menu-icon-top');
+            const menuIconMiddle = document.getElementById('menu-icon-middle');
+            const menuIconBottom = document.getElementById('menu-icon-bottom');
+
+            // Body scroll lock helpers (iOS Safari fix)
+            var _savedScrollY = 0;
+            function lockBodyScroll() {
+                _savedScrollY = window.scrollY;
+                document.body.style.top = '-' + _savedScrollY + 'px';
+                document.body.classList.add('sidebar-open');
+            }
+            function unlockBodyScroll() {
+                document.body.classList.remove('sidebar-open');
+                document.body.style.top = '';
+                window.scrollTo(0, _savedScrollY);
+            }
+
+            // Reusable open/close helpers
+            function openSidebar() {
+                if (!sidebar) return;
+                sidebar.classList.add('open');
+                if (overlay) overlay.classList.add('active');
+                lockBodyScroll();
+                btn?.setAttribute('aria-expanded', 'true');
+                btn?.setAttribute('aria-label', 'Menü schließen');
+                menuIconTop?.setAttribute('d', 'M6 18L18 6');
+                menuIconMiddle?.setAttribute('d', 'M12 12h0');
+                menuIconMiddle?.setAttribute('opacity', '0');
+                menuIconBottom?.setAttribute('d', 'M6 6L18 18');
+            }
+            function closeSidebar() {
+                if (!sidebar) return;
+                sidebar.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+                unlockBodyScroll();
+                btn?.setAttribute('aria-expanded', 'false');
+                btn?.setAttribute('aria-label', 'Menü öffnen');
+                menuIconTop?.setAttribute('d', 'M4 6h16');
+                menuIconMiddle?.setAttribute('d', 'M4 12h16');
+                menuIconMiddle?.setAttribute('opacity', '1');
+                menuIconBottom?.setAttribute('d', 'M4 18h16');
+            }
+
+            if (btn && sidebar) {
+                btn.addEventListener('click', function() {
+                    if (sidebar.classList.contains('open')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
+                });
+            }
+
+            if (overlay && sidebar) {
+                overlay.addEventListener('click', closeSidebar);
+            }
+
+            // Close sidebar when clicking on main content (mobile)
+            const mainContent = document.getElementById('main-content');
+            if (mainContent && sidebar) {
+                mainContent.addEventListener('click', function() {
+                    if (sidebar.classList.contains('open')) {
+                        closeSidebar();
+                    }
+                });
+            }
+
+            // Escape key closes sidebar (accessibility)
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar?.classList.contains('open')) {
+                    closeSidebar();
+                    btn?.focus();
+                }
+            });
+
+            // Touch swipe detection for sidebar (mobile only)
+            var _touchStartX = 0;
+            var _touchStartY = 0;
+            var SWIPE_THRESHOLD = 50; // min px for horizontal swipe
+            var EDGE_ZONE = 30;       // px from left edge to trigger "open" swipe
+
+            document.addEventListener('touchstart', function(e) {
+                _touchStartX = e.changedTouches[0].clientX;
+                _touchStartY = e.changedTouches[0].clientY;
+            }, { passive: true });
+
+            document.addEventListener('touchend', function(e) {
+                if (window.innerWidth >= 768) return; // desktop only
+                var touchEndX = e.changedTouches[0].clientX;
+                var touchEndY = e.changedTouches[0].clientY;
+                var deltaX = touchEndX - _touchStartX;
+                var deltaY = Math.abs(touchEndY - _touchStartY);
+                // Require swipe to be more horizontal than vertical
+                if (Math.abs(deltaX) < deltaY * 1.5) return;
+                if (deltaX > SWIPE_THRESHOLD && _touchStartX < EDGE_ZONE) {
+                    // Right swipe from left edge – open sidebar
+                    openSidebar();
+                } else if (deltaX < -SWIPE_THRESHOLD && sidebar?.classList.contains('open')) {
+                    // Left swipe – close sidebar
+                    closeSidebar();
+                }
+            }, { passive: true });
+        });
+        
+        // Sidebar scroll position: restore on load, save on scroll and before unload
+        (function() {
+            const sidebarScroll = document.querySelector('.sidebar-scroll');
+            if (!sidebarScroll) return;
+            var savedPos = localStorage.getItem('sidebarScrollPos');
+            if (savedPos !== null) {
+                requestAnimationFrame(function() {
+                    sidebarScroll.scrollTop = parseInt(savedPos, 10);
+                });
+            }
+            var _scrollSaveTimer = null;
+            sidebarScroll.addEventListener('scroll', function() {
+                clearTimeout(_scrollSaveTimer);
+                _scrollSaveTimer = setTimeout(function() {
+                    localStorage.setItem('sidebarScrollPos', sidebarScroll.scrollTop);
+                }, 100);
+            }, { passive: true });
+            window.addEventListener('beforeunload', function() {
+                localStorage.setItem('sidebarScrollPos', sidebarScroll.scrollTop);
+            });
+        })();
+        
+        // Dark/Light Mode Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+        const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
+        const mobileThemeIcon = document.getElementById('mobile-theme-icon');
+        
+        // Get user's saved theme preference from database (via data attribute)
+        const userThemePreference = document.body.getAttribute('data-user-theme') || 'auto';
+        
+        // Load theme preference (localStorage overrides database preference)
+        let currentTheme = localStorage.getItem('theme') || userThemePreference;
+        
+        // Apply theme based on preference
+        function applyTheme(theme) {
+            const isDark = theme === 'dark' || (theme !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (isDark) {
+                document.body.classList.add('dark-mode', 'dark');
+                document.documentElement.classList.add('dark-mode', 'dark');
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.style.colorScheme = 'dark';
+                if (themeIcon) { themeIcon.classList.remove('fa-moon'); themeIcon.classList.add('fa-sun'); }
+                if (themeText) themeText.textContent = 'Lightmode';
+                if (mobileThemeIcon) { mobileThemeIcon.classList.remove('fa-moon'); mobileThemeIcon.classList.add('fa-sun'); }
+                if (mobileThemeToggle) mobileThemeToggle.setAttribute('aria-label', 'Zu Lightmode wechseln');
+            } else {
+                document.body.classList.remove('dark-mode', 'dark');
+                document.documentElement.classList.remove('dark-mode', 'dark');
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.style.colorScheme = 'light';
+                if (themeIcon) { themeIcon.classList.remove('fa-sun'); themeIcon.classList.add('fa-moon'); }
+                if (themeText) themeText.textContent = 'Darkmode';
+                if (mobileThemeIcon) { mobileThemeIcon.classList.remove('fa-sun'); mobileThemeIcon.classList.add('fa-moon'); }
+                if (mobileThemeToggle) mobileThemeToggle.setAttribute('aria-label', 'Zu Darkmode wechseln');
+            }
+        }
+        
+        // Apply initial theme
+        applyTheme(currentTheme);
+        
+        // Toggle theme on button click
+        function toggleTheme() {
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            if (isDarkMode) {
+                document.body.classList.remove('dark-mode', 'dark');
+                document.documentElement.classList.remove('dark-mode', 'dark');
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.style.colorScheme = 'light';
+                localStorage.setItem('theme', 'light');
+                if (themeIcon) { themeIcon.classList.remove('fa-sun'); themeIcon.classList.add('fa-moon'); }
+                if (themeText) themeText.textContent = 'Darkmode';
+                if (mobileThemeIcon) { mobileThemeIcon.classList.remove('fa-sun'); mobileThemeIcon.classList.add('fa-moon'); }
+                if (mobileThemeToggle) mobileThemeToggle.setAttribute('aria-label', 'Zu Darkmode wechseln');
+            } else {
+                document.body.classList.add('dark-mode', 'dark');
+                document.documentElement.classList.add('dark-mode', 'dark');
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.style.colorScheme = 'dark';
+                localStorage.setItem('theme', 'dark');
+                if (themeIcon) { themeIcon.classList.remove('fa-moon'); themeIcon.classList.add('fa-sun'); }
+                if (themeText) themeText.textContent = 'Lightmode';
+                if (mobileThemeIcon) { mobileThemeIcon.classList.remove('fa-moon'); mobileThemeIcon.classList.add('fa-sun'); }
+                if (mobileThemeToggle) mobileThemeToggle.setAttribute('aria-label', 'Zu Lightmode wechseln');
+            }
+        }
+
+        themeToggle?.addEventListener('click', toggleTheme);
+
+        // Mobile theme toggle (synced with sidebar toggle)
+        mobileThemeToggle?.addEventListener('click', toggleTheme);
+        
+        // Live Clock - Updates every second
+        function updateLiveClock() {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const dateTimeString = `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+            const clockElement = document.getElementById('live-clock');
+            if (clockElement) {
+                clockElement.textContent = dateTimeString;
+            }
+        }
+        
+        // Update immediately and then every second
+        updateLiveClock();
+        setInterval(updateLiveClock, 1000);
+
+        // Lazy image fade-in
+        document.querySelectorAll('img[loading="lazy"]').forEach(img => {
+            if (img.complete) {
+                img.classList.add('loaded');
+            } else {
+                img.addEventListener('load', () => img.classList.add('loaded'));
+            }
+        });
+
+        // Table overflow indicator for responsive tables
+        document.querySelectorAll('.table-scroll-wrapper').forEach(wrapper => {
+            const checkOverflow = () => {
+                if (wrapper.scrollWidth > wrapper.clientWidth) {
+                    wrapper.classList.add('has-overflow');
+                } else {
+                    wrapper.classList.remove('has-overflow');
+                }
+            };
+            checkOverflow();
+            window.addEventListener('resize', checkOverflow);
+        });
+
+        // iOS viewport height fix
+        function setAppHeight() {
+            document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+        }
+        setAppHeight();
+        window.addEventListener('resize', setAppHeight);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(setAppHeight, 200);
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('<?php echo asset('sw.js'); ?>');
+            });
+        }
+    </script>
+
+
+</body>
+</html>
+<!-- ✅ Sidebar visibility: Invoices restricted to vorstand_finanzen only via canManageInvoices() -->

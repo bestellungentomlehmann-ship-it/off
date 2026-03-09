@@ -1,0 +1,1140 @@
+<?php
+/**
+ * Shop Model
+ * Manages shop products, variants, orders and order items.
+ * All queries use prepared statements to prevent SQL injection.
+ */
+
+require_once __DIR__ . '/../database.php';
+require_once __DIR__ . '/../../src/Auth.php';
+
+class Shop {
+
+    /**
+     * Roles allowed to manage products and view all orders
+     */
+    const MANAGER_ROLES = ['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'ressortleiter'];
+
+    // -------------------------------------------------------------------------
+    // Products
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return all active products (with their variants and images).
+     *
+     * @return array
+     */
+    public static function getActiveProducts(): array {
+        try {
+            $db = Database::getShopDB();
+            $stmt = $db->query("
+                SELECT id, name, description, hints, base_price, image_path, is_bulk_order, bulk_end_date, bulk_min_goal,
+                       category, target_group AS gender, pickup_location, shipping_cost, variants AS variants_csv, sku
+                FROM shop_products
+                WHERE active = 1
+                ORDER BY name ASC
+            ");
+            $products = $stmt->fetchAll();
+
+            foreach ($products as &$product) {
+                $product['variants'] = self::getVariantsByProduct($product['id']);
+                $product['images']   = self::getProductImages($product['id']);
+            }
+
+            return $products;
+        } catch (Exception $e) {
+            error_log('Shop::getActiveProducts – ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Return all products (active and inactive) for admin view.
+     *
+     * @return array
+     */
+    public static function getAllProducts(): array {
+        try {
+            $db = Database::getShopDB();
+            $stmt = $db->query("
+                SELECT id, name, description, hints, base_price, image_path, active, is_bulk_order, bulk_end_date, bulk_min_goal,
+                       category, target_group AS gender, pickup_location, shipping_cost, variants AS variants_csv, sku
+                FROM shop_products
+                ORDER BY name ASC
+            ");
+            $products = $stmt->fetchAll();
+
+            foreach ($products as &$product) {
+                $product['variants'] = self::getVariantsByProduct($product['id']);
+                $product['images']   = self::getProductImages($product['id']);
+            }
+
+            return $products;
+        } catch (Exception $e) {
+            error_log('Shop::getAllProducts – ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Return a single product by ID.
+     *
+     * @param int $id
+     * @return array|null
+     */
+    public static function getProductById(int $id): ?array {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                SELECT id, name, description, hints, base_price, image_path, active, is_bulk_order, bulk_end_date, bulk_min_goal,
+                       category, target_group AS gender, pickup_location, shipping_cost, variants AS variants_csv, sku
+                FROM shop_products
+                WHERE id = ?
+            ");
+            $stmt->execute([$id]);
+            $product = $stmt->fetch();
+            if (!$product) {
+                return null;
+            }
+            $product['variants'] = self::getVariantsByProduct($id);
+            $product['images']   = self::getProductImages($id);
+            return $product;
+        } catch (Exception $e) {
+            error_log('Shop::getProductById – ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Create a new product.
+     *
+     * @param array $data  Keys: name, description, hints, base_price, image_path, active, is_bulk_order, bulk_end_date, bulk_min_goal, category, gender, pickup_location, variants, shipping_cost, sku
+     * @return int|null  New product ID or null on failure
+     */
+    public static function createProduct(array $data): ?int {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                INSERT INTO shop_products (name, description, hints, base_price, image_path, active, is_bulk_order, bulk_end_date, bulk_min_goal, category, target_group, pickup_location, variants, shipping_cost, sku)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $allowedGenders = ['Herren', 'Damen', 'Unisex', 'Keine'];
+            $gender = !empty($data['gender']) && in_array($data['gender'], $allowedGenders, true) ? $data['gender'] : 'Keine';
+            $stmt->execute([
+                $data['name'],
+                $data['description'] ?? '',
+                !empty($data['hints']) ? $data['hints'] : null,
+                $data['base_price'] ?? 0,
+                $data['image_path'] ?? null,
+                isset($data['active']) ? (int) $data['active'] : 1,
+                isset($data['is_bulk_order']) ? (int) $data['is_bulk_order'] : 1,
+                $data['bulk_end_date'] ?? null,
+                isset($data['bulk_min_goal']) ? (int) $data['bulk_min_goal'] : null,
+                !empty($data['category']) ? $data['category'] : null,
+                $gender,
+                !empty($data['pickup_location']) ? $data['pickup_location'] : null,
+                !empty($data['variants']) ? $data['variants'] : null,
+                isset($data['shipping_cost']) ? (float) $data['shipping_cost'] : 0.00,
+                !empty($data['sku']) ? $data['sku'] : null,
+            ]);
+            return (int) $db->lastInsertId();
+        } catch (Exception $e) {
+            error_log('Shop::createProduct – ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Update an existing product.
+     *
+     * @param int   $id
+     * @param array $data  Keys: name, description, hints, base_price, image_path, active, is_bulk_order, bulk_end_date, bulk_min_goal, category, gender, pickup_location, variants, shipping_cost, sku
+     * @return bool
+     */
+    public static function updateProduct(int $id, array $data): bool {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                UPDATE shop_products
+                SET name = ?, description = ?, hints = ?, base_price = ?, image_path = ?, active = ?,
+                    is_bulk_order = ?, bulk_end_date = ?, bulk_min_goal = ?,
+                    category = ?, target_group = ?, pickup_location = ?, variants = ?, shipping_cost = ?,
+                    sku = ?
+                WHERE id = ?
+            ");
+            $allowedGenders = ['Herren', 'Damen', 'Unisex', 'Keine'];
+            $gender = !empty($data['gender']) && in_array($data['gender'], $allowedGenders, true) ? $data['gender'] : 'Keine';
+            $stmt->execute([
+                $data['name'],
+                $data['description'] ?? '',
+                !empty($data['hints']) ? $data['hints'] : null,
+                $data['base_price'] ?? 0,
+                $data['image_path'] ?? null,
+                isset($data['active']) ? (int) $data['active'] : 1,
+                isset($data['is_bulk_order']) ? (int) $data['is_bulk_order'] : 1,
+                $data['bulk_end_date'] ?? null,
+                isset($data['bulk_min_goal']) ? (int) $data['bulk_min_goal'] : null,
+                !empty($data['category']) ? $data['category'] : null,
+                $gender,
+                !empty($data['pickup_location']) ? $data['pickup_location'] : null,
+                !empty($data['variants']) ? $data['variants'] : null,
+                isset($data['shipping_cost']) ? (float) $data['shipping_cost'] : 0.00,
+                !empty($data['sku']) ? $data['sku'] : null,
+                $id,
+            ]);
+            return true;
+        } catch (Exception $e) {
+            error_log('Shop::updateProduct – ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Product Images
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return all images for a product, sorted by sort_order ASC.
+     *
+     * @param int $productId
+     * @return array
+     */
+    public static function getProductImages(int $productId): array {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                SELECT id, product_id, image_path, sort_order
+                FROM shop_product_images
+                WHERE product_id = ?
+                ORDER BY sort_order ASC
+            ");
+            $stmt->execute([$productId]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log('Shop::getProductImages – ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Add an image to a product.
+     *
+     * @param int    $productId
+     * @param string $imagePath
+     * @param int    $sortOrder
+     * @return int|null  New image ID or null on failure
+     */
+    public static function addProductImage(int $productId, string $imagePath, int $sortOrder = 0): ?int {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                INSERT INTO shop_product_images (product_id, image_path, sort_order)
+                VALUES (?, ?, ?)
+            ");
+            $stmt->execute([$productId, $imagePath, $sortOrder]);
+            return (int) $db->lastInsertId();
+        } catch (Exception $e) {
+            error_log('Shop::addProductImage – ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Delete a product image by image ID.
+     *
+     * @param int $imageId
+     * @return bool
+     */
+    public static function deleteProductImage(int $imageId): bool {
+        try {
+            $db   = Database::getShopDB();
+
+            // Fetch the image path before deleting so we can remove the file
+            $stmt = $db->prepare("SELECT image_path FROM shop_product_images WHERE id = ?");
+            $stmt->execute([$imageId]);
+            $row = $stmt->fetch();
+            $imagePath = ($row !== false) ? ($row['image_path'] ?? null) : null;
+
+            $stmt = $db->prepare("DELETE FROM shop_product_images WHERE id = ?");
+            $stmt->execute([$imageId]);
+            $deleted = $stmt->rowCount() > 0;
+
+            // Remove the physical file after successful DB deletion
+            if ($deleted && !empty($imagePath)) {
+                require_once __DIR__ . '/../utils/SecureImageUpload.php';
+                SecureImageUpload::deleteImage($imagePath);
+            }
+
+            return $deleted;
+        } catch (Exception $e) {
+            error_log('Shop::deleteProductImage – ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Update the sort order of a product image.
+     *
+     * @param int $imageId
+     * @param int $sortOrder
+     * @return bool
+     */
+    public static function updateImageSortOrder(int $imageId, int $sortOrder): bool {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                UPDATE shop_product_images SET sort_order = ? WHERE id = ?
+            ");
+            $stmt->execute([$sortOrder, $imageId]);
+            return $stmt->rowCount() > 0;
+        } catch (Exception $e) {
+            error_log('Shop::updateImageSortOrder – ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Bulk Order
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return the total number of units already ordered for a product,
+     * to compare against bulk_min_goal.
+     *
+     * @param int $productId
+     * @return int
+     */
+    public static function getBulkOrderProgress(int $productId): int {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                SELECT COALESCE(SUM(oi.quantity), 0)
+                FROM shop_order_items oi
+                JOIN shop_orders o ON o.id = oi.order_id
+                WHERE oi.product_id = ?
+                  AND o.payment_status != 'failed'
+            ");
+            $stmt->execute([$productId]);
+            return (int) $stmt->fetchColumn();
+        } catch (Exception $e) {
+            error_log('Shop::getBulkOrderProgress – ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Delete a product and all its variants (cascade).
+     *
+     * @param int $id
+     * @return bool
+     */
+    public static function deleteProduct(int $id): bool {
+        try {
+            $db   = Database::getShopDB();
+
+            // Collect all image paths before deletion so we can remove the files
+            $stmtProduct = $db->prepare("SELECT image_path FROM shop_products WHERE id = ?");
+            $stmtProduct->execute([$id]);
+            $product = $stmtProduct->fetch();
+            $productImagePath = ($product !== false) ? ($product['image_path'] ?? null) : null;
+
+            $stmtImages = $db->prepare("SELECT image_path FROM shop_product_images WHERE product_id = ?");
+            $stmtImages->execute([$id]);
+            $productImages = $stmtImages->fetchAll();
+
+            $stmt = $db->prepare("DELETE FROM shop_products WHERE id = ?");
+            $stmt->execute([$id]);
+            $deleted = $stmt->rowCount() > 0;
+
+            if ($deleted) {
+                require_once __DIR__ . '/../utils/SecureImageUpload.php';
+                // Delete main product image
+                if (!empty($productImagePath)) {
+                    SecureImageUpload::deleteImage($productImagePath);
+                }
+                // Delete all gallery images
+                foreach ($productImages as $img) {
+                    if (!empty($img['image_path'])) {
+                        SecureImageUpload::deleteImage($img['image_path']);
+                    }
+                }
+            }
+
+            return $deleted;
+        } catch (Exception $e) {
+            error_log('Shop::deleteProduct – ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Variants
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return all variants for a product.
+     *
+     * @param int $productId
+     * @return array
+     */
+    public static function getVariantsByProduct(int $productId): array {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                SELECT id, type, value, stock_quantity
+                FROM shop_variants
+                WHERE product_id = ?
+                ORDER BY type ASC, value ASC
+            ");
+            $stmt->execute([$productId]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log('Shop::getVariantsByProduct – ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Replace all variants for a product.
+     * Deletes existing variants, then inserts new ones.
+     *
+     * @param int   $productId
+     * @param array $variants  Each element: ['type' => string, 'value' => string, 'stock_quantity' => int]
+     * @return bool
+     */
+    public static function setVariants(int $productId, array $variants): bool {
+        $db = null;
+        try {
+            $db = Database::getShopDB();
+
+            // Capture out-of-stock (type, value) combinations before update
+            $prevStmt = $db->prepare("
+                SELECT type, value, stock_quantity
+                FROM shop_variants
+                WHERE product_id = ?
+            ");
+            $prevStmt->execute([$productId]);
+            $prevVariants = [];
+            foreach ($prevStmt->fetchAll() as $row) {
+                $prevVariants[$row['type'] . '|||' . $row['value']] = (int) $row['stock_quantity'];
+            }
+
+            $db->beginTransaction();
+
+            $del = $db->prepare("DELETE FROM shop_variants WHERE product_id = ?");
+            $del->execute([$productId]);
+
+            $ins = $db->prepare("
+                INSERT INTO shop_variants (product_id, type, value, stock_quantity)
+                VALUES (?, ?, ?, ?)
+            ");
+            foreach ($variants as $v) {
+                $ins->execute([
+                    $productId,
+                    $v['type'] ?? '',
+                    $v['value'] ?? '',
+                    (int) ($v['stock_quantity'] ?? 0),
+                ]);
+            }
+
+            $db->commit();
+
+            // Send restock notifications for variants that were previously out of stock and now have stock
+            foreach ($variants as $v) {
+                $type  = $v['type']  ?? '';
+                $value = $v['value'] ?? '';
+                $stock = (int) ($v['stock_quantity'] ?? 0);
+                $key   = $type . '|||' . $value;
+                // Only notify if variant was previously tracked and was out of stock
+                $wasOutOfStock = isset($prevVariants[$key]) && $prevVariants[$key] <= 0;
+                if ($stock > 0 && $wasOutOfStock) {
+                    self::sendRestockNotifications($productId, $type, $value);
+                }
+            }
+
+            return true;
+        } catch (Exception $e) {
+            if ($db !== null && $db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log('Shop::setVariants – ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Restock Notifications
+    // -------------------------------------------------------------------------
+
+    /**
+     * Subscribe a user to a restock notification for a specific product variant.
+     *
+     * @param int    $userId
+     * @param int    $productId
+     * @param string $variantType
+     * @param string $variantValue
+     * @param string $email
+     * @return bool
+     */
+    public static function addRestockNotification(int $userId, int $productId, string $variantType, string $variantValue, string $email): bool {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                INSERT INTO shop_restock_notifications
+                    (user_id, product_id, variant_type, variant_value, email)
+                VALUES (?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE email = VALUES(email), notified_at = NULL
+            ");
+            $stmt->execute([$userId, $productId, $variantType, $variantValue, $email]);
+            return true;
+        } catch (Exception $e) {
+            error_log('Shop::addRestockNotification – ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Remove a restock notification subscription.
+     *
+     * @param int    $userId
+     * @param int    $productId
+     * @param string $variantType
+     * @param string $variantValue
+     * @return bool
+     */
+    public static function removeRestockNotification(int $userId, int $productId, string $variantType, string $variantValue): bool {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                DELETE FROM shop_restock_notifications
+                WHERE user_id = ? AND product_id = ? AND variant_type = ? AND variant_value = ?
+            ");
+            $stmt->execute([$userId, $productId, $variantType, $variantValue]);
+            return true;
+        } catch (Exception $e) {
+            error_log('Shop::removeRestockNotification – ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if a user is already subscribed to restock notifications for a variant.
+     *
+     * @param int    $userId
+     * @param int    $productId
+     * @param string $variantType
+     * @param string $variantValue
+     * @return bool
+     */
+    public static function hasRestockNotification(int $userId, int $productId, string $variantType, string $variantValue): bool {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                SELECT 1 FROM shop_restock_notifications
+                WHERE user_id = ? AND product_id = ? AND variant_type = ? AND variant_value = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$userId, $productId, $variantType, $variantValue]);
+            return $stmt->fetchColumn() !== false;
+        } catch (Exception $e) {
+            error_log('Shop::hasRestockNotification – ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get all active restock notification subscriptions for a user.
+     *
+     * @param int $userId
+     * @return array
+     */
+    public static function getUserRestockNotifications(int $userId): array {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                SELECT n.id, n.product_id, n.variant_type, n.variant_value, n.created_at,
+                       p.name AS product_name
+                FROM shop_restock_notifications n
+                JOIN shop_products p ON p.id = n.product_id
+                WHERE n.user_id = ?
+                ORDER BY n.created_at DESC
+            ");
+            $stmt->execute([$userId]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log('Shop::getUserRestockNotifications – ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Send restock notification emails to all subscribers of a given product variant
+     * and mark their subscriptions as notified.
+     *
+     * @param int    $productId
+     * @param string $variantType
+     * @param string $variantValue
+     * @return void
+     */
+    private static function sendRestockNotifications(int $productId, string $variantType, string $variantValue): void {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                SELECT id, user_id, email
+                FROM shop_restock_notifications
+                WHERE product_id = ? AND variant_type = ? AND variant_value = ?
+                  AND notified_at IS NULL
+            ");
+            $stmt->execute([$productId, $variantType, $variantValue]);
+            $subscribers = $stmt->fetchAll();
+
+            if (empty($subscribers)) {
+                return;
+            }
+
+            $product = self::getProductById($productId);
+            if (!$product) {
+                return;
+            }
+
+            require_once __DIR__ . '/../../src/MailService.php';
+
+            $ids = [];
+            foreach ($subscribers as $sub) {
+                MailService::sendRestockNotification(
+                    $sub['email'],
+                    $product['name'],
+                    $variantType,
+                    $variantValue
+                );
+                $ids[] = (int) $sub['id'];
+            }
+
+            if (!empty($ids)) {
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $upd = $db->prepare(
+                    "UPDATE shop_restock_notifications SET notified_at = NOW() WHERE id IN ($placeholders)"
+                );
+                $upd->execute($ids);
+            }
+        } catch (Exception $e) {
+            error_log('Shop::sendRestockNotifications – ' . $e->getMessage());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Orders
+    // -------------------------------------------------------------------------
+
+    /**
+     * Check whether all variant items in the cart have sufficient stock.
+     *
+     * @param array $cart  Each element: ['variant_id' => int|null, 'quantity' => int, ...]
+     * @return array  List of human-readable error strings; empty when stock is sufficient.
+     */
+    public static function checkStock(array $cart): array {
+        $errors = [];
+        try {
+            $db = Database::getShopDB();
+            foreach ($cart as $item) {
+                if (empty($item['variant_id'])) {
+                    continue;
+                }
+                $stmt = $db->prepare("
+                    SELECT sv.stock_quantity, sv.type, sv.value, sp.name, sp.is_bulk_order
+                    FROM shop_variants sv
+                    JOIN shop_products sp ON sp.id = sv.product_id
+                    WHERE sv.id = ?
+                ");
+                $stmt->execute([(int) $item['variant_id']]);
+                $variant = $stmt->fetch();
+                if ($variant && !$variant['is_bulk_order'] && (int) $variant['stock_quantity'] < (int) $item['quantity']) {
+                    $errors[] = 'Artikel ' . $variant['name'] . ' ist leider nicht mehr verfügbar';
+                }
+            }
+        } catch (Exception $e) {
+            error_log('Shop::checkStock – ' . $e->getMessage());
+            $errors[] = 'Lagerbestand konnte nicht geprüft werden.';
+        }
+        return $errors;
+    }
+
+    /**
+     * Subtract purchased quantities from shop_variants for all variant items in an order.
+     * Call this only after payment has been successfully initiated.
+     *
+     * @param int $orderId
+     * @return bool
+     */
+    public static function decrementStock(int $orderId): bool {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                SELECT variant_id, quantity
+                FROM shop_order_items
+                WHERE order_id = ? AND variant_id IS NOT NULL
+            ");
+            $stmt->execute([$orderId]);
+            $items = $stmt->fetchAll();
+
+            $upd = $db->prepare("
+                UPDATE shop_variants
+                SET stock_quantity = GREATEST(0, stock_quantity - ?)
+                WHERE id = ?
+            ");
+            foreach ($items as $item) {
+                $upd->execute([(int) $item['quantity'], (int) $item['variant_id']]);
+            }
+            return true;
+        } catch (Exception $e) {
+            error_log('Shop::decrementStock – ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Atomically check stock and decrement it within a single transaction.
+     * Uses SELECT … FOR UPDATE to lock variant rows so that concurrent
+     * checkouts cannot both pass the stock check and drive the quantity below zero.
+     *
+     * @param int $orderId  Already-created order whose items drive the check.
+     * @return array        Empty on success; error strings when stock is insufficient.
+     */
+    public static function decrementStockAtomic(int $orderId): array {
+        $errors = [];
+        $db = null;
+        try {
+            $db = Database::getShopDB();
+            $db->beginTransaction();
+
+            $stmt = $db->prepare("
+                SELECT oi.variant_id, oi.quantity,
+                       sv.stock_quantity, sv.type, sv.value, sp.name, sp.is_bulk_order
+                FROM shop_order_items oi
+                JOIN shop_variants sv ON sv.id = oi.variant_id
+                JOIN shop_products sp ON sp.id = sv.product_id
+                WHERE oi.order_id = ? AND oi.variant_id IS NOT NULL
+                FOR UPDATE
+            ");
+            $stmt->execute([$orderId]);
+            $items = $stmt->fetchAll();
+
+            foreach ($items as $item) {
+                if (!$item['is_bulk_order'] && (int) $item['stock_quantity'] < (int) $item['quantity']) {
+                    $errors[] = 'Artikel ' . $item['name'] . ' ist leider nicht mehr verfügbar';
+                }
+            }
+
+            if (!empty($errors)) {
+                $db->rollBack();
+                return $errors;
+            }
+
+            $upd = $db->prepare("
+                UPDATE shop_variants
+                SET stock_quantity = GREATEST(0, stock_quantity - ?)
+                WHERE id = ?
+            ");
+            /* GREATEST(0, …) is a safety net: the check above already
+               guarantees stock_quantity >= quantity inside this lock,
+               but it mirrors the guard in decrementStock() for defence in depth. */
+            foreach ($items as $item) {
+                $upd->execute([(int) $item['quantity'], (int) $item['variant_id']]);
+            }
+
+            $db->commit();
+            return [];
+        } catch (Exception $e) {
+            return ['Lagerbestand konnte nicht verarbeitet werden.'];
+        }
+    }
+
+    /**
+     * Create an order from the current session cart.
+     *
+     * @param int    $userId
+     * @param array  $cart    Keys: product_id, variant_id, quantity, price
+     * @param string $paymentMethod  'paypal' or 'bank_transfer'
+     * @param string $shippingMethod 'pickup' or 'mail'
+     * @param float  $shippingCost
+     * @param string $shippingAddress  Required when shippingMethod is 'mail'
+     * @param string $deliveryMethod  'Versand' or 'Abholung' as chosen by the buyer
+     * @return int|null  New order ID or null on failure
+     */
+    public static function createOrder(int $userId, array $cart, string $paymentMethod, string $shippingMethod = 'pickup', float $shippingCost = 0.0, string $shippingAddress = '', string $selectedVariant = '', string $deliveryMethod = ''): ?int {
+        try {
+            $db = Database::getShopDB();
+            $db->beginTransaction();
+
+            $itemsTotal = array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], $cart));
+            $total = $itemsTotal + $shippingCost;
+
+            $stmt = $db->prepare("
+                INSERT INTO shop_orders (user_id, total_amount, payment_method, payment_status, shipping_status, shipping_method, shipping_cost, shipping_address, selected_variant, delivery_method)
+                VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$userId, $total, $paymentMethod, $shippingMethod, $shippingCost, ($shippingAddress !== '' ? $shippingAddress : null), ($selectedVariant !== '' ? $selectedVariant : null), ($deliveryMethod !== '' ? $deliveryMethod : null)]);
+            $orderId = (int) $db->lastInsertId();
+
+            $ins = $db->prepare("
+                INSERT INTO shop_order_items (order_id, product_id, variant_id, quantity, price_at_purchase)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            foreach ($cart as $item) {
+                $ins->execute([
+                    $orderId,
+                    $item['product_id'],
+                    $item['variant_id'] ?: null,
+                    (int) $item['quantity'],
+                    (float) $item['price'],
+                ]);
+            }
+
+            $db->commit();
+            return $orderId;
+        } catch (Exception $e) {
+            $db->rollBack();
+            error_log('Shop::createOrder – ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Atomically validate the cart, fetch current prices live from the DB,
+     * check and lock stock with SELECT … FOR UPDATE, create the order, and
+     * decrement stock — all within a single PDO transaction.
+     *
+     * Replaces the separate checkStock → createOrder → decrementStockAtomic
+     * call chain and eliminates both price-manipulation and race-condition risks.
+     *
+     * @param int    $userId
+     * @param array  $cart            Keys: product_id, variant_id, quantity
+     *                                (price is intentionally ignored — re-fetched from DB)
+     * @param string $paymentMethod   'paypal' or 'bank_transfer'
+     * @param string $shippingMethod  'pickup' or 'mail'
+     * @param string $shippingCountry ISO-3166-1 alpha-2 country code used to calculate shipping
+     * @param string $shippingAddress Required when shippingMethod is 'mail'
+     * @param string $selectedVariant
+     * @param string $deliveryMethod  'Versand' or 'Abholung'
+     * @return array{order_id: int|null, items_total: float, shipping_cost: float, errors: string[], internal_error: bool}
+     */
+    public static function createOrderTransactional(
+        int    $userId,
+        array  $cart,
+        string $paymentMethod,
+        string $shippingMethod  = 'pickup',
+        string $shippingCountry = 'DE',
+        string $shippingAddress = '',
+        string $selectedVariant = '',
+        string $deliveryMethod  = ''
+    ): array {
+        $db = null;
+        try {
+            $db = Database::getShopDB();
+
+            // Sort cart items by variant_id ascending so that FOR UPDATE row-locks
+            // are always acquired in the same order across concurrent transactions,
+            // which makes the system fully immune to MySQL deadlocks.
+            usort($cart, function (array $a, array $b): int {
+                $aId = (isset($a['variant_id']) && $a['variant_id'] !== null && $a['variant_id'] !== '')
+                    ? (int) $a['variant_id'] : 0;
+                $bId = (isset($b['variant_id']) && $b['variant_id'] !== null && $b['variant_id'] !== '')
+                    ? (int) $b['variant_id'] : 0;
+                return $aId <=> $bId;
+            });
+
+            $db->beginTransaction();
+
+            $enrichedCart = [];
+            $stockErrors  = [];
+
+            foreach ($cart as $item) {
+                $qty       = (int) $item['quantity'];
+                $productId = (int) $item['product_id'];
+                $variantId = (isset($item['variant_id']) && $item['variant_id'] !== null && $item['variant_id'] !== '')
+                    ? (int) $item['variant_id']
+                    : null;
+
+                // Reject non-positive or fractional quantities
+                if ($qty < 1) {
+                    $db->rollBack();
+                    return ['order_id' => null, 'items_total' => 0.0, 'shipping_cost' => 0.0,
+                            'internal_error' => false,
+                            'errors' => ['Ungültige Menge: Mengen müssen mindestens 1 betragen.']];
+                }
+
+                // Fetch current price exclusively from the DB — never trust client-supplied values
+                $priceStmt = $db->prepare("
+                    SELECT base_price FROM shop_products WHERE id = ? AND active = 1
+                ");
+                $priceStmt->execute([$productId]);
+                $priceRow = $priceStmt->fetch();
+                if (!$priceRow) {
+                    $db->rollBack();
+                    return ['order_id' => null, 'items_total' => 0.0, 'shipping_cost' => 0.0,
+                            'internal_error' => false,
+                            'errors' => ['Produkt nicht gefunden oder nicht verfügbar.']];
+                }
+
+                // Lock the variant row and check stock atomically (FOR UPDATE)
+                if ($variantId !== null) {
+                    $stockStmt = $db->prepare("
+                        SELECT sv.stock_quantity, sv.type, sv.value, sp.name, sp.is_bulk_order
+                        FROM shop_variants sv
+                        JOIN shop_products sp ON sp.id = sv.product_id
+                        WHERE sv.id = ? AND sv.product_id = ?
+                        FOR UPDATE
+                    ");
+                    $stockStmt->execute([$variantId, $productId]);
+                    $variant = $stockStmt->fetch();
+
+                    if ($variant && !$variant['is_bulk_order'] && (int) $variant['stock_quantity'] < $qty) {
+                        $stockErrors[] = 'Artikel ' . $variant['name'] . ' ist leider nicht mehr verfügbar';
+                    }
+                }
+
+                $enrichedCart[] = [
+                    'product_id'       => $productId,
+                    'variant_id'       => $variantId,
+                    'product_name'     => $item['product_name'] ?? '',
+                    'variant_name'     => $item['variant_name'] ?? '',
+                    'selected_variant' => $item['selected_variant'] ?? '',
+                    'quantity'         => $qty,
+                    'price'            => (float) $priceRow['base_price'],
+                ];
+            }
+
+            if (!empty($stockErrors)) {
+                $db->rollBack();
+                return ['order_id' => null, 'items_total' => 0.0, 'shipping_cost' => 0.0, 'internal_error' => false, 'errors' => $stockErrors];
+            }
+
+            // Compute totals using server-side (DB) prices
+            $itemsTotal   = array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], $enrichedCart));
+            $shippingCost = ($shippingMethod === 'mail')
+                ? self::calculateShippingCost($shippingCountry, $itemsTotal)
+                : 0.0;
+            $total = $itemsTotal + $shippingCost;
+
+            // Insert order record
+            $stmt = $db->prepare("
+                INSERT INTO shop_orders (user_id, total_amount, payment_method, payment_status, shipping_status, shipping_method, shipping_cost, shipping_address, selected_variant, delivery_method)
+                VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $userId,
+                $total,
+                $paymentMethod,
+                $shippingMethod,
+                $shippingCost,
+                ($shippingAddress !== '' ? $shippingAddress : null),
+                ($selectedVariant !== '' ? $selectedVariant : null),
+                ($deliveryMethod  !== '' ? $deliveryMethod  : null),
+            ]);
+            $orderId = (int) $db->lastInsertId();
+
+            // Insert order items with DB-sourced prices
+            $ins = $db->prepare("
+                INSERT INTO shop_order_items (order_id, product_id, variant_id, quantity, price_at_purchase)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            foreach ($enrichedCart as $item) {
+                $ins->execute([
+                    $orderId,
+                    $item['product_id'],
+                    $item['variant_id'],
+                    $item['quantity'],
+                    $item['price'],
+                ]);
+            }
+
+            // Decrement stock for variant items (row lock already held by FOR UPDATE above)
+            $upd = $db->prepare("
+                UPDATE shop_variants
+                SET stock_quantity = GREATEST(0, stock_quantity - ?)
+                WHERE id = ?
+            ");
+            foreach ($enrichedCart as $item) {
+                if ($item['variant_id'] !== null) {
+                    $upd->execute([$item['quantity'], $item['variant_id']]);
+                }
+            }
+
+            $db->commit();
+            return ['order_id' => $orderId, 'items_total' => $itemsTotal, 'shipping_cost' => $shippingCost, 'internal_error' => false, 'errors' => []];
+        } catch (Exception $e) {
+            if ($db && $db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log('Shop::createOrderTransactional – ' . $e->getMessage());
+            return ['order_id' => null, 'items_total' => 0.0, 'shipping_cost' => 0.0,
+                    'internal_error' => true, 'errors' => ['Ein interner Fehler ist aufgetreten.']];
+        }
+    }
+
+    /**
+     * Return all orders (admin view), optionally joined with user email.
+     *
+     * @return array
+     */
+    public static function getAllOrders(): array {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->query("
+                SELECT id, user_id, total_amount, payment_method, payment_status, shipping_status, created_at
+                FROM shop_orders
+                ORDER BY created_at DESC
+            ");
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log('Shop::getAllOrders – ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Return orders for a specific user.
+     *
+     * @param int $userId
+     * @return array
+     */
+    public static function getOrdersByUser(int $userId): array {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                SELECT id, total_amount, payment_method, payment_status, shipping_status, created_at
+                FROM shop_orders
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+            ");
+            $stmt->execute([$userId]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log('Shop::getOrdersByUser – ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Update payment and/or shipping status of an order.
+     *
+     * @param int         $orderId
+     * @param string|null $paymentStatus
+     * @param string|null $shippingStatus
+     * @return bool
+     */
+    public static function updateOrderStatus(int $orderId, ?string $paymentStatus, ?string $shippingStatus): bool {
+        try {
+            $db = Database::getShopDB();
+
+            $validPayment  = ['pending', 'paid', 'failed'];
+            $validShipping = ['pending', 'shipped', 'delivered'];
+
+            $fields = [];
+            $params = [];
+
+            if ($paymentStatus !== null && in_array($paymentStatus, $validPayment)) {
+                $fields[] = 'payment_status = ?';
+                $params[]  = $paymentStatus;
+            }
+            if ($shippingStatus !== null && in_array($shippingStatus, $validShipping)) {
+                $fields[] = 'shipping_status = ?';
+                $params[]  = $shippingStatus;
+            }
+
+            if (empty($fields)) {
+                return false;
+            }
+
+            $params[] = $orderId;
+            $stmt = $db->prepare("UPDATE shop_orders SET " . implode(', ', $fields) . " WHERE id = ?");
+            $stmt->execute($params);
+            return true;
+        } catch (Exception $e) {
+            error_log('Shop::updateOrderStatus – ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Shipping
+    // -------------------------------------------------------------------------
+
+    /**
+     * Calculate the shipping cost based on the destination country, cart total,
+     * and whether the cart contains only digital/downloadable products.
+     *
+     * Rules:
+     *  - Digital-only cart       →  0,00 €
+     *  - Germany (DE)            →  4,90 € (free from 50,00 € cart total)
+     *  - Austria (AT) / Switzerland (CH) → 9,90 €
+     *  - Other EU countries      → 14,90 €
+     *
+     * @param string $countryCode ISO 3166-1 alpha-2 country code (e.g. 'DE', 'AT', 'CH')
+     * @param float  $cartTotal   Sum of all item prices in the cart (EUR)
+     * @param bool   $isDigital   True when the cart contains only digital products / downloads
+     * @return float              Shipping cost in EUR
+     */
+    public static function calculateShippingCost(string $countryCode, float $cartTotal, bool $isDigital = false): float {
+        if ($isDigital) {
+            return 0.00;
+        }
+
+        $euCountries = [
+            'AT', 'BE', 'BG', 'CY', 'CZ', 'DK', 'EE', 'ES', 'FI', 'FR', 'GR', 'HR',
+            'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL', 'PT', 'RO', 'SE',
+            'SI', 'SK',
+        ];
+
+        $code = strtoupper($countryCode);
+
+        if ($code === 'DE') {
+            return $cartTotal >= 50.00 ? 0.00 : 4.90;
+        }
+
+        // CH is not an EU member but receives the same flat rate as AT
+        if ($code === 'AT' || $code === 'CH') {
+            return 9.90;
+        }
+
+        // All other EU countries – and any country not listed above
+        if (in_array($code, $euCountries, true)) {
+            return 14.90;
+        }
+
+        // Fallback for non-EU / unknown countries
+        return 14.90;
+    }
+
+    // -------------------------------------------------------------------------
+    // Statistics
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return monthly sales count and revenue for the last N months.
+     *
+     * @param int $months
+     * @return array  Each row: ['month' => 'YYYY-MM', 'count' => int, 'revenue' => float]
+     */
+    public static function getMonthlySalesStats(int $months = 12): array {
+        try {
+            $db   = Database::getShopDB();
+            $stmt = $db->prepare("
+                SELECT
+                    DATE_FORMAT(created_at, '%Y-%m') AS month,
+                    COUNT(*)                          AS count,
+                    COALESCE(SUM(total_amount), 0)   AS revenue
+                FROM shop_orders
+                WHERE payment_status = 'paid'
+                  AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? MONTH)
+                GROUP BY month
+                ORDER BY month ASC
+            ");
+            $stmt->execute([$months]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log('Shop::getMonthlySalesStats – ' . $e->getMessage());
+            return [];
+        }
+    }
+}

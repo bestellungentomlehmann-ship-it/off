@@ -1,0 +1,1702 @@
+<?php
+/**
+ * Shop-Verwaltung (Admin)
+ * Produkte erstellen/bearbeiten, Varianten verwalten, Bestellstatus aktualisieren.
+ * Access: board_finance, board_internal, board_external, head
+ */
+
+require_once __DIR__ . '/../../src/Auth.php';
+require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/models/Shop.php';
+require_once __DIR__ . '/../../includes/utils/SecureImageUpload.php';
+require_once __DIR__ . '/../../includes/handlers/CSRFHandler.php';
+
+if (!Auth::check()) {
+    header('Location: ../auth/login.php');
+    exit;
+}
+
+if (!Auth::hasRole(Shop::MANAGER_ROLES)) {
+    header('Location: ../dashboard/index.php');
+    exit;
+}
+
+$successMessage = '';
+$errorMessage   = '';
+$section        = $_GET['section'] ?? 'products';  // products | orders
+$editProductId  = isset($_GET['edit']) ? (int) $_GET['edit'] : 0;
+$editProduct    = null;
+$openModal      = false;
+
+if ($editProductId) {
+    $editProduct = Shop::getProductById($editProductId);
+    $openModal   = true;
+}
+
+// ─── Handle POST ───────────────────────────────────────────────────────────────
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postAction = $_POST['post_action'] ?? '';
+
+    // Detect post_max_size / upload_max_filesize exceeded (PHP silently clears $_POST and $_FILES)
+    if (empty($_POST) && empty($_FILES) && isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > 0) {
+        $errorMessage = 'Die Formulardaten konnten nicht verarbeitet werden. Möglicherweise überschreiten die hochgeladenen Bilder die maximale Dateigröße (max. ' . htmlspecialchars(ini_get('upload_max_filesize')) . ' pro Datei, ' . htmlspecialchars(ini_get('post_max_size')) . ' gesamt). Bitte wähle kleinere Bilder aus.';
+    }
+
+    // Log diagnostic info when $_FILES is empty during a multipart form submission to aid diagnosing server upload issues
+    if (empty($_FILES) && !empty($_POST) && isset($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') !== false) {
+        error_log('shop_manage.php: $_FILES is empty for multipart/form-data request. file_uploads=' . ini_get('file_uploads') . ', upload_max_filesize=' . ini_get('upload_max_filesize') . ', post_max_size=' . ini_get('post_max_size') . ', Content-Length=' . ($_SERVER['CONTENT_LENGTH'] ?? 'n/a') . '. $_POST keys: ' . implode(', ', array_keys($_POST)));
+    }
+
+    // Save product (create or update)
+    if ($postAction === 'save_product') {
+        CSRFHandler::verifyToken($_POST['csrf_token'] ?? '');
+        $pid  = isset($_POST['product_id']) ? (int) $_POST['product_id'] : 0;
+        $data = [
+            'name'          => trim($_POST['name'] ?? ''),
+            'description'   => trim($_POST['description'] ?? ''),
+            'hints'         => trim($_POST['hints'] ?? ''),
+            'base_price'    => (float) ($_POST['base_price'] ?? 0),
+            'active'        => isset($_POST['active']) ? 1 : 0,
+            'is_bulk_order' => isset($_POST['is_bulk_order']) ? 1 : 0,
+            'bulk_end_date' => !empty($_POST['bulk_end_date']) ? $_POST['bulk_end_date'] : null,
+            'bulk_min_goal' => !empty($_POST['bulk_min_goal']) ? (int) $_POST['bulk_min_goal'] : null,
+            'category'         => trim($_POST['category'] ?? ''),
+            'gender'           => trim($_POST['gender'] ?? ''),
+            'pickup_location'  => trim($_POST['pickup_location'] ?? ''),
+            'variants'         => trim($_POST['variants_text'] ?? ''),
+            'sku'              => trim($_POST['sku'] ?? ''),
+            'image_path'    => null,
+        ];
+
+        $allowedCategories = ['Kleidung', 'Accessoires', 'Bürobedarf', 'Sonstiges'];
+        if (!empty($data['category']) && !in_array($data['category'], $allowedCategories, true)) {
+            $data['category'] = '';
+        }
+
+        if (empty($data['name'])) {
+            $errorMessage  = 'Produktname darf nicht leer sein.';
+            $openModal     = true;
+            $editProductId = $pid;
+            if ($pid) {
+                $editProduct = Shop::getProductById($pid);
+            }
+        } else {
+            // Keep existing image_path for backwards compatibility
+            if ($pid) {
+                $existing = Shop::getProductById($pid);
+                $data['image_path'] = $existing['image_path'] ?? null;
+            }
+
+            if (empty($errorMessage)) {
+                if ($pid) {
+                    $ok = Shop::updateProduct($pid, $data);
+                    $successMessage = $ok ? 'Produkt erfolgreich aktualisiert.' : 'Fehler beim Aktualisieren des Produkts.';
+                } else {
+                    $newId = Shop::createProduct($data);
+                    $ok    = $newId !== null;
+                    $successMessage = $ok ? 'Produkt erfolgreich erstellt.' : 'Fehler beim Erstellen des Produkts.';
+                    if ($ok) {
+                        $pid = $newId;
+                    }
+                }
+
+                // Save variants and images if product was saved successfully
+                if ($ok && $pid) {
+                    // Handle multiple image uploads
+                    $uploadErrors = [];
+                    if (!empty($_FILES['product_images']['name'][0])) {
+                        $uploadDir     = realpath(__DIR__ . '/../../uploads/shop_products');
+                        if ($uploadDir === false) {
+                            $uploadDir = __DIR__ . '/../../uploads/shop_products';
+                            if (!is_dir($uploadDir)) {
+                                mkdir($uploadDir, 0755, true);
+                            }
+                            $uploadDir = realpath($uploadDir) ?: $uploadDir;
+                        }
+                        $uploadDir .= DIRECTORY_SEPARATOR;
+                        $files         = $_FILES['product_images'];
+                        $existingImgs  = Shop::getProductImages($pid);
+                        $nextSortOrder = count($existingImgs);
+                        for ($i = 0; $i < count($files['name']); $i++) {
+                            if ($files['error'][$i] === UPLOAD_ERR_NO_FILE) {
+                                continue;
+                            }
+                            if ($files['error'][$i] !== UPLOAD_ERR_OK) {
+                                $phpUploadErrors = [
+                                    UPLOAD_ERR_INI_SIZE   => 'Datei überschreitet das PHP-Upload-Limit (upload_max_filesize).',
+                                    UPLOAD_ERR_FORM_SIZE  => 'Datei überschreitet das im Formular angegebene Limit.',
+                                    UPLOAD_ERR_PARTIAL    => 'Datei wurde nur teilweise hochgeladen.',
+                                    UPLOAD_ERR_NO_TMP_DIR => 'Kein temporäres Verzeichnis verfügbar.',
+                                    UPLOAD_ERR_CANT_WRITE => 'Datei konnte nicht auf dem Server gespeichert werden.',
+                                    UPLOAD_ERR_EXTENSION  => 'Upload durch PHP-Erweiterung abgebrochen.',
+                                ];
+                                $errMsg = $phpUploadErrors[$files['error'][$i]] ?? 'Upload-Fehler (Code ' . $files['error'][$i] . ').';
+                                $uploadErrors[] = 'Bild ' . htmlspecialchars(basename($files['name'][$i])) . ': ' . $errMsg;
+                                continue;
+                            }
+                            $singleFile = [
+                                'name'     => $files['name'][$i],
+                                'type'     => $files['type'][$i],
+                                'tmp_name' => $files['tmp_name'][$i],
+                                'error'    => $files['error'][$i],
+                                'size'     => $files['size'][$i],
+                            ];
+                            $uploadResult = SecureImageUpload::uploadImage($singleFile, $uploadDir, true);
+                            if ($uploadResult['success']) {
+                                Shop::addProductImage($pid, $uploadResult['path'], $nextSortOrder++);
+                            } else {
+                                $uploadErrors[] = 'Bild ' . htmlspecialchars(basename($files['name'][$i])) . ': ' . ($uploadResult['error'] ?? 'Unbekannter Fehler');
+                            }
+                        }
+                    } elseif (
+                        isset($_SERVER['CONTENT_LENGTH']) &&
+                        (function_exists('ini_get') && (function ($val) {
+                            $val  = trim($val);
+                            $last = strtolower($val[strlen($val) - 1]);
+                            $num  = (int) $val;
+                            if ($last === 'g') { $num *= 1073741824; }
+                            elseif ($last === 'm') { $num *= 1048576; }
+                            elseif ($last === 'k') { $num *= 1024; }
+                            return $num;
+                        })(ini_get('post_max_size')) < (int) $_SERVER['CONTENT_LENGTH'])
+                    ) {
+                        $uploadErrors[] = 'Die hochgeladenen Bilder überschreiten die zulässige Gesamtgröße (post_max_size).';
+                    }
+
+                    $hasVariants = isset($_POST['has_variants']);
+                    if (!$hasVariants) {
+                        // No named variants – store a single default variant.
+                        // Stock tracking is handled via bulk_min_goal for bulk orders;
+                        // stock_quantity is set to 0 as it is not used in this system.
+                        $variants = [['type' => '', 'value' => '', 'stock_quantity' => 0]];
+                    } else {
+                        $variantGroups = $_POST['variants'] ?? [];
+                        $variants      = [];
+                        foreach ($variantGroups as $groupData) {
+                            $typeName = trim($groupData['name'] ?? '');
+                            if ($typeName === '') {
+                                continue;
+                            }
+                            foreach ($groupData['values'] ?? [] as $valueData) {
+                                $valueName = trim($valueData['value'] ?? '');
+                                if ($valueName !== '') {
+                                    $variants[] = [
+                                        'type'           => $typeName,
+                                        'value'          => $valueName,
+                                        'stock_quantity' => (int) ($valueData['stock'] ?? 0),
+                                    ];
+                                }
+                            }
+                        }
+                    }
+
+                    Shop::setVariants($pid, $variants);
+
+                    // If creating a new product and "also create for other gender" was requested
+                    if (!isset($_POST['product_id']) || (int) $_POST['product_id'] === 0) {
+                        if (isset($_POST['also_create_other_gender'])) {
+                            if ($data['gender'] === 'Herren') {
+                                $otherGender = 'Damen';
+                            } elseif ($data['gender'] === 'Damen') {
+                                $otherGender = 'Herren';
+                            } else {
+                                $otherGender = null;
+                            }
+                            if ($otherGender) {
+                                $dataCopy           = $data;
+                                $dataCopy['gender'] = $otherGender;
+                                // image_path is null for new products; gallery images are copied below
+                                $copyId = Shop::createProduct($dataCopy);
+                                if ($copyId) {
+                                    // Build variants for the other-gender product
+                                    $otherGenderVariants = $variants;
+                                    // If non-bulk and other-gender stock was provided, use it
+                                    if (!$data['is_bulk_order'] && !empty($_POST['also_gender_variants'])) {
+                                        $agGroups = $_POST['also_gender_variants'];
+                                        $agFlat   = [];
+                                        foreach ($agGroups as $gIdx => $agGroup) {
+                                            $typeName = trim($agGroup['name'] ?? '');
+                                            if ($typeName === '') {
+                                                continue;
+                                            }
+                                            foreach ($agGroup['values'] ?? [] as $vData) {
+                                                $valueName = trim($vData['value'] ?? '');
+                                                if ($valueName !== '') {
+                                                    $agFlat[] = [
+                                                        'type'           => $typeName,
+                                                        'value'          => $valueName,
+                                                        'stock_quantity' => (int) ($vData['stock'] ?? 0),
+                                                    ];
+                                                }
+                                            }
+                                        }
+                                        if (!empty($agFlat)) {
+                                            $otherGenderVariants = $agFlat;
+                                        }
+                                    }
+                                    Shop::setVariants($copyId, $otherGenderVariants);
+
+                                    // Copy gallery images from the main product to the copy
+                                    $mainImages = Shop::getProductImages($pid);
+                                    foreach ($mainImages as $img) {
+                                        Shop::addProductImage($copyId, $img['image_path'], (int) $img['sort_order']);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Redirect to avoid re-POST
+                    if (!empty($uploadErrors)) {
+                        $query = 'saved=1&upload_errors=' . urlencode(implode('|', $uploadErrors));
+                    } else {
+                        $query = 'saved=1';
+                    }
+                    header('Location: ' . asset('pages/admin/shop_manage.php?section=products&' . $query));
+                    exit;
+                }
+            }
+        }
+    }
+
+    // Delete product
+    if ($postAction === 'delete_product') {
+        CSRFHandler::verifyToken($_POST['csrf_token'] ?? '');
+        $pid = (int) ($_POST['product_id'] ?? 0);
+        if ($pid) {
+            $ok = Shop::deleteProduct($pid);
+            if ($ok) {
+                header('Location: ' . asset('pages/admin/shop_manage.php?section=products&deleted=1'));
+                exit;
+            } else {
+                $errorMessage = 'Fehler beim Löschen des Produkts.';
+            }
+        }
+    }
+
+    // Update order status
+    if ($postAction === 'update_order') {
+        CSRFHandler::verifyToken($_POST['csrf_token'] ?? '');
+        $orderId        = (int) ($_POST['order_id'] ?? 0);
+        $paymentStatus  = $_POST['payment_status']  ?? null;
+        $shippingStatus = $_POST['shipping_status'] ?? null;
+
+        $ok = Shop::updateOrderStatus($orderId, $paymentStatus, $shippingStatus);
+        if ($ok) {
+            header('Location: ' . asset('pages/admin/shop_manage.php?section=orders&saved=1'));
+            exit;
+        } else {
+            $errorMessage = 'Fehler beim Aktualisieren des Bestellstatus.';
+        }
+    }
+}
+
+if (isset($_GET['saved'])) {
+    $successMessage = 'Änderungen erfolgreich gespeichert.';
+    if (!empty($_GET['upload_errors'])) {
+        $uploadErrList = explode('|', urldecode($_GET['upload_errors']));
+        $errorMessage = 'Produkt gespeichert, aber beim Bildupload gab es Fehler: ' . implode(' ', $uploadErrList);
+    }
+}
+if (isset($_GET['deleted'])) {
+    $successMessage = 'Produkt erfolgreich gelöscht.';
+}
+
+// ─── Data for view ─────────────────────────────────────────────────────────────
+
+$products = [];
+$orders   = [];
+
+if ($section === 'products') {
+    $products = Shop::getAllProducts();
+    // Pre-process image asset URLs for JS
+    foreach ($products as &$p) {
+        foreach ($p['images'] as &$img) {
+            $img['url'] = !empty($img['image_path']) ? asset($img['image_path']) : '';
+        }
+    }
+    unset($p, $img);
+
+    // Fetch recent sales stats for the dashboard chart
+    $recentSalesStats = Shop::getMonthlySalesStats(6);
+    $chartLabels   = [];
+    $chartCounts   = [];
+    $chartRevenues = [];
+    foreach ($recentSalesStats as $row) {
+        $dt = DateTime::createFromFormat('Y-m', $row['month']);
+        $chartLabels[]   = $dt ? $dt->format('M y') : $row['month'];
+        $chartCounts[]   = (int)   $row['count'];
+        $chartRevenues[] = (float) $row['revenue'];
+    }
+    $recentTotalOrders  = array_sum($chartCounts);
+    $recentTotalRevenue = array_sum($chartRevenues);
+} elseif ($section === 'orders') {
+    $orders = Shop::getAllOrders();
+
+    // Enrich with user email from user DB
+    if (!empty($orders)) {
+        $userDb  = Database::getUserDB();
+        $userIds = array_unique(array_column($orders, 'user_id'));
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $stmt    = $userDb->prepare("SELECT id, email, firstname, lastname FROM users WHERE id IN ($placeholders)");
+        $stmt->execute($userIds);
+        $userMap = [];
+        foreach ($stmt->fetchAll() as $u) {
+            $userMap[$u['id']] = $u;
+        }
+        foreach ($orders as &$order) {
+            $u = $userMap[$order['user_id']] ?? null;
+            $order['user_email'] = $u ? $u['email'] : 'Unbekannt';
+            $order['user_name']  = $u
+                ? trim(($u['firstname'] ?? '') . ' ' . ($u['lastname'] ?? ''))
+                : '';
+        }
+    }
+}
+
+$title = 'Shop-Verwaltung – IBC Intranet';
+ob_start();
+?>
+
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+                <i class="fas fa-store mr-3 text-blue-600 dark:text-blue-400"></i>
+                Shop-Verwaltung
+            </h1>
+            <p class="text-gray-600 dark:text-gray-300">Produkte und Bestellungen verwalten</p>
+        </div>
+        <!-- Section tabs -->
+        <div class="flex flex-wrap gap-2 sm:gap-4 w-full sm:w-auto">
+            <a href="<?php echo asset('pages/admin/shop_manage.php?section=products'); ?>"
+               class="flex-1 sm:flex-none px-5 py-2 min-h-[44px] inline-flex items-center justify-center rounded-lg font-medium transition-colors no-underline
+                      <?php echo $section === 'products' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'; ?>">
+                <i class="fas fa-box mr-1"></i>Produkte
+            </a>
+            <a href="<?php echo asset('pages/admin/shop_manage.php?section=orders'); ?>"
+               class="flex-1 sm:flex-none px-5 py-2 min-h-[44px] inline-flex items-center justify-center rounded-lg font-medium transition-colors no-underline
+                      <?php echo $section === 'orders' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'; ?>">
+                <i class="fas fa-list-alt mr-1"></i>Bestellungen
+            </a>
+        </div>
+    </div>
+
+    <!-- Flash messages -->
+    <?php if ($successMessage): ?>
+    <div class="mb-6 p-4 bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg">
+        <i class="fas fa-check-circle mr-2"></i><?php echo htmlspecialchars($successMessage); ?>
+    </div>
+    <?php endif; ?>
+    <?php if ($errorMessage): ?>
+    <div class="mb-6 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg">
+        <i class="fas fa-exclamation-circle mr-2"></i><?php echo htmlspecialchars($errorMessage); ?>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($section === 'products'): ?>
+    <!-- ════════════════════════════════════════════════════════════════════════
+         PRODUCTS
+    ═══════════════════════════════════════════════════════════════════════════ -->
+
+    <!-- Add New Product button – prominent, top-level -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">
+            <i class="fas fa-list mr-2 text-blue-500"></i>Alle Produkte
+        </h2>
+        <button type="button" onclick="openProductModal()"
+                class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-base shadow-lg transition-colors duration-150">
+            <i class="fas fa-plus"></i>Neues Produkt hinzufügen
+        </button>
+    </div>
+
+    <!-- Dashboard grid: product list + sales chart sidebar -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+        <!-- Product list (2/3 width on xl) -->
+        <div class="xl:col-span-2 card rounded-xl shadow-lg p-6">
+            <?php if (empty($products)): ?>
+            <div class="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+                <i class="fas fa-box-open text-5xl mb-4 opacity-40"></i>
+                <p class="text-lg font-medium mb-4">Noch keine Produkte vorhanden.</p>
+                <button type="button" onclick="openProductModal()"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                    <i class="fas fa-plus"></i>Erstes Produkt erstellen
+                </button>
+            </div>
+            <?php else: ?>
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-sm card-table">
+                    <thead>
+                        <tr class="border-b border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-left">
+                            <th class="p-4 font-semibold whitespace-nowrap">Bild</th>
+                            <th class="p-4 font-semibold whitespace-nowrap">Name</th>
+                            <th class="p-4 font-semibold whitespace-nowrap hidden md:table-cell">Beschreibung</th>
+                            <th class="p-4 font-semibold text-right whitespace-nowrap">Preis</th>
+                            <th class="p-4 font-semibold text-center whitespace-nowrap hidden sm:table-cell">Status</th>
+                            <th class="p-4 font-semibold text-center whitespace-nowrap hidden sm:table-cell">Lagerbestand</th>
+                            <th class="p-4 whitespace-nowrap"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                        <?php foreach ($products as $product): ?>
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                            <td class="p-4 whitespace-nowrap" data-label="Bild">
+                                <?php
+                                $thumbSrc = !empty($product['image_path'])
+                                    ? asset($product['image_path'])
+                                    : (!empty($product['images'][0]['image_path']) ? asset($product['images'][0]['image_path']) : null);
+                                ?>
+                                <?php if ($thumbSrc): ?>
+                                <img src="<?php echo $thumbSrc; ?>"
+                                     alt="" class="w-14 h-14 object-cover rounded-lg border border-gray-100 dark:border-gray-700">
+                                <?php else: ?>
+                                <div class="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-box text-gray-400 text-lg"></i>
+                                </div>
+                                <?php endif; ?>
+                            </td>
+                            <td class="p-4 font-semibold text-gray-800 dark:text-gray-100 whitespace-nowrap" data-label="Name">
+                                <?php echo htmlspecialchars($product['name']); ?>
+                            </td>
+                            <td class="p-4 text-gray-500 dark:text-gray-400 max-w-xs hidden md:table-cell" data-label="Beschreibung">
+                                <span class="line-clamp-2"><?php echo htmlspecialchars($product['description'] ?? ''); ?></span>
+                            </td>
+                            <td class="p-4 text-right font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap" data-label="Preis">
+                                <?php echo number_format((float) $product['base_price'], 2, ',', '.'); ?> €
+                            </td>
+                            <td class="p-4 text-center whitespace-nowrap hidden sm:table-cell" data-label="Status">
+                                <?php if ($product['active']): ?>
+                                <span class="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full text-xs font-medium">Aktiv</span>
+                                <?php else: ?>
+                                <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full text-xs font-medium">Inaktiv</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="p-4 text-center whitespace-nowrap hidden sm:table-cell" data-label="Lagerbestand">
+                                <?php
+                                $namedVariants = array_values(array_filter($product['variants'], fn($v) => $v['type'] !== '' || $v['value'] !== ''));
+                                $totalStock   = array_sum(array_column($product['variants'], 'stock_quantity'));
+                                $hasStock = $totalStock > 0;
+                                // Group by type (color) to build a readable summary
+                                $stockByColor = [];
+                                foreach ($namedVariants as $v) {
+                                    $color = $v['type'] ?: '–';
+                                    if (!isset($stockByColor[$color])) $stockByColor[$color] = 0;
+                                    $stockByColor[$color] += (int) $v['stock_quantity'];
+                                }
+                                ?>
+                                <div class="flex flex-col items-center gap-0.5">
+                                    <?php if (!empty($namedVariants)): ?>
+                                    <span class="font-semibold text-sm <?php echo $hasStock ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'; ?>">
+                                        <?php echo (int) $totalStock; ?> Stk.
+                                    </span>
+                                    <?php foreach ($stockByColor as $color => $colorStock): ?>
+                                    <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                                        <?php echo htmlspecialchars($color); ?>: <?php echo (int) $colorStock; ?>
+                                    </span>
+                                    <?php endforeach; ?>
+                                    <?php elseif ($product['is_bulk_order']): ?>
+                                    <span class="text-xs text-blue-500 dark:text-blue-400 font-medium">Sammelbestellung</span>
+                                    <?php else: ?>
+                                    <span class="text-xs text-gray-400 dark:text-gray-500">–</span>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                            <td class="p-4 text-right whitespace-nowrap" data-label="Aktionen">
+                                <button type="button"
+                                        onclick="openProductModal(<?php echo htmlspecialchars(json_encode($product), ENT_QUOTES); ?>)"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg text-xs font-medium transition-colors">
+                                    <i class="fas fa-edit"></i>Bearbeiten
+                                </button>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <p class="mt-4 text-xs text-gray-400 dark:text-gray-500">
+                <?php echo count($products); ?> Produkt<?php echo count($products) !== 1 ? 'e' : ''; ?> insgesamt
+            </p>
+            <?php endif; ?>
+        </div>
+
+        <!-- Recent sales sidebar (1/3 width on xl) -->
+        <div class="xl:col-span-1 flex flex-col gap-6">
+
+            <!-- KPI mini-cards -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="card rounded-xl shadow p-4 border-l-4 border-blue-500">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Bestellungen</p>
+                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400"><?php echo number_format($recentTotalOrders); ?></p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Letzte 6 Monate</p>
+                </div>
+                <div class="card rounded-xl shadow p-4 border-l-4 border-green-500">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Umsatz</p>
+                    <p class="text-2xl font-bold text-green-600 dark:text-green-400"><?php echo number_format($recentTotalRevenue, 2, ',', '.'); ?> €</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Letzte 6 Monate</p>
+                </div>
+            </div>
+
+            <!-- Recent sales chart -->
+            <div class="card rounded-xl shadow-lg p-5 flex-1">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100">
+                        <i class="fas fa-chart-line mr-1.5 text-blue-500"></i>Aktuelle Verkäufe
+                    </h3>
+                    <a href="<?php echo asset('pages/admin/shop_stats.php'); ?>"
+                       class="text-xs text-blue-500 hover:text-blue-700 font-medium no-underline">
+                        Details <i class="fas fa-arrow-right ml-0.5"></i>
+                    </a>
+                </div>
+                <?php if (!empty($recentSalesStats)): ?>
+                <div class="relative" style="height:220px">
+                    <canvas id="recentSalesChart"></canvas>
+                </div>
+                <?php else: ?>
+                <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500">
+                    <i class="fas fa-chart-bar text-3xl mb-2 opacity-30"></i>
+                    <p class="text-sm">Noch keine Verkaufsdaten</p>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+    </div><!-- end dashboard grid -->
+
+    <?php elseif ($section === 'orders'): ?>
+    <!-- ════════════════════════════════════════════════════════════════════════
+         ORDERS
+    ═══════════════════════════════════════════════════════════════════════════ -->
+    <div class="card rounded-xl shadow-lg p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">
+                <i class="fas fa-shopping-bag mr-2 text-blue-500"></i>Alle Bestellungen
+            </h2>
+            <?php if (!empty($orders)): ?>
+            <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
+                <?php echo count($orders); ?> Bestellungen
+            </span>
+            <?php endif; ?>
+        </div>
+
+        <?php if (empty($orders)): ?>
+        <div class="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+            <i class="fas fa-box-open text-5xl mb-4 opacity-40"></i>
+            <p class="text-lg font-medium">Noch keine Bestellungen vorhanden.</p>
+        </div>
+        <?php else: ?>
+        <div class="space-y-3">
+            <?php foreach ($orders as $order):
+                $pBadgeClass = match($order['payment_status']) {
+                    'paid'   => 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-300 dark:ring-emerald-700',
+                    'failed' => 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 ring-1 ring-red-300 dark:ring-red-700',
+                    default  => 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-700',
+                };
+                $pIcon = match($order['payment_status']) {
+                    'paid'   => 'fa-check-circle',
+                    'failed' => 'fa-times-circle',
+                    default  => 'fa-clock',
+                };
+                $pLabel = match($order['payment_status']) {
+                    'paid'   => 'Bezahlt',
+                    'failed' => 'Fehlgeschlagen',
+                    default  => 'Ausstehend',
+                };
+                $sBadgeClass = match($order['shipping_status']) {
+                    'shipped'   => 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-300 dark:ring-blue-700',
+                    'delivered' => 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-300 dark:ring-emerald-700',
+                    default     => 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 ring-1 ring-gray-300 dark:ring-gray-600',
+                };
+                $sIcon = match($order['shipping_status']) {
+                    'shipped'   => 'fa-shipping-fast',
+                    'delivered' => 'fa-box-open',
+                    default     => 'fa-hourglass-half',
+                };
+                $sLabel = match($order['shipping_status']) {
+                    'shipped'   => 'Versendet',
+                    'delivered' => 'Geliefert',
+                    default     => 'Ausstehend',
+                };
+            ?>
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-700 transition-colors">
+                <!-- Order ID + date -->
+                <div class="flex items-center gap-3 sm:w-32 shrink-0">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                        <i class="fas fa-receipt text-sm"></i>
+                    </div>
+                    <div>
+                        <p class="font-mono font-semibold text-gray-800 dark:text-gray-100 text-sm">#<?php echo $order['id']; ?></p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500"><?php echo date('d.m.Y', strtotime($order['created_at'])); ?></p>
+                    </div>
+                </div>
+
+                <!-- User info -->
+                <div class="flex-1 min-w-0">
+                    <p class="font-medium text-gray-800 dark:text-gray-100 text-sm truncate">
+                        <?php echo htmlspecialchars($order['user_name'] ?? 'Unbekannt'); ?>
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        <?php echo htmlspecialchars($order['user_email']); ?>
+                    </p>
+                </div>
+
+                <!-- Amount + payment method -->
+                <div class="text-right sm:text-left shrink-0">
+                    <p class="font-bold text-gray-800 dark:text-gray-100">
+                        <?php echo number_format((float) $order['total_amount'], 2, ',', '.'); ?> €
+                    </p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                        <?php echo htmlspecialchars($order['payment_method']); ?>
+                    </p>
+                </div>
+
+                <!-- Status badges -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold <?php echo $pBadgeClass; ?>">
+                        <i class="fas <?php echo $pIcon; ?>"></i>
+                        <?php echo $pLabel; ?>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold <?php echo $sBadgeClass; ?>">
+                        <i class="fas <?php echo $sIcon; ?>"></i>
+                        <?php echo $sLabel; ?>
+                    </span>
+                </div>
+
+                <!-- Edit button -->
+                <button type="button"
+                        onclick="openOrderModal(<?php echo htmlspecialchars(json_encode($order)); ?>)"
+                        class="shrink-0 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors text-sm font-medium">
+                    <i class="fas fa-pen mr-1"></i>Status
+                </button>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Order status modal -->
+    <div id="order-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-700">
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">
+                        <i class="fas fa-edit mr-2 text-blue-500"></i>Bestellstatus aktualisieren
+                    </h3>
+                    <button type="button" onclick="closeOrderModal()"
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+                <form method="POST" id="order-status-form" class="space-y-4">
+                    <input type="hidden" name="post_action" value="update_order">
+                    <input type="hidden" name="csrf_token" value="<?php echo CSRFHandler::getToken(); ?>">
+                    <input type="hidden" name="order_id" id="modal-order-id">
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-credit-card mr-1 text-emerald-500"></i>Zahlungsstatus
+                        </label>
+                        <select name="payment_status" id="modal-payment-status"
+                                class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500">
+                            <option value="pending">⏳ Ausstehend</option>
+                            <option value="paid">✅ Bezahlt</option>
+                            <option value="failed">❌ Fehlgeschlagen</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-truck mr-1 text-blue-500"></i>Versandstatus
+                        </label>
+                        <select name="shipping_status" id="modal-shipping-status"
+                                class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500">
+                            <option value="pending">⏳ Ausstehend</option>
+                            <option value="shipped">🚚 Versendet</option>
+                            <option value="delivered">📦 Geliefert</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="flex gap-3 px-6 pb-6 pt-2">
+                <button type="submit" form="order-status-form"
+                        class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow transition-colors duration-150">
+                    <i class="fas fa-save mr-2"></i>Speichern
+                </button>
+                <button type="button" onclick="closeOrderModal()"
+                        class="px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-medium transition-colors">
+                    Abbrechen
+                </button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════════
+     PRODUCT MODAL (create / edit)
+══════════════════════════════════════════════════════════════════════════════ -->
+<div id="product-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-700">
+
+        <!-- Modal header -->
+        <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-2xl flex items-center gap-3 shrink-0">
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                <i id="modal-header-icon" class="fas fa-plus text-white text-sm"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h2 id="modal-title" class="text-lg font-bold text-white leading-tight break-words hyphens-auto">Neues Produkt anlegen</h2>
+                <p class="text-blue-100 text-xs mt-0.5">Pflichtfelder sind mit <span class="text-red-300 font-semibold">*</span> markiert</p>
+            </div>
+            <button type="button" onclick="closeProductModal()"
+                    class="text-white/70 hover:text-white transition-colors p-1.5 shrink-0">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Modal body -->
+        <form method="POST" enctype="multipart/form-data" id="product-form" class="flex flex-col flex-1 min-h-0">
+            <input type="hidden" name="post_action" value="save_product">
+            <input type="hidden" name="csrf_token" value="<?php echo CSRFHandler::getToken(); ?>">
+            <input type="hidden" name="product_id" id="modal-product-id" value="">
+
+            <div class="overflow-y-auto flex-1">
+
+                <!-- ══ ROW 1: Grunddaten (left) + Organisation/Preis (right) ══ -->
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 dark:divide-gray-700">
+
+                    <!-- Left: Grunddaten + Bilder (3/5) -->
+                    <div class="lg:col-span-3 p-6 space-y-5">
+
+                        <!-- Section header -->
+                        <div class="flex items-center gap-2.5 pb-3 border-b border-gray-100 dark:border-gray-700">
+                            <div class="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+                                <i class="fas fa-tag text-blue-600 dark:text-blue-400 text-xs"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200">Grundinformationen</h3>
+                        </div>
+
+                        <!-- Name -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                Produktname <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="name" id="modal-name" required
+                                   placeholder="z.B. IBC Hoodie, Kugelschreiber, ..."
+                                   class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm">
+                        </div>
+
+                        <!-- Description -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                Beschreibung <span class="font-normal text-gray-400 dark:text-gray-500">(optional)</span>
+                            </label>
+                            <textarea name="description" id="modal-description" rows="3"
+                                      placeholder="Kurze Produktbeschreibung, z.B. Material, Verwendungszweck, ..."
+                                      class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none text-sm"></textarea>
+                        </div>
+
+                        <!-- Hints + Pickup location -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                    Hinweise <span class="font-normal text-gray-400 dark:text-gray-500">(optional)</span>
+                                </label>
+                                <textarea name="hints" id="modal-hints" rows="2"
+                                          placeholder="z.B. Pflegehinweise, ..."
+                                          class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none text-sm"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                    Abholort &amp; Zeitpunkt <span class="font-normal text-gray-400 dark:text-gray-500">(optional)</span>
+                                </label>
+                                <input type="text" name="pickup_location" id="modal-pickup-location"
+                                       placeholder="z.B. Nächstes Mittwochs-Meeting"
+                                       class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm">
+                            </div>
+                        </div>
+
+                        <!-- Produktbilder -->
+                        <div>
+                            <div class="flex items-center gap-2.5 pb-3 border-b border-gray-100 dark:border-gray-700 mb-3">
+                                <div class="w-7 h-7 rounded-lg bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center">
+                                    <i class="fas fa-images text-sky-600 dark:text-sky-400 text-xs"></i>
+                                </div>
+                                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200">Produktbilder</h3>
+                            </div>
+                            <p id="modal-no-images-hint" class="text-xs text-gray-400 dark:text-gray-500 mb-2 hidden">Noch keine Bilder vorhanden.</p>
+                            <div id="modal-images-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-3"></div>
+                            <label for="modal-product-images" id="image-drop-zone"
+                                   class="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-700/30 hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:border-blue-400 dark:hover:border-blue-500 transition-colors group">
+                                <div class="flex items-center gap-2 py-2">
+                                    <i class="fas fa-cloud-upload-alt text-xl text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors font-medium leading-tight">Bilder hierher ziehen oder auswählen</p>
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 leading-tight">JPG, PNG oder WebP · max. 5 MB · Mehrfachauswahl</p>
+                                    </div>
+                                </div>
+                                <input id="modal-product-images" type="file" name="product_images[]"
+                                       accept="image/jpeg,image/png,image/webp" multiple class="hidden"
+                                       onchange="previewNewImages(event)">
+                            </label>
+                            <div id="new-images-preview" class="mt-2 grid grid-cols-4 sm:grid-cols-6 gap-2 hidden"></div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Organisation + Preis (2/5) -->
+                    <div class="lg:col-span-2 p-6 space-y-5 bg-gray-50/60 dark:bg-gray-800/40">
+
+                        <!-- Status -->
+                        <div>
+                            <div class="flex items-center gap-2.5 pb-3 border-b border-gray-100 dark:border-gray-700 mb-4">
+                                <div class="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                                    <i class="fas fa-toggle-on text-emerald-600 dark:text-emerald-400 text-xs"></i>
+                                </div>
+                                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200">Status &amp; Preis</h3>
+                            </div>
+                            <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition mb-4">
+                                <input type="checkbox" id="modal-active" name="active" value="1" checked
+                                       class="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500">
+                                <div>
+                                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Produkt aktiv</span>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500">Im Shop sichtbar und bestellbar</p>
+                                </div>
+                            </label>
+                            <!-- Price -->
+                            <div class="mb-3">
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                    Preis <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 dark:text-gray-400 font-semibold pointer-events-none text-sm">€</span>
+                                    <input type="number" name="base_price" id="modal-base-price"
+                                           step="0.01" min="0" required value="0.00"
+                                           class="w-full pl-7 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm">
+                                </div>
+                            </div>
+                            <!-- SKU -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                    SKU <span class="font-normal text-gray-400 dark:text-gray-500">(optional)</span>
+                                </label>
+                                <input type="text" name="sku" id="modal-sku"
+                                       placeholder="z.B. IBC-HOODIE-2024"
+                                       class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm">
+                            </div>
+                        </div>
+
+                        <!-- Organisation -->
+                        <div>
+                            <div class="flex items-center gap-2.5 pb-3 border-b border-gray-100 dark:border-gray-700 mb-3">
+                                <div class="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
+                                    <i class="fas fa-folder text-violet-600 dark:text-violet-400 text-xs"></i>
+                                </div>
+                                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200">Organisation</h3>
+                            </div>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Kategorie</label>
+                                    <select name="category" id="modal-category"
+                                            class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm">
+                                        <option value="">– bitte wählen –</option>
+                                        <option value="Kleidung">Kleidung</option>
+                                        <option value="Accessoires">Accessoires</option>
+                                        <option value="Bürobedarf">Bürobedarf</option>
+                                        <option value="Sonstiges">Sonstiges</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Geschlecht</label>
+                                    <select name="gender" id="modal-gender"
+                                            class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm">
+                                        <option value="Keine">Nicht zutreffend</option>
+                                        <option value="Herren">Herren</option>
+                                        <option value="Damen">Damen</option>
+                                        <option value="Unisex">Unisex</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sammelbestellung -->
+                        <div>
+                            <div class="flex items-center gap-2.5 pb-3 border-b border-gray-100 dark:border-gray-700 mb-3">
+                                <div class="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+                                    <i class="fas fa-users text-blue-600 dark:text-blue-400 text-xs"></i>
+                                </div>
+                                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200">Sammelbestellung</h3>
+                            </div>
+                            <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                                <input type="checkbox" id="modal-is-bulk-order" name="is_bulk_order" value="1"
+                                       onchange="toggleBulkOrderFields(this.checked)"
+                                       class="w-4 h-4 mt-0.5 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500">
+                                <div>
+                                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Sammelbestellung</span>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                        Erst bei Mindestmenge produziert
+                                    </p>
+                                </div>
+                            </label>
+                            <div id="modal-bulk-fields" class="hidden mt-3 space-y-3 pl-1">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                        Bestelldeadline
+                                    </label>
+                                    <input type="date" name="bulk_end_date" id="modal-bulk-end-date"
+                                           class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                        Mindestmenge für Produktion
+                                    </label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" name="bulk_min_goal" id="modal-bulk-min-goal"
+                                               value="" min="1"
+                                               class="w-24 px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 transition text-sm">
+                                        <span class="text-sm text-gray-500 dark:text-gray-400">Stück</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══ ROW 2: Varianten (full-width) ══ -->
+                <div class="border-t-4 border-purple-500 dark:border-purple-600 bg-purple-50/40 dark:bg-purple-900/10">
+                    <div class="px-6 py-4 flex items-center justify-between border-b border-purple-100 dark:border-purple-800/40">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center shadow-sm">
+                                <i class="fas fa-layer-group text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100">Produktvarianten</h3>
+                                <p class="text-xs text-purple-600 dark:text-purple-400 mt-0.5">Farben &amp; Größen mit Lagerbestand</p>
+                            </div>
+                        </div>
+                        <!-- Toggle -->
+                        <label class="flex items-center gap-2 cursor-pointer select-none bg-white dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-700 hover:border-purple-400 transition-colors">
+                            <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Varianten aktivieren</span>
+                            <input type="checkbox" id="modal-has-variants" name="has_variants" value="1"
+                                   onchange="toggleVariantMode(this.checked)"
+                                   class="w-4 h-4 text-purple-600 rounded border-gray-300 dark:border-gray-600 focus:ring-purple-500">
+                        </label>
+                    </div>
+                    <div class="p-6">
+
+                    <!-- Variant builder panel -->
+                    <div id="modal-section-variants">
+                        <!-- Variant group cards -->
+                        <div id="variants-container" class="space-y-4"></div>
+
+                        <!-- Add color button -->
+                        <button type="button" id="add-variant"
+                                class="mt-4 w-full py-3 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl text-sm text-purple-600 dark:text-purple-400 hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all flex items-center justify-center gap-2 font-semibold">
+                            <i class="fas fa-plus-circle"></i> Farbe / Variante hinzufügen
+                            <span class="text-xs font-normal text-purple-400 dark:text-purple-500">(z.B. Schwarz, Weiß)</span>
+                        </button>
+                    </div>
+
+                    <!-- No-variants placeholder -->
+                    <div id="modal-no-variants-placeholder" class="hidden py-8 text-center">
+                        <div class="inline-flex flex-col items-center gap-2">
+                            <div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                                <i class="fas fa-cube text-gray-400 dark:text-gray-500 text-xl"></i>
+                            </div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Dieses Produkt hat keine Varianten</p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500">Es wird als Einheitsgröße ohne Lagerbestandsverwaltung verkauft.</p>
+                        </div>
+                    </div>
+
+                    </div><!-- end p-6 -->
+                </div>
+
+                <!-- ══ ROW 3: Other-gender stock (shown only when applicable) ══ -->
+                <div id="modal-other-gender-stock-section" class="hidden border-t-4 border-pink-400 dark:border-pink-600 bg-pink-50/40 dark:bg-pink-900/10">
+                    <div class="px-6 py-4 flex items-center gap-3 border-b border-pink-100 dark:border-pink-800/40">
+                        <div class="w-8 h-8 rounded-xl bg-pink-500 flex items-center justify-center shadow-sm">
+                            <i class="fas fa-venus text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100" id="modal-other-gender-stock-title">Lagerbestand Damen</h3>
+                            <p class="text-xs text-pink-600 dark:text-pink-400 mt-0.5">Lagerbestand für das automatisch erstellte Produkt</p>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div id="other-gender-stock-container" class="space-y-4"></div>
+                    </div>
+                </div>
+
+            </div><!-- end scrollable body -->
+
+            <!-- Modal footer -->
+            <div class="flex items-center justify-between px-5 py-3.5 border-t border-gray-200 dark:border-gray-700 gap-3 flex-wrap shrink-0 bg-gray-50 dark:bg-gray-800/60">
+                <div id="modal-delete-area" class="hidden">
+                    <button type="button" onclick="confirmDeleteProduct()"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 font-medium text-sm transition-colors">
+                        <i class="fas fa-trash-alt"></i>Produkt löschen
+                    </button>
+                </div>
+                <!-- "Also create for other gender" – only shown when creating a new Herren/Damen product -->
+                <div id="modal-also-gender-area" class="hidden">
+                    <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-600 dark:text-gray-300">
+                        <input type="checkbox" name="also_create_other_gender" id="modal-also-gender" value="1"
+                               onchange="updateAlsoGenderStockSection()"
+                               class="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500">
+                        <span id="modal-also-gender-label">Auch für Damen anlegen</span>
+                    </label>
+                </div>
+                <div class="flex gap-3 ml-auto">
+                    <button type="button" onclick="closeProductModal()"
+                            class="px-5 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 font-medium transition-colors text-sm">
+                        Abbrechen
+                    </button>
+                    <button type="submit"
+                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow text-sm flex items-center gap-2">
+                        <i class="fas fa-save"></i>
+                        <span id="modal-submit-label">Produkt erstellen</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div id="delete-confirm-modal" class="hidden fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-700">
+        <div class="p-6 overflow-y-auto flex-1">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Produkt löschen?</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+                </div>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+                Soll <strong id="delete-product-name" class="text-gray-800 dark:text-gray-100"></strong> wirklich gelöscht werden? Alle Varianten werden ebenfalls entfernt.
+            </p>
+        </div>
+        <form method="POST" id="delete-product-form" class="px-6 pb-6">
+            <input type="hidden" name="post_action" value="delete_product">
+            <input type="hidden" name="product_id" id="delete-product-id">
+            <input type="hidden" name="csrf_token" value="<?php echo CSRFHandler::getToken(); ?>">
+            <div class="flex gap-3">
+                <button type="button" onclick="closeDeleteConfirm()"
+                        class="flex-1 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-medium transition-colors">
+                    Abbrechen
+                </button>
+                <button type="submit"
+                        class="flex-1 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors flex items-center justify-center gap-2">
+                    <i class="fas fa-trash-alt"></i>Löschen
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const INPUT_CLASS       = 'border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 text-sm focus:ring-2';
+const IMAGE_ORDER_URL   = '<?php echo asset('api/shop/update_image_order.php'); ?>';
+const CSRF_TOKEN        = <?php echo json_encode(CSRFHandler::getToken()); ?>;
+
+let variantCount       = 0;
+let currentProductId   = null;
+let currentProductName = '';
+let sortableInstance   = null;
+
+// ── Product Modal ─────────────────────────────────────────────────────────────
+
+function openProductModal(product) {
+    const isEdit = product && product.id;
+
+    // Reset form
+    document.getElementById('product-form').reset();
+    document.getElementById('modal-product-id').value  = isEdit ? product.id : '';
+    document.getElementById('modal-name').value        = isEdit ? (product.name || '') : '';
+    document.getElementById('modal-description').value = isEdit ? (product.description || '') : '';
+    document.getElementById('modal-base-price').value  = isEdit ? parseFloat(product.base_price || 0).toFixed(2) : '0.00';
+    document.getElementById('modal-active').checked    = isEdit ? (product.active == 1) : true;
+
+    // Bulk order fields
+    const isBulk = isEdit && product.is_bulk_order == 1;
+    document.getElementById('modal-is-bulk-order').checked = isBulk;
+    document.getElementById('modal-bulk-end-date').value   = isEdit ? (product.bulk_end_date || '') : '';
+    document.getElementById('modal-bulk-min-goal').value   = isEdit ? (product.bulk_min_goal || '') : '';
+    toggleBulkOrderFields(isBulk);
+
+    // New fields
+    document.getElementById('modal-category').value        = isEdit ? (product.category || '') : '';
+    document.getElementById('modal-gender').value          = isEdit ? (product.gender || 'Keine') : 'Keine';
+    document.getElementById('modal-hints').value           = isEdit ? (product.hints || '') : '';
+    document.getElementById('modal-pickup-location').value = isEdit ? (product.pickup_location || '') : '';
+    document.getElementById('modal-sku').value             = isEdit ? (product.sku || '') : '';
+
+    // "Also create for other gender" checkbox – only relevant for new products
+    updateAlsoGenderArea(isEdit);
+
+    // Header
+    document.getElementById('modal-title').textContent        = isEdit ? 'Produkt bearbeiten' : 'Neues Produkt anlegen';
+    document.getElementById('modal-header-icon').className    = 'fas ' + (isEdit ? 'fa-edit' : 'fa-plus') + ' text-white';
+    document.getElementById('modal-submit-label').textContent = isEdit ? 'Änderungen speichern' : 'Produkt erstellen';
+
+    // Delete area
+    const deleteArea = document.getElementById('modal-delete-area');
+    if (isEdit) {
+        deleteArea.classList.remove('hidden');
+        currentProductId   = product.id;
+        currentProductName = product.name || '';
+    } else {
+        deleteArea.classList.add('hidden');
+        currentProductId   = null;
+        currentProductName = '';
+    }
+
+    // Reset new-images preview
+    const newPreview = document.getElementById('new-images-preview');
+    newPreview.innerHTML = '';
+    newPreview.classList.add('hidden');
+    document.getElementById('modal-product-images').value = '';
+
+    // Build existing images grid
+    buildImagesGrid(isEdit ? (product.images || []) : []);
+
+    // Build variant UI
+    buildVariantUI(isEdit ? (product.variants || []) : []);
+
+    // Update "also gender stock" section after variants are built
+    updateAlsoGenderStockSection();
+
+    document.getElementById('product-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('modal-name').focus();
+}
+
+function closeProductModal() {
+    document.getElementById('product-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// ── "Also create for other gender" toggle ────────────────────────────────────
+
+function updateAlsoGenderArea(isEdit) {
+    const area    = document.getElementById('modal-also-gender-area');
+    const label   = document.getElementById('modal-also-gender-label');
+    const gender  = document.getElementById('modal-gender').value;
+    if (!isEdit && (gender === 'Herren' || gender === 'Damen')) {
+        label.textContent = gender === 'Herren' ? 'Auch für Damen anlegen' : 'Auch für Herren anlegen';
+        area.classList.remove('hidden');
+    } else {
+        area.classList.add('hidden');
+        document.getElementById('modal-also-gender').checked = false;
+    }
+    updateAlsoGenderStockSection();
+}
+
+function updateAlsoGenderStockSection() {
+    const section   = document.getElementById('modal-other-gender-stock-section');
+    const title     = document.getElementById('modal-other-gender-stock-title');
+    const container = document.getElementById('other-gender-stock-container');
+
+    const alsoChecked = document.getElementById('modal-also-gender').checked;
+    const isBulk      = document.getElementById('modal-is-bulk-order').checked;
+    const hasVariants = document.getElementById('modal-has-variants').checked;
+    const gender      = document.getElementById('modal-gender').value;
+
+    if (!alsoChecked || isBulk || !hasVariants) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    const otherGender = gender === 'Herren' ? 'Damen' : 'Herren';
+    title.textContent = 'Lagerbestand ' + otherGender;
+    section.classList.remove('hidden');
+
+    // Build stock inputs mirroring the current variant structure
+    container.innerHTML = '';
+    const blocks = document.querySelectorAll('#variants-container .variant-block');
+    blocks.forEach(function(block, gIdx) {
+        const colorInput = block.querySelector('input[name^="variants"][name$="[name]"]');
+        const typeName   = colorInput ? colorInput.value : '';
+        const valueRows  = block.querySelectorAll('.value-row');
+
+        const card = document.createElement('div');
+        card.className = 'border border-pink-100 dark:border-pink-800/50 rounded-xl bg-white dark:bg-gray-800 overflow-hidden shadow-sm';
+
+        let rowsHtml = '';
+        valueRows.forEach(function(row, valIdx) {
+            const valueInput = row.querySelector('input[type="text"]');
+            const sizeName   = valueInput ? escapeHtml(valueInput.value) : '';
+            rowsHtml += `<div class="grid grid-cols-[1fr_auto] gap-x-3 items-center">
+                <span class="px-2.5 py-1.5 text-sm text-gray-700 dark:text-gray-200">${sizeName}</span>
+                <input type="number" name="also_gender_variants[${gIdx}][values][${valIdx}][stock]"
+                       value="0" min="0"
+                       data-also-gender-value="${sizeName}"
+                       class="w-24 px-2.5 py-1.5 border border-red-200 dark:border-red-700 rounded-lg text-sm text-right focus:ring-2 focus:ring-pink-500 focus:border-transparent transition bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
+                       oninput="updateStockColor(this)">
+            </div>`;
+        });
+
+        card.innerHTML = `
+            <input type="hidden" name="also_gender_variants[${gIdx}][name]" value="${escapeHtml(typeName)}">
+            <div class="flex items-center gap-2 px-4 py-3 bg-pink-50 dark:bg-pink-900/20 border-b border-pink-100 dark:border-pink-800/50">
+                <i class="fas fa-palette text-pink-400 text-xs"></i>
+                <span class="text-xs font-semibold text-pink-500 dark:text-pink-400 uppercase tracking-wide">${escapeHtml(typeName)}</span>
+            </div>
+            <div class="px-4 py-3">
+                <div class="grid grid-cols-[1fr_auto] gap-x-3 mb-1.5 px-1">
+                    <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Größe</span>
+                    <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide text-right w-24">Lagerbestand</span>
+                </div>
+                <div class="space-y-2">${rowsHtml}</div>
+            </div>`;
+
+        // Append hidden inputs for size names (set via DOM after innerHTML to avoid injection)
+        valueRows.forEach(function(row, valIdx) {
+            const valueInput = row.querySelector('input[type="text"]');
+            const sizeName   = valueInput ? valueInput.value : '';
+            const hidden = document.createElement('input');
+            hidden.type  = 'hidden';
+            hidden.name  = `also_gender_variants[${gIdx}][values][${valIdx}][value]`;
+            hidden.value = sizeName;
+            card.appendChild(hidden);
+        });
+
+        container.appendChild(card);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var genderSelect = document.getElementById('modal-gender');
+    if (genderSelect) {
+        genderSelect.addEventListener('change', function() {
+            var isEdit = !!document.getElementById('modal-product-id').value;
+            updateAlsoGenderArea(isEdit);
+        });
+    }
+});
+
+// ── Bulk order fields toggle ──────────────────────────────────────────────────
+
+function toggleBulkOrderFields(show) {
+    document.getElementById('modal-bulk-fields').classList.toggle('hidden', !show);
+    updateAlsoGenderStockSection();
+}
+
+// ── Existing images grid ──────────────────────────────────────────────────────
+
+function buildImagesGrid(images) {
+    const grid = document.getElementById('modal-images-grid');
+    const hint = document.getElementById('modal-no-images-hint');
+    grid.innerHTML = '';
+
+    if (sortableInstance) {
+        sortableInstance.destroy();
+        sortableInstance = null;
+    }
+
+    if (!images || images.length === 0) {
+        hint.classList.remove('hidden');
+        return;
+    }
+    hint.classList.add('hidden');
+
+    images.forEach(img => {
+        const item = document.createElement('div');
+        item.className = 'relative group cursor-grab active:cursor-grabbing';
+        item.dataset.id = img.id;
+        item.innerHTML = `
+            <img src="${escapeHtml(img.url || img.image_path)}" alt=""
+                 class="w-full aspect-square object-cover rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
+            <button type="button"
+                    onclick="deleteProductImage(${parseInt(img.id)}, this.closest('[data-id]'))"
+                    class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition shadow text-xs opacity-0 group-hover:opacity-100">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="absolute bottom-1 left-1 w-5 h-5 bg-black/30 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                <i class="fas fa-grip-vertical text-white text-xs"></i>
+            </div>`;
+        grid.appendChild(item);
+    });
+
+    sortableInstance = new Sortable(grid, {
+        animation: 150,
+        ghostClass: 'opacity-40',
+        onEnd: saveImageOrder,
+    });
+}
+
+function saveImageOrder() {
+    const grid  = document.getElementById('modal-images-grid');
+    const items = grid.querySelectorAll('[data-id]');
+    const orders = Array.from(items).map((el, index) => ({
+        id:         parseInt(el.dataset.id),
+        sort_order: index,
+    }));
+
+    fetch(IMAGE_ORDER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reorder', orders, csrf_token: CSRF_TOKEN }),
+    })
+    .then(r => r.json())
+    .catch(err => console.error('Reihenfolge konnte nicht gespeichert werden:', err));
+}
+
+function deleteProductImage(imageId, element) {
+    if (!confirm('Bild löschen?')) return;
+    fetch(IMAGE_ORDER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id: imageId, csrf_token: CSRF_TOKEN }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success && element) {
+            element.remove();
+            const grid = document.getElementById('modal-images-grid');
+            if (grid.children.length === 0) {
+                document.getElementById('modal-no-images-hint').classList.remove('hidden');
+            }
+            saveImageOrder();
+        } else if (!data.success) {
+            alert('Bild konnte nicht gelöscht werden.');
+        }
+    })
+    .catch(err => {
+        console.error('Bild-Löschen fehlgeschlagen:', err);
+        alert('Bild konnte nicht gelöscht werden.');
+    });
+}
+
+// ── New images preview ────────────────────────────────────────────────────────
+
+function previewNewImages(event) {
+    const files   = event.target.files;
+    const preview = document.getElementById('new-images-preview');
+    preview.innerHTML = '';
+
+    if (!files || files.length === 0) {
+        preview.classList.add('hidden');
+        return;
+    }
+
+    preview.classList.remove('hidden');
+    Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'relative';
+            wrapper.innerHTML = `
+                <img src="${e.target.result}" alt=""
+                     class="w-full aspect-square object-cover rounded-lg border-2 border-blue-300 dark:border-blue-600 shadow-sm">
+                <span class="absolute bottom-1 left-1 text-xs bg-blue-500 text-white rounded px-1">Neu</span>`;
+            preview.appendChild(wrapper);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// ── Drag-and-drop image upload ────────────────────────────────────────────────
+
+(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+        const dz    = document.getElementById('image-drop-zone');
+        const input = document.getElementById('modal-product-images');
+        if (!dz || !input) return;
+
+        dz.addEventListener('dragenter', function (e) {
+            e.preventDefault();
+            dz.classList.add('border-blue-400', 'bg-blue-50', 'dark:bg-blue-900/20');
+        });
+
+        dz.addEventListener('dragover', function (e) {
+            e.preventDefault();
+        });
+
+        dz.addEventListener('dragleave', function (e) {
+            if (e.relatedTarget === null || !dz.contains(e.relatedTarget)) {
+                dz.classList.remove('border-blue-400', 'bg-blue-50', 'dark:bg-blue-900/20');
+            }
+        });
+
+        dz.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dz.classList.remove('border-blue-400', 'bg-blue-50', 'dark:bg-blue-900/20');
+            if (e.dataTransfer.files.length > 0) {
+                const dt = new DataTransfer();
+                Array.from(e.dataTransfer.files).forEach(f => dt.items.add(f));
+                input.files = dt.files;
+                previewNewImages({ target: input });
+            }
+        });
+    });
+}());
+
+// ── Variant UI ────────────────────────────────────────────────────────────────
+
+function buildVariantUI(variants) {
+    variantCount = 0;
+    const container = document.getElementById('variants-container');
+    container.innerHTML = '';
+
+    const groups = {};
+    variants.forEach(v => {
+        if (v.type !== '' || v.value !== '') {
+            if (!groups[v.type]) groups[v.type] = [];
+            groups[v.type].push(v);
+        }
+    });
+
+    const hasNamedVariants = Object.keys(groups).length > 0;
+
+    if (hasNamedVariants) {
+        Object.keys(groups).forEach(typeName => {
+            container.appendChild(createVariantBlock(variantCount++, typeName, groups[typeName]));
+        });
+        document.getElementById('modal-has-variants').checked = true;
+        document.getElementById('modal-section-variants').classList.remove('hidden');
+        document.getElementById('modal-no-variants-placeholder').classList.add('hidden');
+    } else {
+        document.getElementById('modal-has-variants').checked = false;
+        document.getElementById('modal-section-variants').classList.add('hidden');
+        document.getElementById('modal-no-variants-placeholder').classList.remove('hidden');
+    }
+}
+
+function createVariantBlock(idx, typeName, values) {
+    const block = document.createElement('div');
+    block.className = 'variant-block border border-purple-100 dark:border-purple-800/50 rounded-xl bg-white dark:bg-gray-800 overflow-hidden shadow-sm';
+    block.innerHTML = `
+        <div class="flex items-center gap-2 px-4 py-3 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-800/50">
+            <i class="fas fa-palette text-purple-400 text-xs"></i>
+            <span class="text-xs font-semibold text-purple-500 dark:text-purple-400 uppercase tracking-wide shrink-0">Farbe:</span>
+            <input type="text" name="variants[${idx}][name]"
+                   value="${escapeHtml(typeName)}"
+                   placeholder="z.B. Schwarz, Weiß, Grau ..."
+                   required
+                   class="flex-1 px-2 py-1 border-0 bg-transparent text-gray-800 dark:text-gray-100 text-sm font-semibold focus:ring-2 focus:ring-purple-500 rounded transition placeholder-gray-400 dark:placeholder-gray-500">
+            <button type="button" onclick="this.closest('.variant-block').remove()"
+                    class="text-red-400 hover:text-red-600 p-1 transition-colors rounded hover:bg-red-50 dark:hover:bg-red-900/20 shrink-0" title="Farbe entfernen">
+                <i class="fas fa-trash-alt text-xs"></i>
+            </button>
+        </div>
+        <div class="px-4 py-3">
+            <div class="overflow-x-auto w-full">
+                <div class="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-0 mb-1.5 px-1 min-w-[280px]">
+                    <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Größe</span>
+                    <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide text-right w-24">Lagerbestand</span>
+                    <span class="w-7"></span>
+                </div>
+                <div class="value-rows space-y-2 min-w-[280px]">
+                    ${(values || [{value:'',stock_quantity:0}]).map((v, vi) => valueRowHtml(idx, vi, v.value || '', v.stock_quantity || 0)).join('')}
+                </div>
+            </div>
+            <button type="button" onclick="addValueRow(this, ${idx})"
+                    class="mt-3 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center gap-1.5 font-medium transition-colors">
+                <i class="fas fa-plus-circle"></i> Größe hinzufügen
+            </button>
+        </div>`;
+    return block;
+}
+
+function valueRowHtml(vIdx, valIdx, value, stock) {
+    const stockNum = parseInt(stock) || 0;
+    const stockClass = stockNum === 0
+        ? 'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+        : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-gray-100';
+    return `<div class="value-row grid grid-cols-[1fr_auto_auto] gap-x-3 items-center">
+        <input type="text" name="variants[${vIdx}][values][${valIdx}][value]"
+               value="${escapeHtml(value)}" placeholder="Größe (z.B. S, M, L, XL)"
+               class="px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-gray-100 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+        <input type="number" name="variants[${vIdx}][values][${valIdx}][stock]"
+               value="${stockNum}" min="0"
+               class="w-24 px-2.5 py-1.5 border rounded-lg text-sm text-right focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${stockClass}"
+               oninput="updateStockColor(this)">
+        <button type="button" onclick="this.closest('.value-row').remove()"
+                class="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" title="Größe entfernen">
+            <i class="fas fa-times text-xs"></i>
+        </button>
+    </div>`;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function updateStockColor(input) {
+    const v = parseInt(input.value) || 0;
+    if (v === 0) {
+        input.classList.remove('border-gray-200', 'dark:border-gray-600', 'bg-gray-50', 'dark:bg-gray-700/50', 'text-gray-800', 'dark:text-gray-100');
+        input.classList.add('border-red-200', 'dark:border-red-700', 'bg-red-50', 'dark:bg-red-900/20', 'text-red-700', 'dark:text-red-300');
+    } else {
+        input.classList.remove('border-red-200', 'dark:border-red-700', 'bg-red-50', 'dark:bg-red-900/20', 'text-red-700', 'dark:text-red-300');
+        input.classList.add('border-gray-200', 'dark:border-gray-600', 'bg-gray-50', 'dark:bg-gray-700/50', 'text-gray-800', 'dark:text-gray-100');
+    }
+}
+
+document.getElementById('add-variant').addEventListener('click', function () {
+    const idx   = variantCount++;
+    const block = createVariantBlock(idx, '', [{value:'',stock_quantity:0}]);
+    document.getElementById('variants-container').appendChild(block);
+    // Focus the color name input (first text input in header)
+    const colorInput = block.querySelector('.variant-block input[type="text"]');
+    if (colorInput) colorInput.focus();
+});
+
+function addValueRow(btn, vIdx) {
+    const valueContainer = btn.previousElementSibling;
+    // Use max existing index + 1 to avoid conflicts after deletions
+    let maxIdx = -1;
+    valueContainer.querySelectorAll('.value-row input[name]').forEach(inp => {
+        const m = inp.name.match(/\[values\]\[(\d+)\]/);
+        if (m) { const n = parseInt(m[1]); if (n > maxIdx) maxIdx = n; }
+    });
+    const nextIdx = maxIdx + 1;
+    valueContainer.insertAdjacentHTML('beforeend', valueRowHtml(vIdx, nextIdx, '', 0));
+}
+
+function toggleVariantMode(hasVariants) {
+    document.getElementById('modal-section-variants').classList.toggle('hidden', !hasVariants);
+    document.getElementById('modal-no-variants-placeholder').classList.toggle('hidden', hasVariants);
+    if (hasVariants && document.getElementById('variants-container').children.length === 0) {
+        document.getElementById('variants-container').appendChild(
+            createVariantBlock(variantCount++, '', [{value:'',stock_quantity:0}])
+        );
+    }
+    updateAlsoGenderStockSection();
+}
+
+// ── Delete product ────────────────────────────────────────────────────────────
+
+function confirmDeleteProduct() {
+    if (!currentProductId) return;
+    document.getElementById('delete-product-name').textContent = currentProductName;
+    document.getElementById('delete-product-id').value         = currentProductId;
+    document.getElementById('delete-confirm-modal').classList.remove('hidden');
+}
+
+function closeDeleteConfirm() {
+    document.getElementById('delete-confirm-modal').classList.add('hidden');
+}
+
+// ── Order modal ───────────────────────────────────────────────────────────────
+
+function openOrderModal(order) {
+    document.getElementById('modal-order-id').value          = order.id;
+    document.getElementById('modal-payment-status').value    = order.payment_status;
+    document.getElementById('modal-shipping-status').value   = order.shipping_status;
+    document.getElementById('order-modal').classList.remove('hidden');
+}
+
+function closeOrderModal() {
+    document.getElementById('order-modal').classList.add('hidden');
+}
+
+// ── Backdrop & ESC close ──────────────────────────────────────────────────────
+
+document.getElementById('product-modal')?.addEventListener('click', function (e) {
+    if (e.target === this) closeProductModal();
+});
+document.getElementById('order-modal')?.addEventListener('click', function (e) {
+    if (e.target === this) closeOrderModal();
+});
+document.getElementById('delete-confirm-modal')?.addEventListener('click', function (e) {
+    if (e.target === this) closeDeleteConfirm();
+});
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        closeDeleteConfirm();
+        closeProductModal();
+        closeOrderModal();
+    }
+});
+
+// ── Auto-open on page load ────────────────────────────────────────────────────
+
+<?php if ($openModal && $editProduct): ?>
+openProductModal(<?php
+    $imagesForJs = array_map(function($img) {
+        return [
+            'id'         => $img['id'],
+            'sort_order' => $img['sort_order'],
+            'url'        => !empty($img['image_path']) ? asset($img['image_path']) : '',
+        ];
+    }, $editProduct['images'] ?? []);
+    echo json_encode([
+        'id'            => $editProduct['id'],
+        'name'          => $editProduct['name'],
+        'description'   => $editProduct['description'],
+        'base_price'    => $editProduct['base_price'],
+        'active'        => $editProduct['active'],
+        'is_bulk_order' => $editProduct['is_bulk_order'],
+        'bulk_end_date' => $editProduct['bulk_end_date'],
+        'bulk_min_goal' => $editProduct['bulk_min_goal'],
+        'category'      => $editProduct['category'],
+        'pickup_location' => $editProduct['pickup_location'],
+        'gender'        => $editProduct['gender'],
+        'sku'           => $editProduct['sku'],
+        'image_path'    => !empty($editProduct['image_path']) ? asset($editProduct['image_path']) : '',
+        'images'        => $imagesForJs,
+        'variants'      => $editProduct['variants'],
+    ]);
+?>);
+<?php elseif ($openModal): ?>
+openProductModal();
+<?php endif; ?>
+</script>
+
+<?php if ($section === 'products' && !empty($recentSalesStats)): ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    const isDark     = document.documentElement.classList.contains('dark-mode');
+    const gridColor  = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+    const textColor  = isDark ? '#e5e7eb' : '#374151';
+    const labels     = <?php echo json_encode($chartLabels); ?>;
+    const revenues   = <?php echo json_encode($chartRevenues); ?>;
+
+    new Chart(document.getElementById('recentSalesChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Umsatz (€)',
+                data: revenues,
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 2,
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ctx.parsed.y.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { color: textColor, font: { size: 11 } }, grid: { color: gridColor } },
+                y: { ticks: { color: textColor, font: { size: 11 } }, grid: { color: gridColor }, beginAtZero: true }
+            }
+        }
+    });
+})();
+</script>
+<?php endif; ?>
+
+<?php
+$content = ob_get_clean();
+require_once __DIR__ . '/../../includes/templates/main_layout.php';
+?>
