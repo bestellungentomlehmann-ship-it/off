@@ -578,7 +578,8 @@ ob_start();
         margin-bottom: 1.25rem;
     }
     .hero-badge-icon {
-        font-size: 3rem;
+        width: 3rem;
+        height: 3rem;
         opacity: 0.92;
     }
 </style>
@@ -844,7 +845,9 @@ function dismissProfileReviewPrompt() {
             <!-- Decorative icon badge (desktop only) -->
             <div class="hidden lg:flex items-center justify-center flex-shrink-0"
                  style="width: 7rem; height: 7rem; background: rgba(255,255,255,0.13); border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.22); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
-                <i class="fas fa-th-large hero-badge-icon"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="hero-badge-icon" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M3 6a3 3 0 0 1 3-3h2.25a3 3 0 0 1 3 3v2.25a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6Zm9.75 0a3 3 0 0 1 3-3H18a3 3 0 0 1 3 3v2.25a3 3 0 0 1-3 3h-2.25a3 3 0 0 1-3-3V6ZM3 15.75a3 3 0 0 1 3-3h2.25a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2.25Zm9.75 0a3 3 0 0 1 3-3H18a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3h-2.25a3 3 0 0 1-3-3v-2.25Z" clip-rule="evenodd" />
+                </svg>
             </div>
         </div>
     </div>
