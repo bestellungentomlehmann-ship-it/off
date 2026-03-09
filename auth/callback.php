@@ -183,96 +183,9 @@ try {
         AuthHandler::syncEntraData($existingUser['id'], $claims, $azureOid, $accessTokenValue);
     }
 
-    // --- Entra ID profile photo synchronisation ---
-    // Runs for existing users whose ID is already known at this point.
-    // New users are handled by completeMicrosoftLogin after their record is created.
-    if ($existingUser) {
-        $userId = $existingUser['id'];
-        try {
-            // 1. Fetch current avatar_path from the database
-            $avatarStmt = $db->prepare("SELECT avatar_path FROM users WHERE id = ?");
-            $avatarStmt->execute([$userId]);
-            $avatarRow  = $avatarStmt->fetch();
-            $avatar_path = $avatarRow['avatar_path'] ?? null;
-
-            // 2. Protection check: skip sync when the photo was manually uploaded (custom_ prefix)
-            if (!empty($avatar_path) && strpos($avatar_path, 'custom_') !== false) {
-                error_log("[OAuth Photo Sync] Skipped for user {$userId}: manually uploaded photo detected.");
-            } else {
-                // 3. Ensure the upload directory exists before making the request
-                if (!is_dir(__DIR__ . '/../uploads/profile_photos/')) {
-                    mkdir(__DIR__ . '/../uploads/profile_photos/', 0755, true);
-                }
-
-                // 4. Fetch photo from Entra ID using the user's delegated access token
-                $photoCh = curl_init('https://graph.microsoft.com/v1.0/me/photo/$value');
-                curl_setopt($photoCh, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($photoCh, CURLOPT_FOLLOWLOCATION, true);
-                curl_setopt($photoCh, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $accessTokenValue]);
-                curl_setopt($photoCh, CURLOPT_TIMEOUT, 15);
-                curl_setopt($photoCh, CURLOPT_SSL_VERIFYPEER, true);
-                curl_setopt($photoCh, CURLOPT_SSL_VERIFYHOST, 2);
-                $response  = curl_exec($photoCh);
-                $httpCode  = curl_getinfo($photoCh, CURLINFO_HTTP_CODE);
-                $curlError = curl_error($photoCh);
-                curl_close($photoCh);
-
-                if ($curlError) {
-                    // 5a. cURL transport failure: hard debug stop
-                    error_log("[OAuth Photo Sync] cURL error for user {$userId}: {$curlError}");
-                    $safeCurlError = htmlspecialchars($curlError, ENT_QUOTES, 'UTF-8');
-                    die(
-                        '<h1>DEBUG: Entra Photo Sync Failed (cURL Error)</h1>' .
-                        '<p><strong>User ID:</strong> ' . (int) $userId . '</p>' .
-                        '<p><strong>HTTP Code:</strong> ' . (int) $httpCode . '</p>' .
-                        '<p><strong>cURL Error:</strong> ' . $safeCurlError . '</p>'
-                    );
-                } elseif ($httpCode === 200) {
-                    // 5b. Photo available: save to disk and update avatar_path
-                    $uploadDir = __DIR__ . '/../uploads/profile_photos/';
-                    $photoFile = $uploadDir . 'entra_' . $userId . '.jpg';
-                    if (file_put_contents($photoFile, $response) !== false) {
-                        chmod($photoFile, 0644);
-                        $newAvatarPath = 'uploads/profile_photos/entra_' . $userId . '.jpg';
-                        $updateStmt = $db->prepare("UPDATE users SET avatar_path = ? WHERE id = ?");
-                        $updateStmt->execute([$newAvatarPath, $userId]);
-                        error_log("[OAuth Photo Sync] Photo saved and avatar_path updated for user {$userId}.");
-                    } else {
-                        error_log("[OAuth Photo Sync] Failed to write photo file for user {$userId}.");
-                    }
-                } elseif ($httpCode === 404) {
-                    // 5c. User simply has no profile photo in Entra ID
-                    error_log("[OAuth Photo Sync] No photo found (HTTP 404) for user {$userId}.");
-                    // Only clear the avatar when the current path still points to an Entra-synced image.
-                    if (!empty($avatar_path) && strpos($avatar_path, 'entra_') !== false) {
-                        error_log("[OAuth Photo Sync] Clearing entra_ avatar_path for user {$userId}.");
-                        $updateStmt = $db->prepare("UPDATE users SET avatar_path = NULL WHERE id = ?");
-                        $updateStmt->execute([$userId]);
-                    }
-                } else {
-                    // 5d. Unexpected HTTP code (e.g. 401, 403, 500):
-                    //     Microsoft is denying access – hard debug stop so the exact error becomes visible.
-                    error_log("[OAuth Photo Sync] Unexpected HTTP {$httpCode} for user {$userId}.");
-                    $safeResponse = htmlspecialchars((string) $response, ENT_QUOTES, 'UTF-8');
-                    die(
-                        '<div style="background:#c0392b;color:#fff;font-family:monospace;padding:2rem;">' .
-                        '<h1>&#x26A0; DEBUG: Entra Photo Sync Failed (Unexpected HTTP Code)</h1>' .
-                        '<p><strong>User ID:</strong> ' . (int) $userId . '</p>' .
-                        '<p><strong>HTTP Code:</strong> ' . (int) $httpCode . '</p>' .
-                        '<p><strong>cURL Error:</strong> ' . htmlspecialchars($curlError, ENT_QUOTES, 'UTF-8') . '</p>' .
-                        '<p><strong>Response Body:</strong></p>' .
-                        '<pre style="background:#922b21;padding:1rem;white-space:pre-wrap;">' . $safeResponse . '</pre>' .
-                        '</div>'
-                    );
-                }
-            }
-        } catch (Exception $photoEx) {
-            // Non-fatal: photo sync failure must not break login
-            error_log("[OAuth Photo Sync] Exception for user {$userId}: " . $photoEx->getMessage());
-        }
-    }
-
     // Complete the login process (role mapping, user create/update, session setup)
+    // Note: Entra profile photo sync for existing users is handled inside syncEntraData() above.
+    // New users receive their photo via completeMicrosoftLogin() after their record is created.
     AuthHandler::completeMicrosoftLogin($claims, $existingUser, $accessTokenValue);
 
 } catch (Exception $e) {

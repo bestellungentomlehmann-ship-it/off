@@ -1012,6 +1012,11 @@ class AuthHandler {
                 $photoData = $photoService->getUserPhoto($azureOid);
                 if ($photoData !== null) {
                     User::cacheEntraPhoto($userId, $photoData);
+                } elseif (!empty($currentAvatar) && strpos($currentAvatar, 'entra_') !== false) {
+                    // User no longer has a photo in Entra – clear the stale cached path so
+                    // the default profile image is shown instead of an outdated Entra photo.
+                    $db->prepare("UPDATE users SET avatar_path = NULL WHERE id = ?")
+                       ->execute([$userId]);
                 }
             }
         } catch (Exception $e) {
