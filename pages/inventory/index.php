@@ -64,7 +64,10 @@ ob_start();
             <p class="text-slate-600 dark:text-slate-400 text-lg"><?php echo count($inventoryObjects); ?> Artikel verfügbar</p>
         </div>
         <!-- Action Buttons -->
-        <div class="flex gap-4 flex-wrap">
+        <div class="flex gap-3 flex-wrap">
+            <a href="my_rentals.php" class="bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-700 hover:border-purple-400 text-purple-700 dark:text-purple-300 px-5 py-3 rounded-xl flex items-center shadow-sm font-semibold transition-all hover:shadow-md">
+                <i class="fas fa-clipboard-list mr-2"></i>Meine Ausleihen
+            </a>
             <?php if (AuthHandler::isAdmin()): ?>
             <a href="sync.php" class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-3 rounded-xl flex items-center shadow-lg font-semibold transition-all transform hover:scale-105">
                 <i class="fas fa-sync-alt mr-2"></i> EasyVerein Sync
@@ -202,50 +205,71 @@ ob_start();
 
         <!-- Card Content -->
         <div class="p-5 flex flex-col flex-1">
-            <h3 class="font-bold text-slate-900 dark:text-white text-lg mb-2 line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" title="<?php echo htmlspecialchars($itemName); ?>">
+            <h3 class="font-bold text-slate-900 dark:text-white text-lg mb-1 line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" title="<?php echo htmlspecialchars($itemName); ?>">
                 <?php echo htmlspecialchars($itemName); ?>
             </h3>
 
+            <?php if (!empty($item['category_name'])): ?>
+            <span class="inline-block self-start px-2 py-0.5 text-xs rounded-full mb-3 font-semibold" style="background-color: <?php echo htmlspecialchars($item['category_color'] ?? '#8b5cf6'); ?>20; color: <?php echo htmlspecialchars($item['category_color'] ?? '#8b5cf6'); ?>">
+                <?php echo htmlspecialchars($item['category_name']); ?>
+            </span>
+            <?php endif; ?>
+
             <?php if ($itemDesc !== ''): ?>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-3 flex-1" title="<?php echo htmlspecialchars($itemDesc); ?>">
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2 flex-1" title="<?php echo htmlspecialchars($itemDesc); ?>">
                 <?php echo htmlspecialchars($itemDesc); ?>
             </p>
             <?php else: ?>
             <div class="flex-1"></div>
             <?php endif; ?>
 
-            <!-- Stock Info (Bestand | Ausgeliehen | Verfügbar) -->
-            <div class="flex items-center justify-between mb-4 p-3 rounded-xl <?php echo $hasStock ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'; ?>">
-                <span class="text-xs font-semibold <?php echo $hasStock ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'; ?> flex items-center gap-1.5">
-                    <i class="fas fa-cubes"></i>
-                    Bestand: <?php echo $itemPieces; ?> | Ausgeliehen: <?php echo $itemLoaned; ?> | Verfügbar: <?php echo $itemAvailable; ?>
-                </span>
+            <!-- Stock Info -->
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <div class="text-center px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-700/50">
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Gesamt</p>
+                    <p class="font-bold text-slate-700 dark:text-slate-200 text-sm"><?php echo $itemPieces; ?></p>
+                </div>
+                <div class="text-center px-2 py-2 rounded-xl bg-orange-50 dark:bg-orange-900/20">
+                    <p class="text-xs text-orange-400 dark:text-orange-500 mb-0.5">Ausgeliehen</p>
+                    <p class="font-bold text-orange-600 dark:text-orange-400 text-sm"><?php echo $itemLoaned; ?></p>
+                </div>
+                <div class="text-center px-2 py-2 rounded-xl <?php echo $hasStock ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'; ?>">
+                    <p class="text-xs <?php echo $hasStock ? 'text-green-500' : 'text-red-400'; ?> mb-0.5">Verfügbar</p>
+                    <p class="font-bold <?php echo $hasStock ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'; ?> text-sm"><?php echo $itemAvailable; ?></p>
+                </div>
             </div>
 
-            <!-- Action Button -->
-            <?php if ($hasStock): ?>
-            <button
-                type="button"
-                id="cartBtn-<?php echo htmlspecialchars($itemId); ?>"
-                onclick="toggleCartItem(<?php echo htmlspecialchars(json_encode([
-                    'id'       => (string)$itemId,
-                    'name'     => $itemName,
-                    'imageSrc' => $imageSrc ?? '',
-                    'pieces'   => $itemAvailable,
-                ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>)"
-                class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-bold text-sm transition-all transform hover:scale-[1.02] shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-            >
-                <i class="fas fa-cart-plus"></i>In den Warenkorb
-            </button>
-            <?php else: ?>
-            <button
-                type="button"
-                disabled
-                class="w-full py-2.5 bg-gray-200 dark:bg-slate-700 text-gray-400 dark:text-slate-500 rounded-xl font-bold text-sm cursor-not-allowed flex items-center justify-center gap-2"
-            >
-                <i class="fas fa-ban"></i>Aktuell vergriffen
-            </button>
-            <?php endif; ?>
+            <!-- Action Buttons -->
+            <div class="flex gap-2">
+                <a href="view.php?id=<?php echo htmlspecialchars($itemId); ?>"
+                   class="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold transition-all"
+                   title="Details anzeigen">
+                    <i class="fas fa-eye"></i>
+                </a>
+                <?php if ($hasStock): ?>
+                <button
+                    type="button"
+                    id="cartBtn-<?php echo htmlspecialchars($itemId); ?>"
+                    onclick="toggleCartItem(<?php echo htmlspecialchars(json_encode([
+                        'id'       => (string)$itemId,
+                        'name'     => $itemName,
+                        'imageSrc' => $imageSrc ?? '',
+                        'pieces'   => $itemAvailable,
+                    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>)"
+                    class="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-bold text-sm transition-all transform hover:scale-[1.02] shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                    <i class="fas fa-cart-plus"></i>In den Warenkorb
+                </button>
+                <?php else: ?>
+                <button
+                    type="button"
+                    disabled
+                    class="flex-1 py-2.5 bg-gray-200 dark:bg-slate-700 text-gray-400 dark:text-slate-500 rounded-xl font-bold text-sm cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                    <i class="fas fa-ban"></i>Vergriffen
+                </button>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
     <?php endforeach; ?>
@@ -603,7 +627,7 @@ ob_start();
         var btn = document.getElementById('cartBtn-' + id);
         if (!btn) return;
         var inCart   = cart.some(function (c) { return c.id === id; });
-        var baseClass = 'w-full py-2.5 text-white rounded-xl font-bold text-sm transition-all transform hover:scale-[1.02] shadow-md hover:shadow-lg flex items-center justify-center gap-2';
+        var baseClass = 'flex-1 py-2.5 text-white rounded-xl font-bold text-sm transition-all transform hover:scale-[1.02] shadow-md hover:shadow-lg flex items-center justify-center gap-2';
         if (inCart) {
             btn.className = baseClass + ' bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700';
             btn.innerHTML = '<i class="fas fa-check"></i>Im Warenkorb';
