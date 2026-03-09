@@ -92,7 +92,7 @@ ob_start();
                     </div>
                     <div>
                         <h1 class="text-2xl sm:text-3xl font-extrabold text-white dark:text-gray-50 tracking-tight leading-tight">Ideenbox</h1>
-                        <p class="text-yellow-100 dark:text-gray-400 text-sm mt-0.5">Teile Deine Ideen – stimme ab, was umgesetzt werden soll.</p>
+                        <p class="text-gray-900 dark:text-gray-400 text-sm mt-0.5">Teile Deine Ideen – stimme ab, was umgesetzt werden soll.</p>
                     </div>
                 </div>
                 <button
@@ -106,13 +106,13 @@ ob_start();
             <?php if (!empty($ideas)):
                 $totalScore = array_sum(array_map(fn($i) => ($i['upvotes'] ?? 0) - ($i['downvotes'] ?? 0), $ideas));
             ?>
-            <div class="relative flex flex-wrap gap-4 mt-5 pt-5 border-t border-white/20 dark:border-yellow-500/20">
-                <div class="flex items-center gap-2 text-white/90 dark:text-gray-300 text-sm font-medium">
-                    <i class="fas fa-list-ul text-white/70 dark:text-yellow-400/70 text-xs"></i>
+            <div class="relative flex flex-wrap gap-4 mt-5 pt-5 border-t border-gray-900/20 dark:border-yellow-500/20">
+                <div class="flex items-center gap-2 text-gray-900 dark:text-gray-300 text-sm font-medium">
+                    <i class="fas fa-list-ul text-gray-900/70 dark:text-yellow-400/70 text-xs"></i>
                     <span><?php echo count($ideas); ?> Idee<?php echo count($ideas) !== 1 ? 'n' : ''; ?></span>
                 </div>
-                <div class="flex items-center gap-2 text-white/90 dark:text-gray-300 text-sm font-medium">
-                    <i class="fas fa-star text-white/70 dark:text-yellow-400/70 text-xs"></i>
+                <div class="flex items-center gap-2 text-gray-900 dark:text-gray-300 text-sm font-medium">
+                    <i class="fas fa-star text-gray-900/70 dark:text-yellow-400/70 text-xs"></i>
                     <span><?php echo $totalScore; ?> Gesamtstimmen</span>
                 </div>
             </div>
@@ -152,7 +152,7 @@ ob_start();
             $score          = $upvotes - $downvotes;
             $accentColor    = $sc['accent'];
         ?>
-        <div class="idea-card group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col"
+        <div class="idea-card group bg-yellow-100 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 shadow-md overflow-hidden flex flex-col"
              style="border-top: 3px solid <?php echo $accentColor; ?>;"
              data-idea-id="<?php echo $idea['id']; ?>">
 
@@ -160,7 +160,7 @@ ob_start();
             <div class="flex gap-0 flex-1">
 
                 <!-- Vote Column -->
-                <div class="flex flex-col items-center justify-center gap-2 px-3 py-5 bg-gray-50 dark:bg-gray-800/50 border-r border-gray-100 dark:border-gray-800 min-w-[64px]">
+                <div class="flex flex-col items-center justify-center gap-2 px-3 py-5 bg-yellow-50 dark:bg-yellow-800/20 border-r border-yellow-200 dark:border-yellow-700 min-w-[64px]">
                     <button
                         onclick="castVote(<?php echo $idea['id']; ?>, 'up')"
                         title="Upvote"
@@ -214,18 +214,18 @@ ob_start();
                         </div>
                     </div>
 
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3 break-words hyphens-auto flex-1"><?php echo nl2br(htmlspecialchars($idea['description'])); ?></p>
+                    <p class="text-sm text-gray-700 dark:text-gray-400 leading-relaxed line-clamp-3 break-words hyphens-auto flex-1"><?php echo nl2br(htmlspecialchars($idea['description'])); ?></p>
                 </div>
             </div>
 
             <!-- Card Footer / Meta -->
-            <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-gray-400 dark:text-gray-500 px-4 py-2.5 border-t border-gray-50 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-gray-600 dark:text-gray-500 px-4 py-2.5 border-t border-yellow-200 dark:border-yellow-800 bg-yellow-50/70 dark:bg-yellow-800/20">
                 <div class="flex items-center gap-1.5">
                     <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
                           style="background-color: <?php echo htmlspecialchars($avatarColor); ?>">
                         <?php echo htmlspecialchars($initials); ?>
                     </span>
-                    <span class="truncate max-w-[100px] sm:max-w-[160px] font-medium text-gray-500 dark:text-gray-400"><?php echo htmlspecialchars($submitterName); ?></span>
+                    <span class="truncate max-w-[100px] sm:max-w-[160px] font-medium text-gray-700 dark:text-gray-400"><?php echo htmlspecialchars($submitterName); ?></span>
                 </div>
                 <span>·</span>
                 <span><?php echo date('d.m.Y', strtotime($idea['created_at'])); ?></span>
