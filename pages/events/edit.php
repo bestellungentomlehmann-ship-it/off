@@ -89,6 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$readOnly) {
             'external_link' => trim($_POST['external_link'] ?? ''),
             'registration_link' => trim($_POST['registration_link'] ?? ''),
             'needs_helpers' => isset($_POST['needs_helpers']) ? 1 : 0,
+            'is_internal_project' => isset($_POST['is_internal_project']) ? 1 : 0,
+            'requires_application' => isset($_POST['requires_application']) ? 1 : 0,
             'allowed_roles' => $_POST['allowed_roles'] ?? []
         ];
         
@@ -591,6 +593,47 @@ ob_start();
                         <span class="text-sm font-medium text-gray-700">Helfer benötigt</span>
                     </label>
 
+                    <label class="flex items-center space-x-2 min-h-[44px]">
+                        <input 
+                            type="checkbox" 
+                            name="is_internal_project"
+                            id="is_internal_project"
+                            <?php 
+                            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                                echo isset($_POST['is_internal_project']) ? 'checked' : '';
+                            } else {
+                                echo ($event['is_internal_project'] ?? false) ? 'checked' : '';
+                            }
+                            ?>
+                            <?php echo $readOnly ? 'disabled' : ''; ?>
+                            class="w-5 h-5 text-purple-600 bg-white border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:focus:ring-blue-500"
+                        >
+                        <span class="text-sm font-medium text-gray-700">Internes Projekt</span>
+                    </label>
+
+                    <label id="requires_application_wrapper" class="flex items-center space-x-2 min-h-[44px] <?php
+                        $showRequiresApplication = ($_SERVER['REQUEST_METHOD'] === 'POST')
+                            ? isset($_POST['is_internal_project'])
+                            : ($event['is_internal_project'] ?? false);
+                        echo $showRequiresApplication ? '' : 'hidden';
+                    ?>">
+                        <input 
+                            type="checkbox" 
+                            name="requires_application"
+                            id="requires_application"
+                            <?php 
+                            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                                echo isset($_POST['requires_application']) ? 'checked' : '';
+                            } else {
+                                echo ($event['requires_application'] ?? false) ? 'checked' : '';
+                            }
+                            ?>
+                            <?php echo $readOnly ? 'disabled' : ''; ?>
+                            class="w-5 h-5 text-purple-600 bg-white border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:focus:ring-blue-500"
+                        >
+                        <span class="text-sm font-medium text-gray-700">Bewerbung erforderlich</span>
+                    </label>
+
                 </div>
 
                 <!-- Visibility: Role Checkboxes -->
@@ -837,6 +880,22 @@ needsHelpersCheckbox?.addEventListener('change', function() {
         // Switch to time tab if currently on helpers tab
         if (!document.getElementById('tab-helpers').classList.contains('hidden')) {
             document.querySelector('[data-tab="time"]').click();
+        }
+    }
+});
+
+// Show/hide "Bewerbung erforderlich" based on "Internes Projekt"
+const isInternalProjectCheckbox = document.getElementById('is_internal_project');
+const requiresApplicationWrapper = document.getElementById('requires_application_wrapper');
+const requiresApplicationCheckbox = document.getElementById('requires_application');
+
+isInternalProjectCheckbox?.addEventListener('change', function() {
+    if (this.checked) {
+        requiresApplicationWrapper.classList.remove('hidden');
+    } else {
+        requiresApplicationWrapper.classList.add('hidden');
+        if (requiresApplicationCheckbox) {
+            requiresApplicationCheckbox.checked = false;
         }
     }
 });
