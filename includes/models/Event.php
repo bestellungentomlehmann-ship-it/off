@@ -246,8 +246,8 @@ class Event {
                 INSERT INTO events (title, description, location, maps_link, start_time, end_time, 
                                   registration_start, registration_end, status, 
                                   is_external, external_link, registration_link, needs_helpers,
-                                  image_path, created_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                  image_path, created_by, is_internal_project, requires_application)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $stmt->execute([
@@ -265,7 +265,9 @@ class Event {
                 $data['registration_link'] ?? null,
                 $data['needs_helpers'] ?? false,
                 $imagePath,
-                $userId
+                $userId,
+                $data['is_internal_project'] ?? 0,
+                $data['requires_application'] ?? 0
             ]);
             
             $eventId = $db->lastInsertId();
