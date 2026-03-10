@@ -910,7 +910,11 @@ if (!isset($currentUser)) {
             }
             function unlockBodyScroll() {
                 document.body.classList.remove('sidebar-open');
+                document.body.style.overflow = '';
+                document.body.style.position = '';
                 document.body.style.top = '';
+                document.body.style.width = '';
+                document.documentElement.style.overflow = '';
                 window.scrollTo(0, _savedScrollY);
             }
 
@@ -1148,6 +1152,7 @@ if (!isset($currentUser)) {
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="<?php echo asset('js/navbar-scroll.js'); ?>" defer></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {

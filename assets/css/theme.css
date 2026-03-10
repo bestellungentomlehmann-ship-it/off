@@ -5094,6 +5094,18 @@ body {
 }
 
 /* ============================================================
+   NAVBAR SCROLL STATE (.scrolled)
+   Added by js/navbar-scroll.js once the user scrolls >= 50 px.
+   Applies to #mobile-menu-btn on small screens.
+   ============================================================ */
+#mobile-menu-btn.scrolled {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    background: var(--ibc-blue-dark) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    transform: scale(1.05);
+}
+
+/* ============================================================
    ENHANCED SIDEBAR DESIGN  
    ============================================================ */
 
