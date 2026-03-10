@@ -550,16 +550,6 @@ if (!isset($currentUser)) {
                 </a>
                 <?php endif; ?>
 
-                <!-- Shop-Statistiken (Board + Resortleiter) -->
-                <?php if (Auth::hasRole(['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'ressortleiter'])): ?>
-                <a href="<?php echo asset('pages/admin/shop_stats.php'); ?>"
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/shop_stats.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
-                   <?php echo isActivePath('/admin/shop_stats.php') ? 'aria-current="page"' : ''; ?>>
-                    <i class="fas fa-chart-line w-5 mr-3" aria-hidden="true"></i>
-                    <span>Shop-Statistiken</span>
-                </a>
-                <?php endif; ?>
-
                 <!-- Statistiken (All board members) -->
                 <?php if (Auth::isAdmin()): ?>
                 <a href="<?php echo asset('pages/admin/stats.php'); ?>" 
