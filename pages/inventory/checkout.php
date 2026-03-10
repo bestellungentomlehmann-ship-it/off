@@ -30,13 +30,13 @@ if (!$cartMode && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkou
 
     // Determine where to redirect after checkout; constrain to a known safe value.
     $returnTo = ($_POST['return_to'] ?? '') === 'index' ? 'index' : 'view';
-    
-    $quantity = intval($_POST['quantity'] ?? 0);
-    $purpose = trim($_POST['purpose'] ?? '');
+
+    $quantity    = intval($_POST['quantity'] ?? 0);
+    $purpose     = trim($_POST['purpose'] ?? '');
     $destination = trim($_POST['destination'] ?? '');
-    $startDate = trim($_POST['start_date'] ?? '') ?: null;
-    $expectedReturn = trim($_POST['expected_return_at'] ?? $_POST['expected_return'] ?? '') ?: null;
-    
+    $startDate   = trim($_POST['start_date'] ?? '');
+    $endDate     = trim($_POST['end_date'] ?? '') ?: null;
+
     if ($quantity <= 0) {
         $error = 'Bitte geben Sie eine gültige Menge ein';
         if ($returnTo === 'index') {
@@ -44,36 +44,47 @@ if (!$cartMode && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkou
             header('Location: index.php');
             exit;
         }
+    } elseif (empty($startDate)) {
+        $error = 'Bitte geben Sie ein Startdatum an';
+        if ($returnTo === 'index') {
+            $_SESSION['checkout_error'] = $error;
+            header('Location: index.php');
+            exit;
+        }
+    } elseif (empty($endDate)) {
+        $error = 'Bitte geben Sie ein Rückgabedatum an';
+        if ($returnTo === 'index') {
+            $_SESSION['checkout_error'] = $error;
+            header('Location: index.php');
+            exit;
+        }
     } else {
-        $result = Inventory::checkoutItem($itemId, $_SESSION['user_id'], $quantity, $purpose, $destination, $expectedReturn, $startDate);
-        
+        // Combine destination into purpose if provided
+        $fullPurpose = $purpose . ($destination !== '' ? ' (Ort: ' . $destination . ')' : '');
+
+        $result = Inventory::submitRequest($itemId, $_SESSION['user_id'], $startDate, $endDate, $quantity, $fullPurpose);
+
         if ($result['success']) {
             // Send notification email to board
             $borrowerEmail = $_SESSION['user_email'] ?? 'Unbekannt';
-            $safeSubject = str_replace(["\r", "\n"], '', $item['name']);
-            $startDateRow = $startDate && strtotime($startDate) !== false
-                ? '<tr><td>Startdatum</td><td>' . htmlspecialchars(date('d.m.Y', strtotime($startDate))) . '</td></tr>'
-                : '';
-            $returnRow = $expectedReturn && strtotime($expectedReturn) !== false
-                ? '<tr><td>Rückgabe bis</td><td>' . htmlspecialchars(date('d.m.Y', strtotime($expectedReturn))) . '</td></tr>'
-                : '';
-            $emailBody = MailService::getTemplate(
-                'Neue Ausleihe im Inventar',
-                '<p class="email-text">Ein Mitglied hat einen Artikel aus dem Inventar ausgeliehen.</p>
+            $safeSubject   = str_replace(["\r", "\n"], '', $item['name']);
+            $emailBody     = MailService::getTemplate(
+                'Neue Ausleih-Anfrage',
+                '<p class="email-text">Ein Mitglied hat eine Ausleih-Anfrage für einen Artikel aus dem Inventar gestellt. Die Anfrage muss noch genehmigt werden.</p>
                 <table class="info-table">
                     <tr><td>Artikel</td><td>' . htmlspecialchars($item['name']) . '</td></tr>
                     <tr><td>Menge</td><td>' . htmlspecialchars($quantity . ' ' . ($item['unit'] ?? 'Stück')) . '</td></tr>
-                    <tr><td>Ausgeliehen von</td><td>' . htmlspecialchars($borrowerEmail) . '</td></tr>
+                    <tr><td>Angefragt von</td><td>' . htmlspecialchars($borrowerEmail) . '</td></tr>
                     <tr><td>Verwendungszweck</td><td>' . htmlspecialchars($purpose) . '</td></tr>
                     <tr><td>Zielort</td><td>' . htmlspecialchars($destination ?: '-') . '</td></tr>
-                    ' . $startDateRow . '
-                    ' . $returnRow . '
-                    <tr><td>Datum</td><td>' . date('d.m.Y H:i') . '</td></tr>
+                    <tr><td>Von</td><td>' . htmlspecialchars(date('d.m.Y', strtotime($startDate))) . '</td></tr>
+                    <tr><td>Bis</td><td>' . htmlspecialchars(date('d.m.Y', strtotime($endDate))) . '</td></tr>
+                    <tr><td>Datum der Anfrage</td><td>' . date('d.m.Y H:i') . '</td></tr>
                 </table>'
             );
-            MailService::sendEmail(MAIL_INVENTORY, 'Neue Ausleihe: ' . $safeSubject, $emailBody);
+            MailService::sendEmail(MAIL_INVENTORY, 'Neue Ausleih-Anfrage: ' . $safeSubject, $emailBody);
 
-            $_SESSION['checkout_success'] = $result['message'];
+            $_SESSION['checkout_success'] = 'Deine Anfrage wurde eingereicht und wartet auf Genehmigung durch den Vorstand.';
             if ($returnTo === 'index') {
                 header('Location: index.php');
             } else {
@@ -93,7 +104,7 @@ if (!$cartMode && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkou
 
 $title = $cartMode
     ? 'Ausleih-Warenkorb - IBC Intranet'
-    : 'Artikel ausleihen - ' . htmlspecialchars($item['name']);
+    : 'Ausleih-Anfrage - ' . htmlspecialchars($item['name']);
 ob_start();
 
 if ($cartMode):
@@ -439,8 +450,8 @@ if ($cartMode):
         <!-- Card Header -->
         <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-5">
             <h1 class="text-xl font-bold text-white flex items-center gap-2">
-                <i class="fas fa-hand-holding-box"></i>
-                Artikel ausleihen
+                <i class="fas fa-paper-plane"></i>
+                Ausleih-Anfrage stellen
             </h1>
         </div>
 
@@ -501,6 +512,36 @@ if ($cartMode):
                 >
             </div>
 
+            <!-- Date range -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                        <i class="fas fa-calendar-alt text-purple-500 mr-1.5"></i>Von <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="date"
+                        name="start_date"
+                        required
+                        min="<?php echo date('Y-m-d'); ?>"
+                        value="<?php echo date('Y-m-d'); ?>"
+                        class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all"
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                        <i class="fas fa-calendar-alt text-purple-500 mr-1.5"></i>Bis <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="date"
+                        name="end_date"
+                        required
+                        min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
+                        value="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
+                        class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all"
+                    >
+                </div>
+            </div>
+
             <!-- Destination -->
             <div>
                 <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
@@ -516,10 +557,10 @@ if ($cartMode):
             </div>
 
             <!-- Info note -->
-            <div class="flex items-start gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl px-4 py-3">
-                <i class="fas fa-info-circle text-blue-500 mt-0.5 flex-shrink-0"></i>
-                <p class="text-sm text-blue-700 dark:text-blue-300">
-                    Der Bestand wird sofort reduziert. Bitte nach der Verwendung zurückgeben.
+            <div class="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl px-4 py-3">
+                <i class="fas fa-info-circle text-amber-500 mt-0.5 flex-shrink-0"></i>
+                <p class="text-sm text-amber-700 dark:text-amber-300">
+                    Deine Anfrage wird mit Status <strong>Ausstehend</strong> gespeichert und vom Vorstand geprüft. Du hast den Artikel erst sicher, wenn der Vorstand deine Anfrage genehmigt hat.
                 </p>
             </div>
 
@@ -531,7 +572,7 @@ if ($cartMode):
                 </a>
                 <button type="submit" id="checkout-rental-btn"
                         class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02]">
-                    <i class="fas fa-check"></i>Ausleihen bestätigen
+                    <i class="fas fa-paper-plane"></i>Anfrage senden
                 </button>
             </div>
         </form>
