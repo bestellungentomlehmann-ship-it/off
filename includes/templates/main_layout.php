@@ -280,6 +280,23 @@ if (!isset($currentUser)) {
         </svg>
     </button>
 
+    <!-- Mobile Inventory Cart Button (top-right, mirrors hamburger prominence) -->
+    <a href="<?php echo asset('pages/inventory/checkout.php'); ?>"
+       id="global-cart-btn"
+       class="md:hidden fixed top-4 right-4 z-[1061] flex items-center justify-center w-11 h-11 rounded-full shadow-lg transition-all duration-200 active:scale-95"
+       style="background: var(--ibc-blue); border: 1px solid rgba(255,255,255,0.2);"
+       aria-label="Ausleih-Warenkorb">
+        <!-- Heroicons: shopping-cart outline -->
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        <span id="global-cart-badge"
+              style="display:none"
+              aria-live="polite"
+              aria-atomic="true"
+              class="absolute -top-1.5 -right-1.5 min-w-[1.2rem] h-[1.2rem] bg-red-500 text-white text-[10px] font-extrabold rounded-full flex items-center justify-center px-1 shadow ring-2 ring-white">0</span>
+    </a>
+
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar fixed left-0 top-0 h-screen w-64 md:w-72 transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40 text-white shadow-2xl flex flex-col" aria-label="Seitenleiste">
         <?php 
@@ -353,8 +370,8 @@ if (!isset($currentUser)) {
 
                 <!-- Inventar (All) -->
                 <a href="<?php echo asset('pages/inventory/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/inventory/') && !isActivePath('/my_rentals.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
-                   <?php echo isActivePath('/inventory/') && !isActivePath('/my_rentals.php') ? 'aria-current="page"' : ''; ?>>
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/inventory/') && !isActivePath('/my_rentals.php') && !isActivePath('/checkout.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/inventory/') && !isActivePath('/my_rentals.php') && !isActivePath('/checkout.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-box w-5 mr-3" aria-hidden="true"></i>
                     <span>Inventar</span>
                 </a>
@@ -365,6 +382,22 @@ if (!isset($currentUser)) {
                    <?php echo isActivePath('/my_rentals.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-clipboard-list w-5 mr-3" aria-hidden="true"></i>
                     <span>Ausleihe</span>
+                </a>
+
+                <!-- Ausleih-Warenkorb (All) -->
+                <a href="<?php echo asset('pages/inventory/checkout.php'); ?>"
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/inventory/checkout.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/inventory/checkout.php') ? 'aria-current="page"' : ''; ?>>
+                    <!-- Heroicons: shopping-cart outline -->
+                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    <span>Ausleih-Warenkorb</span>
+                    <span id="nav-inv-cart-badge"
+                          style="display:none"
+                          aria-live="polite"
+                          aria-atomic="true"
+                          class="ml-auto bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">0</span>
                 </a>
 
                 <!-- Mitglieder (Board, Head, Member, Candidate) -->
@@ -1150,6 +1183,41 @@ if (!isset($currentUser)) {
         window.addEventListener('orientationchange', () => {
             setTimeout(setAppHeight, 200);
         });
+
+        // ── Inventory cart badge (reads from localStorage) ───────────────────
+        (function () {
+            var CART_KEY = 'ibc_inventory_cart';
+
+            function updateInvCartBadges() {
+                var count = 0;
+                try {
+                    var raw = localStorage.getItem(CART_KEY);
+                    if (raw) {
+                        var arr = JSON.parse(raw);
+                        if (Array.isArray(arr)) { count = arr.length; }
+                    }
+                } catch (e) {}
+
+                var display = count > 0 ? 'flex' : 'none';
+                var text    = count > 99 ? '99+' : String(count);
+
+                var globalBadge = document.getElementById('global-cart-badge');
+                var navBadge    = document.getElementById('nav-inv-cart-badge');
+                if (globalBadge) { globalBadge.textContent = text; globalBadge.style.display = display; }
+                if (navBadge)    { navBadge.textContent    = text; navBadge.style.display    = display; }
+            }
+
+            // Initial render
+            updateInvCartBadges();
+
+            // Cross-tab updates (storage event from other tabs)
+            window.addEventListener('storage', function (e) {
+                if (e.key === CART_KEY) { updateInvCartBadges(); }
+            });
+
+            // Same-page updates (dispatched by inventory/index.php cart JS)
+            window.addEventListener('ibc-inv-cart-updated', updateInvCartBadges);
+        }());
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
     <script src="<?php echo asset('js/navbar-scroll.js'); ?>" defer></script>
