@@ -21,6 +21,48 @@ if (!$cartMode) {
     }
 }
 
+// ── Cart mode: load items from PHP session ────────────────────────────────────
+$cartItems = [];
+if ($cartMode) {
+    $sessionCart = (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) ? $_SESSION['cart'] : [];
+    foreach ($sessionCart as $entry) {
+        $eid = (string)($entry['id'] ?? '');
+        if ($eid === '') {
+            continue;
+        }
+        // Try to fetch live data; fall back to session-cached values if unavailable
+        $fullItem = Inventory::getById($eid);
+        if ($fullItem) {
+            $rawImg = $fullItem['image_path'] ?? null;
+            if ($rawImg && strpos($rawImg, 'easyverein.com') !== false) {
+                $imgSrc = '/api/easyverein_image.php?url=' . urlencode($rawImg);
+            } elseif ($rawImg) {
+                $imgSrc = '/' . ltrim($rawImg, '/');
+            } else {
+                $imgSrc = null;
+            }
+            $cartItems[] = [
+                'id'       => (string)$fullItem['id'],
+                'name'     => $fullItem['name'],
+                'imageSrc' => $imgSrc,
+                'pieces'   => (int)$fullItem['available_quantity'],
+                'quantity' => max(1, (int)($entry['quantity'] ?? 1)),
+                'unit'     => $fullItem['unit'] ?? 'Stück',
+            ];
+        } else {
+            // Item no longer available via API – keep session-cached basics
+            $cartItems[] = [
+                'id'       => $eid,
+                'name'     => $entry['name'] ?? 'Artikel',
+                'imageSrc' => $entry['imageSrc'] ?? null,
+                'pieces'   => (int)($entry['pieces'] ?? 0),
+                'quantity' => max(1, (int)($entry['quantity'] ?? 1)),
+                'unit'     => 'Stück',
+            ];
+        }
+    }
+}
+
 $message = '';
 $error = '';
 
@@ -111,7 +153,7 @@ if ($cartMode):
 ?>
 <!-- ═══════════════════════════════════════════════════════════════════════════
      CART CHECKOUT PAGE (no ?id= parameter)
-     Items are read from localStorage (ibc_inventory_cart) via JavaScript.
+     Items are read from $_SESSION['cart'] and rendered server-side.
      Submission is handled by fetch() to /api/inventory_request.php.
 ═══════════════════════════════════════════════════════════════════════════ -->
 
@@ -122,11 +164,10 @@ if ($cartMode):
     </a>
 </div>
 
-<div class="max-w-2xl mx-auto" id="cartCheckoutPage">
+<div class="max-w-4xl mx-auto space-y-8">
 
     <!-- Page Header -->
-    <h1 class="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-6 flex items-center gap-3">
-        <!-- Heroicons: shopping-cart -->
+    <h1 class="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent flex items-center gap-3">
         <svg class="w-8 h-8 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
         </svg>
@@ -134,10 +175,11 @@ if ($cartMode):
     </h1>
 
     <!-- Status message -->
-    <div id="checkoutMsg" class="hidden mb-4 rounded-xl px-4 py-3 text-sm font-medium"></div>
+    <div id="checkoutMsg" class="hidden rounded-xl px-4 py-3 text-sm font-medium"></div>
 
-    <!-- Empty state (shown when cart is empty) -->
-    <div id="checkoutCartEmpty" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-12 text-center">
+<?php if (empty($cartItems)): ?>
+    <!-- Empty state -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-12 text-center">
         <div class="w-20 h-20 bg-purple-50 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg class="w-10 h-10 text-purple-300 dark:text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -150,165 +192,204 @@ if ($cartMode):
         </a>
     </div>
 
-    <!-- Cart contents + form (shown when cart has items) -->
-    <div id="checkoutCartContent" class="hidden space-y-6">
-
-        <!-- Cart Items List -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 overflow-hidden">
-            <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4 flex items-center gap-3">
-                <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-shopping-cart text-white text-sm"></i>
-                </div>
-                <h2 class="text-base font-bold text-white">Ausgewählte Artikel</h2>
-                <span id="checkoutItemCount" class="ml-auto text-purple-100 text-sm"></span>
+<?php else: ?>
+    <!-- ── Cart Items Grid ───────────────────────────────────────────────────── -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 overflow-hidden">
+        <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4 flex items-center gap-3">
+            <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-shopping-cart text-white text-sm"></i>
             </div>
-            <ul id="checkoutItemsList" class="divide-y divide-gray-100 dark:divide-slate-700"></ul>
+            <h2 class="text-base font-bold text-white">Ausgewählte Artikel</h2>
+            <span class="ml-auto text-purple-100 text-sm"><?php echo count($cartItems); ?> Artikel</span>
         </div>
 
-        <!-- Rental Details Form -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 overflow-hidden">
-            <div class="bg-purple-50 dark:bg-purple-900/20 px-6 py-4 border-b border-purple-100 dark:border-purple-800">
-                <h2 class="text-sm font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wide flex items-center gap-2">
-                    <i class="fas fa-calendar-alt"></i>Ausleihdetails (gelten für alle Artikel)
-                </h2>
-            </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6" id="cartItemsGrid">
+            <?php foreach ($cartItems as $ci):
+                $ciId       = htmlspecialchars($ci['id'], ENT_QUOTES, 'UTF-8');
+                $ciName     = htmlspecialchars($ci['name'], ENT_QUOTES, 'UTF-8');
+                $ciQty      = (int)$ci['quantity'];
+                $ciPieces   = (int)$ci['pieces'];
+                $ciUnit     = htmlspecialchars($ci['unit'] ?? 'Stück', ENT_QUOTES, 'UTF-8');
+                $ciImgSrc   = $ci['imageSrc'] ?? null;
+                // Only allow relative paths (external images are always proxied through /api/easyverein_image.php)
+                $safeImg    = ($ciImgSrc !== null && strpos($ciImgSrc, '/') === 0) ? $ciImgSrc : null;
+            ?>
+            <div class="group relative bg-gradient-to-br from-slate-50 to-purple-50/30 dark:from-slate-700/60 dark:to-purple-900/20 rounded-2xl border border-gray-100 dark:border-slate-600/60 shadow-sm hover:shadow-md transition-all overflow-hidden"
+                 data-cart-item
+                 data-item-id="<?php echo $ciId; ?>"
+                 data-item-qty="<?php echo $ciQty; ?>">
 
-            <div class="p-6 space-y-5">
-                <!-- Date range -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label for="checkoutStartDate" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                            Von <span class="text-red-500">*</span>
-                        </label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                                <i class="fas fa-calendar-alt text-ibc-blue opacity-70"></i>
-                            </div>
-                            <input type="date" id="checkoutStartDate"
-                                   min="<?php echo date('Y-m-d'); ?>"
-                                   value="<?php echo date('Y-m-d'); ?>"
-                                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-ibc-blue focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
-                        </div>
-                    </div>
-                    <div>
-                        <label for="checkoutEndDate" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                            Bis <span class="text-red-500">*</span>
-                        </label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                                <i class="fas fa-calendar-alt text-ibc-blue opacity-70"></i>
-                            </div>
-                            <input type="date" id="checkoutEndDate"
-                                   min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
-                                   value="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
-                                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-ibc-blue focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
-                        </div>
-                    </div>
-                </div>
+                <!-- Image area -->
+                <div class="relative h-40 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-purple-900/30 dark:via-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center overflow-hidden">
+                    <?php if ($safeImg): ?>
+                    <img src="<?php echo htmlspecialchars($safeImg, ENT_QUOTES, 'UTF-8'); ?>"
+                         alt="<?php echo $ciName; ?>"
+                         class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
+                         loading="lazy">
+                    <?php else: ?>
+                    <i class="fas fa-box-open text-gray-300 dark:text-gray-600 text-4xl" aria-label="Kein Bild verfügbar"></i>
+                    <?php endif; ?>
 
-                <!-- Purpose -->
-                <div>
-                    <label for="checkoutPurpose" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                        <i class="fas fa-tag text-purple-500 mr-1.5"></i>Verwendungszweck <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="checkoutPurpose"
-                           placeholder="z.B. Veranstaltung, Projekt, Workshop"
-                           maxlength="200"
-                           class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 transition-all">
+                    <!-- Quantity badge -->
+                    <span class="absolute top-2 left-2 min-w-[1.75rem] h-7 px-2 bg-gradient-to-br from-purple-600 to-blue-500 text-white text-xs font-extrabold rounded-full flex items-center justify-center shadow ring-2 ring-white dark:ring-slate-800">
+                        <?php echo $ciQty; ?>
+                    </span>
+
+                    <!-- Remove button -->
+                    <button type="button"
+                            onclick="removeCartItem(<?php echo json_encode($ci['id'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS); ?>)"
+                            class="absolute top-2 right-2 w-8 h-8 bg-white/90 dark:bg-slate-800/90 hover:bg-red-50 dark:hover:bg-red-900/40 text-gray-400 hover:text-red-500 rounded-xl flex items-center justify-center shadow transition-colors"
+                            aria-label="Entfernen">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
                 </div>
 
                 <!-- Info -->
-                <div class="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl px-4 py-3">
-                    <i class="fas fa-info-circle text-amber-500 mt-0.5 flex-shrink-0"></i>
-                    <p class="text-sm text-amber-700 dark:text-amber-300">
-                        Anfragen werden mit Status <strong>Ausstehend</strong> gespeichert und vom Vorstand geprüft.
+                <div class="px-4 py-3">
+                    <p class="font-bold text-slate-900 dark:text-white text-sm leading-snug mb-1 line-clamp-2" title="<?php echo $ciName; ?>">
+                        <?php echo $ciName; ?>
+                    </p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Menge: <strong class="text-slate-700 dark:text-slate-200"><?php echo $ciQty; ?></strong>
+                        <span class="text-slate-400">/ <?php echo $ciPieces; ?> <?php echo $ciUnit; ?></span>
                     </p>
                 </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
 
-                <!-- Actions -->
-                <div class="flex flex-col sm:flex-row gap-3 pt-2">
-                    <a href="index.php"
-                       class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl font-semibold transition-all">
-                        <i class="fas fa-arrow-left"></i>Zurück zum Inventar
-                    </a>
-                    <button type="button" id="checkoutSubmitBtn" onclick="submitCheckoutCart()"
-                            class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] disabled:scale-100">
-                        <i class="fas fa-paper-plane"></i>
-                        <span id="checkoutSubmitLabel">Anfrage senden</span>
-                    </button>
+    <!-- ── Rental Details Form ────────────────────────────────────────────────── -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 overflow-hidden">
+        <div class="bg-purple-50 dark:bg-purple-900/20 px-6 py-4 border-b border-purple-100 dark:border-purple-800">
+            <h2 class="text-sm font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wide flex items-center gap-2">
+                <i class="fas fa-calendar-alt"></i>Ausleihdetails (gelten für alle Artikel)
+            </h2>
+        </div>
+
+        <div class="p-6 space-y-5">
+            <!-- Date range -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="checkoutStartDate" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                        Von <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                            <i class="fas fa-calendar-alt text-ibc-blue opacity-70"></i>
+                        </div>
+                        <input type="date" id="checkoutStartDate"
+                               min="<?php echo date('Y-m-d'); ?>"
+                               value="<?php echo date('Y-m-d'); ?>"
+                               class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-ibc-blue focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
+                    </div>
                 </div>
+                <div>
+                    <label for="checkoutEndDate" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                        Bis <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                            <i class="fas fa-calendar-alt text-ibc-blue opacity-70"></i>
+                        </div>
+                        <input type="date" id="checkoutEndDate"
+                               min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
+                               value="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
+                               class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-ibc-blue focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purpose -->
+            <div>
+                <label for="checkoutPurpose" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <i class="fas fa-tag text-purple-500 mr-1.5"></i>Verwendungszweck <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="checkoutPurpose"
+                       placeholder="z.B. Veranstaltung, Projekt, Workshop"
+                       maxlength="200"
+                       class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 transition-all">
+            </div>
+
+            <!-- Info -->
+            <div class="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl px-4 py-3">
+                <i class="fas fa-info-circle text-amber-500 mt-0.5 flex-shrink-0"></i>
+                <p class="text-sm text-amber-700 dark:text-amber-300">
+                    Anfragen werden mit Status <strong>Ausstehend</strong> gespeichert und vom Vorstand geprüft.
+                </p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                <a href="index.php"
+                   class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl font-semibold transition-all">
+                    <i class="fas fa-arrow-left"></i>Zurück zum Inventar
+                </a>
+                <button type="button" id="checkoutSubmitBtn" onclick="submitCheckoutCart()"
+                        class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] disabled:scale-100">
+                    <i class="fas fa-paper-plane"></i>
+                    <span id="checkoutSubmitLabel">Anfrage senden</span>
+                </button>
             </div>
         </div>
     </div>
+<?php endif; ?>
 </div>
+
+<style>
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+</style>
 
 <script>
 (function () {
     'use strict';
 
-    var CART_KEY  = 'ibc_inventory_cart';
     var csrfToken = <?php echo json_encode(CSRFHandler::getToken()); ?>;
-    var cart      = [];
 
-    // ── Load cart from localStorage ──────────────────────────────────────────
-    try {
-        var raw = localStorage.getItem(CART_KEY);
-        if (raw) {
-            var parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) { cart = parsed; }
-        }
-    } catch (e) {}
-
-    renderPage();
-
-    function renderPage() {
-        var emptyEl   = document.getElementById('checkoutCartEmpty');
-        var contentEl = document.getElementById('checkoutCartContent');
-        var countEl   = document.getElementById('checkoutItemCount');
-        var listEl    = document.getElementById('checkoutItemsList');
-
-        if (cart.length === 0) {
-            if (emptyEl)   { emptyEl.classList.remove('hidden'); }
-            if (contentEl) { contentEl.classList.add('hidden'); }
-            return;
-        }
-
-        if (emptyEl)   { emptyEl.classList.add('hidden'); }
-        if (contentEl) { contentEl.classList.remove('hidden'); }
-        if (countEl)   { countEl.textContent = cart.length + ' Artikel'; }
-
-        if (listEl) {
-            listEl.innerHTML = cart.map(function (item) {
-                var safeSrc = isSafeSrc(item.imageSrc) ? item.imageSrc : '';
-                var thumb = safeSrc
-                    ? '<img src="' + esc(safeSrc) + '" alt="' + esc(item.name) + '" class="w-full h-full object-contain" loading="lazy">'
-                    : '<i class="fas fa-box-open text-gray-300 dark:text-gray-600 text-lg"></i>';
-
-                return '<li class="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">'
-                    + '<div class="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 rounded-2xl overflow-hidden bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30 border border-purple-100 dark:border-purple-800/50 flex items-center justify-center shadow-md">'
-                    + thumb
-                    + '</div>'
-                    + '<div class="flex-1 min-w-0">'
-                    + '<p class="font-bold text-slate-900 dark:text-white text-sm sm:text-base leading-tight mb-1" style="overflow-wrap:break-word;word-break:break-word;">' + esc(item.name) + '</p>'
-                    + '<p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Menge: <strong class="text-slate-700 dark:text-slate-200">' + esc(String(item.quantity)) + '</strong> <span class="text-slate-400">/ ' + esc(String(item.pieces)) + '</span></p>'
-                    + '</div>'
-                    + '<button onclick="removeItem(' + JSON.stringify(item.id) + ')" '
-                    + 'class="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" '
-                    + 'aria-label="Entfernen"><i class="fas fa-trash-alt text-xs"></i></button>'
-                    + '</li>';
-            }).join('');
-        }
+    // Collect cart items from PHP-rendered data attributes
+    function getRenderedItems() {
+        return Array.prototype.slice.call(document.querySelectorAll('[data-cart-item]')).map(function (el) {
+            return {
+                id:       el.dataset.itemId,
+                quantity: parseInt(el.dataset.itemQty, 10) || 1
+            };
+        });
     }
 
-    window.removeItem = function (id) {
-        cart = cart.filter(function (c) { return c.id !== id; });
-        try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (e) {}
-        window.dispatchEvent(new Event('ibc-inv-cart-updated'));
-        renderPage();
+    // Remove a single item via session API, then reload to re-render
+    window.removeCartItem = function (itemId) {
+        fetch('/api/cart_toggle.php', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ action: 'remove', item_id: itemId, csrf_token: csrfToken })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                // Also clear localStorage entry so the index page stays in sync
+                try {
+                    var raw = localStorage.getItem('ibc_inventory_cart');
+                    if (raw) {
+                        var arr = JSON.parse(raw);
+                        if (Array.isArray(arr)) {
+                            localStorage.setItem('ibc_inventory_cart', JSON.stringify(
+                                arr.filter(function (c) { return String(c.id) !== String(itemId); })
+                            ));
+                        }
+                    }
+                } catch (e) {}
+                window.dispatchEvent(new Event('ibc-inv-cart-updated'));
+                window.location.reload();
+            } else {
+                showMsg('Fehler beim Entfernen: ' + (data.message || ''), 'error');
+            }
+        })
+        .catch(function () { showMsg('Netzwerkfehler beim Entfernen.', 'error'); });
     };
 
     window.submitCheckoutCart = function () {
-        if (cart.length === 0) { return; }
+        var items = getRenderedItems();
+        if (items.length === 0) { return; }
 
         var startDate = document.getElementById('checkoutStartDate').value;
         var endDate   = document.getElementById('checkoutEndDate').value;
@@ -333,7 +414,7 @@ if ($cartMode):
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Wird gesendet...';
         hideMsg();
 
-        var promises = cart.map(function (item) {
+        var promises = items.map(function (item) {
             return fetch('/api/inventory_request.php', {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -358,9 +439,15 @@ if ($cartMode):
         Promise.all(promises).then(function (results) {
             var failed = results.filter(function (r) { return !r.data.success; });
             if (failed.length === 0) {
-                // Clear cart
-                cart = [];
-                try { localStorage.removeItem(CART_KEY); } catch (e) {}
+                // Clear server session cart
+                fetch('/api/cart_toggle.php', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ action: 'clear', csrf_token: csrfToken })
+                }).catch(function () {});
+
+                // Clear localStorage for index page badge
+                try { localStorage.removeItem('ibc_inventory_cart'); } catch (e) {}
                 window.dispatchEvent(new Event('ibc-inv-cart-updated'));
 
                 btn.innerHTML = '<i class="fas fa-check mr-2"></i>Gesendet!';
@@ -370,7 +457,7 @@ if ($cartMode):
                 }, 2200);
             } else {
                 var errDetails = failed.map(function (r) {
-                    return r.item.name + (r.data.message ? ': ' + r.data.message : '');
+                    return (r.data && r.data.message) ? r.data.message : 'Unbekannter Fehler';
                 }).join('; ');
                 showMsg('Fehler: ' + errDetails, 'error');
                 btn.disabled  = false;
@@ -392,19 +479,6 @@ if ($cartMode):
     function hideMsg() {
         var el = document.getElementById('checkoutMsg');
         if (el) { el.classList.add('hidden'); }
-    }
-
-    function isSafeSrc(src) {
-        return typeof src === 'string' && /^(https?:\/\/|\/).+/i.test(src);
-    }
-
-    function esc(str) {
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
     }
 }());
 </script>

@@ -498,6 +498,16 @@ ob_start();
         } catch (e) {}
     }());
 
+    // ── Session sync helper ──────────────────────────────────────────────────
+    function syncSession(payload) {
+        payload.csrf_token = csrfToken;
+        fetch('/api/cart_toggle.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(function (err) { console.error('cart_toggle sync failed:', err); });
+    }
+
     // ── Cart item toggle ─────────────────────────────────────────────────────
     window.toggleCartItem = function (item) {
         var idx = cart.findIndex(function (c) { return c.id === item.id; });
@@ -509,12 +519,14 @@ ob_start();
         }
         updateCartUI();
         updateCardButton(item.id);
+        syncSession({ action: 'toggle', item_id: item.id, item_name: item.name, image_src: item.imageSrc || '', pieces: item.pieces, quantity: 1 });
     };
 
     window.removeFromCart = function (id) {
         cart = cart.filter(function (c) { return c.id !== id; });
         updateCartUI();
         updateCardButton(id);
+        syncSession({ action: 'remove', item_id: id });
     };
 
     window.updateCartQty = function (id, delta) {
@@ -526,6 +538,7 @@ ob_start();
         item.quantity = newQty;
         persistCart();
         if (panelOpen || isDesktop()) renderCartItems();
+        syncSession({ action: 'set_qty', item_id: id, quantity: newQty });
     };
 
     window.clearCart = function () {
@@ -533,6 +546,7 @@ ob_start();
         cart = [];
         ids.forEach(updateCardButton);
         updateCartUI();
+        syncSession({ action: 'clear' });
     };
 
     // ── Panel open / close ───────────────────────────────────────────────────
