@@ -249,16 +249,14 @@ ob_start();
                 <?php if ($hasStock): ?>
                 <button
                     type="button"
-                    id="cartBtn-<?php echo htmlspecialchars($itemId); ?>"
-                    onclick="toggleCartItem(<?php echo htmlspecialchars(json_encode([
+                    onclick="openLendModal(<?php echo htmlspecialchars(json_encode([
                         'id'       => (string)$itemId,
                         'name'     => $itemName,
-                        'imageSrc' => $imageSrc ?? '',
                         'pieces'   => $itemAvailable,
                     ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>)"
                     class="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-bold text-sm transition-all transform hover:scale-[1.02] shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                 >
-                    <i class="fas fa-cart-plus"></i>In den Warenkorb
+                    <i class="fas fa-hand-holding"></i>Ausleihen / Entnehmen
                 </button>
                 <?php else: ?>
                 <button
@@ -280,156 +278,178 @@ ob_start();
 </div><!-- /.main layout -->
 </div><!-- /#inventoryContent -->
 
-<!-- ─── Floating Cart Button ─── -->
-<a href="checkout.php"
-   id="cartFab"
-   class="fixed top-24 right-8 z-50 w-14 h-14 rounded-full shadow-lg bg-ibc-blue flex items-center justify-center transition-all hover:scale-110 focus:outline-none focus:ring-4 focus:ring-purple-300"
-   aria-label="Zum Warenkorb">
-    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-16H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
-    </svg>
-    <span id="cartBadge"
-          style="display:none"
-          aria-live="polite"
-          aria-atomic="true"
-          class="absolute -top-2 -right-2 min-w-[1.4rem] h-[1.4rem] bg-red-500 text-white text-xs font-extrabold rounded-full flex items-center justify-center px-1 shadow-lg ring-2 ring-white">
-        0
-    </span>
-</a>
+<!-- ─── Lending Modal ─── -->
+<div id="lendModal"
+     class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="lendModalTitle"
+     onclick="if(event.target===this)closeLendModal()">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <!-- Header -->
+            <div class="flex items-start justify-between mb-5">
+                <div>
+                    <h2 id="lendModalTitle" class="text-xl font-extrabold text-slate-900 dark:text-white">Ausleihen / Entnehmen</h2>
+                    <p id="lendModalItemName" class="text-sm text-slate-500 dark:text-slate-400 mt-0.5"></p>
+                </div>
+                <button type="button" onclick="closeLendModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors ml-4 flex-shrink-0" aria-label="Schließen">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Form -->
+            <form id="lendForm" method="POST" action="">
+                <input type="hidden" name="checkout" value="1">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(CSRFHandler::getToken()); ?>">
+                <input type="hidden" name="return_to" value="index">
+
+                <div class="space-y-4">
+                    <!-- Quantity -->
+                    <div>
+                        <label for="lendQuantity" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            <i class="fas fa-hashtag text-purple-500 mr-1.5"></i>Menge <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="lendQuantity" name="quantity" min="1" value="1" required
+                               class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
+                    </div>
+
+                    <!-- Date Range -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="lendStartDate" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                <i class="fas fa-calendar-alt text-purple-500 mr-1.5"></i>Von <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" id="lendStartDate" name="start_date" required
+                                   min="<?php echo date('Y-m-d'); ?>"
+                                   value="<?php echo date('Y-m-d'); ?>"
+                                   class="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
+                        </div>
+                        <div>
+                            <label for="lendEndDate" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                <i class="fas fa-calendar-alt text-purple-500 mr-1.5"></i>Bis <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" id="lendEndDate" name="end_date" required
+                                   min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
+                                   value="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
+                                   class="w-full px-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Purpose -->
+                    <div>
+                        <label for="lendPurpose" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            <i class="fas fa-info-circle text-purple-500 mr-1.5"></i>Verwendungszweck
+                        </label>
+                        <input type="text" id="lendPurpose" name="purpose" maxlength="255"
+                               placeholder="z. B. Veranstaltung, Projekt..."
+                               class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
+                    </div>
+
+                    <!-- Destination -->
+                    <div>
+                        <label for="lendDestination" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            <i class="fas fa-map-marker-alt text-purple-500 mr-1.5"></i>Zielort <span class="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
+                        </label>
+                        <input type="text" id="lendDestination" name="destination" maxlength="255"
+                               placeholder="z. B. Gemeindehaus, Außenlager..."
+                               class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="mt-6 flex gap-3">
+                    <button type="button" onclick="closeLendModal()"
+                            class="flex-1 py-2.5 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-sm transition-all">
+                        Abbrechen
+                    </button>
+                    <button type="submit"
+                            class="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-bold text-sm transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                        <i class="fas fa-paper-plane"></i>Anfrage senden
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <style>
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-@keyframes cart-pop {
-    0%   { transform: scale(1); }
-    40%  { transform: scale(1.22); }
-    70%  { transform: scale(0.94); }
-    100% { transform: scale(1); }
-}
-.cart-pop { animation: cart-pop 0.35s cubic-bezier(0.36,0.07,0.19,0.97); }
-@keyframes badge-pop {
-    0%   { transform: scale(1); }
-    30%  { transform: scale(1.55); }
-    65%  { transform: scale(0.88); }
-    100% { transform: scale(1); }
-}
-.badge-pop { animation: badge-pop 0.38s cubic-bezier(0.36,0.07,0.19,0.97); }
-@keyframes btn-pulse {
-    0%, 100% { box-shadow: 0 10px 25px rgba(0,102,179,0.35), 0 4px 10px rgba(0,79,140,0.2); }
-    50%       { box-shadow: 0 14px 40px rgba(0,102,179,0.6), 0 6px 18px rgba(0,79,140,0.4); }
-}
-#cartFab.has-items { animation: btn-pulse 2s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) {
-    .cart-pop, .badge-pop { animation: none; }
-    #cartFab.has-items { animation: none !important; }
-}
 </style>
 
 <script>
 (function () {
     'use strict';
 
-    var CART_KEY  = 'ibc_inventory_cart';
-    var cart      = [];
-    var csrfToken = <?php echo json_encode(CSRFHandler::getToken()); ?>;
-
-    // ── Restore cart from localStorage on page load ──────────────────────────
-    (function restoreCart() {
-        try {
-            var raw = localStorage.getItem(CART_KEY);
-            if (raw) {
-                var parsed = JSON.parse(raw);
-                if (Array.isArray(parsed)) { cart = parsed; }
-            }
-        } catch (e) {}
-    }());
-
-    // ── Session sync helper ──────────────────────────────────────────────────
-    function syncSession(payload) {
-        payload.csrf_token = csrfToken;
-        fetch('/api/cart_toggle.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).catch(function (err) { console.error('cart_toggle sync failed:', err); });
+    // Date formatter: returns a YYYY-MM-DD string from a Date object
+    function fmtDate(d) {
+        return d.getFullYear() + '-'
+            + String(d.getMonth() + 1).padStart(2, '0') + '-'
+            + String(d.getDate()).padStart(2, '0');
     }
 
-    // ── Cart item toggle ─────────────────────────────────────────────────────
-    window.toggleCartItem = function (item) {
-        var idx = cart.findIndex(function (c) { return c.id === item.id; });
-        if (idx === -1) {
-            cart.push({ id: item.id, name: item.name, imageSrc: item.imageSrc || '', pieces: item.pieces, quantity: 1 });
-            animateBadge();
-        } else {
-            cart.splice(idx, 1);
-        }
-        updateCartUI();
-        updateCardButton(item.id);
-        syncSession({ action: 'toggle', item_id: item.id, item_name: item.name, image_src: item.imageSrc || '', pieces: item.pieces, quantity: 1 });
+    window.openLendModal = function (item) {
+        var modal    = document.getElementById('lendModal');
+        var form     = document.getElementById('lendForm');
+        var nameEl   = document.getElementById('lendModalItemName');
+        var qtyInput = document.getElementById('lendQuantity');
+
+        // Set form action to single-item checkout with this item's id
+        form.action = 'checkout.php?id=' + encodeURIComponent(item.id);
+
+        // Update heading
+        if (nameEl) { nameEl.textContent = item.name; }
+
+        // Reset quantity and cap at available stock
+        qtyInput.max   = item.pieces;
+        qtyInput.value = 1;
+
+        // Reset date fields to today / tomorrow
+        var today    = new Date();
+        var tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        var startInput = document.getElementById('lendStartDate');
+        var endInput   = document.getElementById('lendEndDate');
+        if (startInput) { startInput.value = fmtDate(today);    startInput.min = fmtDate(today); }
+        if (endInput)   { endInput.value   = fmtDate(tomorrow); endInput.min   = fmtDate(tomorrow); }
+
+        // Reset other fields
+        var purposeEl = document.getElementById('lendPurpose');
+        var destEl    = document.getElementById('lendDestination');
+        if (purposeEl) { purposeEl.value = ''; }
+        if (destEl)    { destEl.value    = ''; }
+
+        // Show modal
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        qtyInput.focus();
     };
 
-    window.clearCart = function () {
-        var ids = cart.map(function (c) { return c.id; });
-        cart = [];
-        ids.forEach(updateCardButton);
-        updateCartUI();
-        syncSession({ action: 'clear' });
+    window.closeLendModal = function () {
+        var modal = document.getElementById('lendModal');
+        modal.style.display = '';
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
     };
 
-    // ── Persist cart to localStorage and notify global badge ─────────────────
-    function persistCart() {
-        try {
-            localStorage.setItem(CART_KEY, JSON.stringify(cart));
-        } catch (e) {}
-        window.dispatchEvent(new Event('ibc-inv-cart-updated'));
+    // Close on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { closeLendModal(); }
+    });
+
+    // Keep end-date min in sync with start-date
+    var startInput = document.getElementById('lendStartDate');
+    if (startInput) {
+        startInput.addEventListener('change', function () {
+            var endInput = document.getElementById('lendEndDate');
+            if (!endInput) { return; }
+            var next = new Date(this.value);
+            next.setDate(next.getDate() + 1);
+            var minDate = fmtDate(next);
+            endInput.min = minDate;
+            if (endInput.value < minDate) { endInput.value = minDate; }
+        });
     }
-
-    // ── UI helpers ───────────────────────────────────────────────────────────
-    function updateCartUI() {
-        var count = cart.length;
-        var badge = document.getElementById('cartBadge');
-        var fab   = document.getElementById('cartFab');
-
-        if (badge) {
-            badge.textContent   = count;
-            badge.style.display = count > 0 ? 'flex' : 'none';
-        }
-        if (fab) fab.classList.toggle('has-items', count > 0);
-        persistCart();
-    }
-
-    function updateCardButton(id) {
-        var btn = document.getElementById('cartBtn-' + id);
-        if (!btn) return;
-        var inCart    = cart.some(function (c) { return c.id === id; });
-        var baseClass = 'flex-1 py-2.5 text-white rounded-xl font-bold text-sm transition-all transform hover:scale-[1.02] shadow-md hover:shadow-lg flex items-center justify-center gap-2';
-        if (inCart) {
-            btn.className = baseClass + ' bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700';
-            btn.innerHTML = '<i class="fas fa-check"></i>Im Warenkorb';
-        } else {
-            btn.className = baseClass + ' bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700';
-            btn.innerHTML = '<i class="fas fa-cart-plus"></i>In den Warenkorb';
-        }
-    }
-
-    function animateBadge() {
-        var btn   = document.getElementById('cartFab');
-        var badge = document.getElementById('cartBadge');
-        if (!btn) return;
-        btn.classList.remove('cart-pop');
-        btn.offsetWidth; // reflow to restart animation
-        btn.classList.add('cart-pop');
-        if (badge) {
-            badge.classList.remove('badge-pop');
-            badge.offsetWidth;
-            badge.classList.add('badge-pop');
-        }
-    }
-
-    // Initial UI state
-    updateCartUI();
-    cart.forEach(function (item) { updateCardButton(item.id); });
-
 }());
 </script>
 
