@@ -538,6 +538,12 @@ COMMENT='Audit trail for inventory changes';
 -- TABLE: inventory_requests
 -- Board approval workflow for inventory loans.
 -- Item master data comes live from the EasyVerein API.
+-- NOTE: For existing databases, run:
+--   ALTER TABLE `inventory_requests`
+--     ADD COLUMN `status` ENUM('pending','approved','rejected','returned','pending_return') NOT NULL DEFAULT 'pending'
+--     COMMENT 'Approval workflow status'
+--     AFTER `purpose`;
+--   ALTER TABLE `inventory_requests` ADD INDEX `idx_ir_status` (`status`);
 -- ================================================
 CREATE TABLE IF NOT EXISTS `inventory_requests` (
   `id`                  INT UNSIGNED        AUTO_INCREMENT PRIMARY KEY,
