@@ -426,9 +426,25 @@ class Inventory {
                     $userId, $easyvereinMemberId, $easyvereinItemId
                 ));
             } else {
+                // Fallback: user has no EasyVerein ID – book the rental onto the central dummy user.
+                if (!isset($userDb)) {
+                    $userDb = Database::getUserDB();
+                }
+                $dummyStmt = $userDb->prepare(
+                    "SELECT id FROM users WHERE CONCAT(first_name, ' ', last_name) = ? LIMIT 1"
+                );
+                $dummyStmt->execute([INTRA_RENTAL_USER_NAME]);
+                $dummyRow = $dummyStmt->fetch(PDO::FETCH_ASSOC);
+                if (!$dummyRow) {
+                    throw new Exception(sprintf(
+                        'Der konfigurierte Ausleih-Dummy-User "%s" wurde in der Datenbank nicht gefunden. Bitte lege ihn im Intranet an.',
+                        INTRA_RENTAL_USER_NAME
+                    ));
+                }
+                $userId = (int)$dummyRow['id'];
                 error_log(sprintf(
-                    'createRental [Intranet-Fallback]: user_id=%d has no EasyVerein ID – easyverein_member_id=NULL, item=%s',
-                    $userId, $easyvereinItemId
+                    'createRental [Intranet-Fallback]: original user has no EasyVerein ID – booking onto dummy user_id=%d (%s), item=%s',
+                    $userId, INTRA_RENTAL_USER_NAME, $easyvereinItemId
                 ));
             }
 
