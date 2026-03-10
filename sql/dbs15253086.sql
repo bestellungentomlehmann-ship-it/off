@@ -25,6 +25,7 @@ SET time_zone = "+00:00";
 --   ALTER TABLE users ADD COLUMN is_locked_permanently BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Whether the account is permanently locked (requires admin unlock)';
 --   ALTER TABLE users ADD COLUMN tfa_failed_attempts INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Number of consecutive failed 2FA verification attempts';
 --   ALTER TABLE users ADD COLUMN tfa_locked_until DATETIME DEFAULT NULL COMMENT 'Timestamp until which 2FA verification is locked after too many failed attempts';
+--   ALTER TABLE users ADD COLUMN use_custom_avatar TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = user uploaded own photo (Entra photo sync disabled), 0 = Entra photo is used';
 -- ================================================
 CREATE TABLE IF NOT EXISTS `users` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -46,6 +47,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `entra_roles` TEXT DEFAULT NULL COMMENT 'JSON array of Microsoft Entra role names for display',
   `entra_photo_path` VARCHAR(500) DEFAULT NULL COMMENT 'Cached profile photo path fetched from Microsoft Entra ID',
   `avatar_path` VARCHAR(500) DEFAULT NULL COMMENT 'Active profile photo path; NULL = default avatar, custom_* = manually uploaded, uploads/profile_photos/entra_* = synced from Entra ID',
+  `use_custom_avatar` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = user uploaded own photo (Entra photo sync disabled), 0 = Entra photo is used',
   `profile_complete` BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Flag to track if user has completed initial profile setup',
   `has_seen_onboarding` BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Whether user has seen the onboarding welcome modal',
   `is_onboarded` BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Whether user has completed the mandatory first-login onboarding workflow',

@@ -139,10 +139,10 @@ try {
             throw new RuntimeException('Datenbankfehler beim Aktualisieren des Profilbildes');
         }
 
-        // Also update users.avatar_path so the Entra ID sync in the login callback
-        // recognises the custom_ prefix and never overwrites this manually uploaded photo.
+        // Also update users.avatar_path and set use_custom_avatar = 1 so the Entra ID sync
+        // recognises that the user prefers their own photo and never overwrites it.
         $userDb = Database::getUserDB();
-        $avatarStmt = $userDb->prepare("UPDATE users SET avatar_path = ? WHERE id = ?");
+        $avatarStmt = $userDb->prepare("UPDATE users SET avatar_path = ?, use_custom_avatar = 1 WHERE id = ?");
         if (!$avatarStmt->execute([$relativePath, $userId])) {
             throw new RuntimeException('Datenbankfehler beim Aktualisieren des Avatar-Pfades');
         }

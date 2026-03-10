@@ -14,6 +14,8 @@ class Database {
     private static $inventoryConnection = null;
     /** @var bool Tracks whether content-DB schema migration has run this request */
     private static $contentMigrated = false;
+    /** @var bool Tracks whether user-DB schema migration has run this request */
+    private static $userMigrated = false;
 
     /**
      * Get User Database Connection
@@ -35,6 +37,10 @@ class Database {
                 error_log("Verbindung fehlgeschlagen: " . $e->getCode());
                 throw new Exception("Database connection failed");
             }
+        }
+        if (!self::$userMigrated) {
+            self::migrateUserSchema(self::$userConnection);
+            self::$userMigrated = true;
         }
         return self::$userConnection;
     }
@@ -65,6 +71,34 @@ class Database {
             self::$contentMigrated = true;
         }
         return self::$contentConnection;
+    }
+
+    /**
+     * Ensure optional columns added after the initial deployment exist in the users table.
+     * Runs at most once per request. Safe to call even when the table already has the columns.
+     */
+    private static function migrateUserSchema(PDO $db): void {
+        $pending = [
+            'use_custom_avatar' => "ALTER TABLE users ADD COLUMN use_custom_avatar TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = user uploaded own photo (Entra photo sync disabled), 0 = Entra photo is used' AFTER avatar_path",
+        ];
+        foreach ($pending as $column => $alterSql) {
+            try {
+                $stmt = $db->prepare(
+                    "SELECT COLUMN_NAME
+                     FROM INFORMATION_SCHEMA.COLUMNS
+                     WHERE TABLE_SCHEMA = DATABASE()
+                       AND TABLE_NAME   = 'users'
+                       AND COLUMN_NAME  = ?"
+                );
+                $stmt->execute([$column]);
+                if (!$stmt->fetch()) {
+                    $db->exec($alterSql);
+                    error_log("User schema migration applied: added column '$column' to users");
+                }
+            } catch (PDOException $e) {
+                error_log("User schema migration skipped for column '$column': " . $e->getMessage());
+            }
+        }
     }
 
     /**
