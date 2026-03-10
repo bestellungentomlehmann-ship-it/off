@@ -164,24 +164,34 @@ if ($cartMode):
 
             <div class="p-6 space-y-5">
                 <!-- Date range -->
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label for="checkoutStartDate" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                            <i class="fas fa-calendar text-purple-500 mr-1.5"></i>Von <span class="text-red-500">*</span>
+                            Von <span class="text-red-500">*</span>
                         </label>
-                        <input type="date" id="checkoutStartDate"
-                               min="<?php echo date('Y-m-d'); ?>"
-                               value="<?php echo date('Y-m-d'); ?>"
-                               class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                <i class="fas fa-calendar-alt text-ibc-blue opacity-70"></i>
+                            </div>
+                            <input type="date" id="checkoutStartDate"
+                                   min="<?php echo date('Y-m-d'); ?>"
+                                   value="<?php echo date('Y-m-d'); ?>"
+                                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-ibc-blue focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
+                        </div>
                     </div>
                     <div>
                         <label for="checkoutEndDate" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                            <i class="fas fa-calendar text-purple-500 mr-1.5"></i>Bis <span class="text-red-500">*</span>
+                            Bis <span class="text-red-500">*</span>
                         </label>
-                        <input type="date" id="checkoutEndDate"
-                               min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
-                               value="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
-                               class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                <i class="fas fa-calendar-alt text-ibc-blue opacity-70"></i>
+                            </div>
+                            <input type="date" id="checkoutEndDate"
+                                   min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
+                                   value="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
+                                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-ibc-blue focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all">
+                        </div>
                     </div>
                 </div>
 
@@ -213,7 +223,7 @@ if ($cartMode):
                     <button type="button" id="checkoutSubmitBtn" onclick="submitCheckoutCart()"
                             class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] disabled:scale-100">
                         <i class="fas fa-paper-plane"></i>
-                        <span id="checkoutSubmitLabel">Alle ausleihen</span>
+                        <span id="checkoutSubmitLabel">Anfrage senden</span>
                     </button>
                 </div>
             </div>
@@ -263,16 +273,16 @@ if ($cartMode):
                     ? '<img src="' + esc(safeSrc) + '" alt="' + esc(item.name) + '" class="w-full h-full object-contain" loading="lazy">'
                     : '<i class="fas fa-box-open text-gray-300 dark:text-gray-600 text-lg"></i>';
 
-                return '<li class="flex items-center gap-4 px-5 py-4">'
-                    + '<div class="w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30 border border-purple-100 dark:border-purple-800/50 flex items-center justify-center shadow-sm">'
+                return '<li class="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">'
+                    + '<div class="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 rounded-2xl overflow-hidden bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30 border border-purple-100 dark:border-purple-800/50 flex items-center justify-center shadow-md">'
                     + thumb
                     + '</div>'
                     + '<div class="flex-1 min-w-0">'
-                    + '<p class="font-semibold text-slate-900 dark:text-white truncate">' + esc(item.name) + '</p>'
-                    + '<p class="text-sm text-slate-500 dark:text-slate-400">Menge: <strong>' + esc(String(item.quantity)) + '</strong> von ' + esc(String(item.pieces)) + '</p>'
+                    + '<p class="font-bold text-slate-900 dark:text-white text-sm sm:text-base leading-tight mb-1" style="overflow-wrap:break-word;word-break:break-word;">' + esc(item.name) + '</p>'
+                    + '<p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Menge: <strong class="text-slate-700 dark:text-slate-200">' + esc(String(item.quantity)) + '</strong> <span class="text-slate-400">/ ' + esc(String(item.pieces)) + '</span></p>'
                     + '</div>'
                     + '<button onclick="removeItem(' + JSON.stringify(item.id) + ')" '
-                    + 'class="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" '
+                    + 'class="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" '
                     + 'aria-label="Entfernen"><i class="fas fa-trash-alt text-xs"></i></button>'
                     + '</li>';
             }).join('');
