@@ -85,6 +85,13 @@ define('DB_RECH_NAME', _env('DB_RECH_NAME', _env('DB_INVOICE_NAME', '')));
 define('DB_RECH_USER', _env('DB_RECH_USER', _env('DB_INVOICE_USER', '')));
 define('DB_RECH_PASS', _env('DB_RECH_PASS', _env('DB_INVOICE_PASS', '')));
 
+// Database Settings (Inventory DB)
+define('DB_INVENTORY_HOST', _env('DB_INVENTORY_HOST', 'localhost'));
+define('DB_INVENTORY_PORT', _env('DB_INVENTORY_PORT', '3306'));
+define('DB_INVENTORY_NAME', _env('DB_INVENTORY_NAME', ''));
+define('DB_INVENTORY_USER', _env('DB_INVENTORY_USER', ''));
+define('DB_INVENTORY_PASS', _env('DB_INVENTORY_PASS', ''));
+
 // SMTP Settings
 define('SMTP_HOST',       _env('SMTP_HOST', ''));
 define('SMTP_PORT',       (int) _env('SMTP_PORT', '587'));

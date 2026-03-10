@@ -11,6 +11,7 @@ class Database {
     private static $contentConnection = null;
     private static $rechConnection = null;
     private static $shopConnection = null;
+    private static $inventoryConnection = null;
     /** @var bool Tracks whether content-DB schema migration has run this request */
     private static $contentMigrated = false;
 
@@ -156,9 +157,36 @@ class Database {
     }
 
     /**
+     * Get Inventory Database Connection
+     *
+     * @return PDO Database connection instance
+     * @throws Exception If database connection fails
+     */
+    public static function getInventoryDB() {
+        if (self::$inventoryConnection === null) {
+            try {
+                self::$inventoryConnection = new PDO(
+                    "mysql:host=" . DB_INVENTORY_HOST . ";port=" . DB_INVENTORY_PORT . ";dbname=" . DB_INVENTORY_NAME . ";charset=utf8mb4",
+                    DB_INVENTORY_USER,
+                    DB_INVENTORY_PASS,
+                    [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_EMULATE_PREPARES => false
+                    ]
+                );
+            } catch (PDOException $e) {
+                error_log("Verbindung fehlgeschlagen: " . $e->getCode());
+                throw new Exception("Database connection failed");
+            }
+        }
+        return self::$inventoryConnection;
+    }
+
+    /**
      * Get database connection by name
      * 
-     * @param string $name Connection name ('user', 'content', 'rech', or 'invoice')
+     * @param string $name Connection name ('user', 'content', 'rech', 'invoice', 'shop', or 'inventory')
      * @return PDO Database connection
      * @throws Exception If connection name is invalid
      */
@@ -173,6 +201,8 @@ class Database {
             case 'rech':
             case 'invoice':
                 return self::getRechDB();
+            case 'inventory':
+                return self::getInventoryDB();
             default:
                 throw new Exception("Invalid connection name: $name");
         }
@@ -186,5 +216,6 @@ class Database {
         self::$contentConnection = null;
         self::$rechConnection = null;
         self::$shopConnection = null;
+        self::$inventoryConnection = null;
     }
 }
