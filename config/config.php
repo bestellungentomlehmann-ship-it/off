@@ -126,6 +126,9 @@ define('INVOICE_NOTIFICATION_EMAIL', _env('INVOICE_NOTIFICATION_EMAIL', 'vorstan
 // Inventory Settings
 define('INVENTORY_BOARD_EMAIL', _env('INVENTORY_BOARD_EMAIL', 'vorstand@business-consulting.de'));
 
+// Rental Settings
+define('INTRA_RENTAL_USER_NAME', _env('INTRA_RENTAL_USER_NAME', 'Intra Ausleihe'));
+
 // Mail Recipient Settings
 define('MAIL_SUPPORT',   _env('SUPPORT_EMAIL',   'it@business-consulting.de'));
 define('MAIL_IDEAS',     _env('IDEAS_EMAIL',      'ideas@business-consulting.de'));
