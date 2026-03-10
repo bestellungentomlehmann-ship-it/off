@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `privacy_hide_email` BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Hide email from non-privileged users',
   `privacy_hide_phone` BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Hide phone from non-privileged users',
   `privacy_hide_career` BOOLEAN NOT NULL DEFAULT 0 COMMENT 'Hide career/work data from non-privileged users',
+  `easyverein_id` VARCHAR(100) DEFAULT NULL COMMENT 'EasyVerein member/contact ID (NULL if user has no EasyVerein account)',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `last_login` TIMESTAMP NULL DEFAULT NULL,
@@ -78,7 +79,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   INDEX `idx_role` (`role`),
   INDEX `idx_azure_oid` (`azure_oid`),
   INDEX `idx_deleted_at` (`deleted_at`),
-  INDEX `idx_last_reminder_sent_at` (`last_reminder_sent_at`)
+  INDEX `idx_last_reminder_sent_at` (`last_reminder_sent_at`),
+  INDEX `idx_easyverein_id` (`easyverein_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='User authentication and profile information';
 
