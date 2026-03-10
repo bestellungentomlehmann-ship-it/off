@@ -326,39 +326,125 @@ class Inventory {
 
             self::evi()->assignItem((int)$itemId, (int)$userId, (int)$quantity, $note, $userName, $userEmail);
 
-            // Record the rental locally for history tracking and the return-approval workflow.
-            try {
-                $db = Database::getContentDB();
-                // Validate $start_date is a parseable date before using it as rented_at.
-                $validStartDate = null;
-                if ($start_date !== null && $start_date !== '') {
-                    try {
-                        $validStartDate = (new DateTime($start_date))->format('Y-m-d H:i:s');
-                    } catch (Exception $dateEx) {
-                        error_log('checkoutItem: invalid start_date ignored: ' . $dateEx->getMessage());
-                    }
+            // Record the rental in the new inventory database ($dbInventory).
+            // Validate $start_date before passing it to createRental().
+            $validStartDate = null;
+            if ($start_date !== null && $start_date !== '') {
+                try {
+                    $validStartDate = (new DateTime($start_date))->format('Y-m-d');
+                } catch (Exception $dateEx) {
+                    error_log('checkoutItem: invalid start_date ignored: ' . $dateEx->getMessage());
                 }
-                if ($validStartDate !== null) {
-                    $stmt = $db->prepare(
-                        'INSERT INTO inventory_rentals (easyverein_item_id, user_id, quantity, purpose, status, rented_at)
-                         VALUES (?, ?, ?, ?, \'active\', ?)'
-                    );
-                    $stmt->execute([(string)$itemId, (int)$userId, (int)$quantity, (string)$purpose, $validStartDate]);
-                } else {
-                    $stmt = $db->prepare(
-                        'INSERT INTO inventory_rentals (easyverein_item_id, user_id, quantity, purpose, status)
-                         VALUES (?, ?, ?, ?, \'active\')'
-                    );
-                    $stmt->execute([(string)$itemId, (int)$userId, (int)$quantity, (string)$purpose]);
-                }
-            } catch (Exception $dbEx) {
-                // Log but do not fail the checkout if only the local record could not be created.
-                error_log('inventory_rentals insert failed: ' . $dbEx->getMessage());
             }
+            $rentalNotes = $note !== '' ? $note : null;
+            $validEndDate = null;
+            if ($expectedReturnDate !== null && $expectedReturnDate !== '') {
+                try {
+                    $validEndDate = (new DateTime($expectedReturnDate))->format('Y-m-d');
+                } catch (Exception $endDateEx) {
+                    error_log('checkoutItem: invalid expectedReturnDate ignored: ' . $endDateEx->getMessage());
+                }
+            }
+            self::createRental(
+                $itemId,
+                (int)$userId,
+                $validStartDate ?? date('Y-m-d'),
+                $validEndDate,
+                $rentalNotes
+            );
 
             return ['success' => true, 'message' => 'Artikel erfolgreich ausgeliehen'];
         } catch (Exception $e) {
             return ['success' => false, 'message' => 'Fehler beim Ausleihen: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Create a rental record in the new inventory database ($dbInventory).
+     *
+     * Checks whether the logged-in user has an EasyVerein ID stored in the
+     * users table (users.easyverein_id).
+     *
+     * - If the user HAS an EasyVerein ID: it is stored in
+     *   inventory_rentals.easyverein_member_id.
+     * - If the user has NO EasyVerein ID (e.g. new members or external helpers):
+     *   the rental is still created successfully; easyverein_member_id is set to
+     *   NULL and the intranet user_id is the only identifier stored.
+     *
+     * A log entry is written in both cases so that every transaction records
+     * clearly which identity source was used.
+     *
+     * NOTE: This method ALWAYS uses Database::getInventoryDB() ($dbInventory)
+     * and never touches the old content database.
+     *
+     * @param int|string  $easyvereinItemId EasyVerein inventory-object ID
+     * @param int         $userId           Local intranet user ID
+     * @param string      $startDate        Rental start date (YYYY-MM-DD)
+     * @param string|null $endDate          Expected return date (YYYY-MM-DD), or null
+     * @param string|null $notes            Optional notes / purpose text
+     * @return array ['success' => bool, 'message' => string, 'rental_id' => int|null]
+     */
+    public static function createRental($easyvereinItemId, int $userId, string $startDate, ?string $endDate = null, ?string $notes = null): array {
+        try {
+            // Always use the dedicated inventory database ($dbInventory) – never the content DB.
+            $dbInventory = Database::getInventoryDB();
+
+            // Look up the item's local ID in the new inventory database by its EasyVerein ID.
+            $itemStmt = $dbInventory->prepare(
+                'SELECT id FROM inventory_items WHERE easyverein_item_id = ? LIMIT 1'
+            );
+            $itemStmt->execute([(string)$easyvereinItemId]);
+            $itemRow = $itemStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$itemRow) {
+                error_log(sprintf(
+                    'createRental: item easyverein_item_id=%s not found in inventory DB – rental not recorded',
+                    $easyvereinItemId
+                ));
+                return ['success' => false, 'message' => 'Artikel nicht in der Inventardatenbank gefunden', 'rental_id' => null];
+            }
+            $itemId = (int)$itemRow['id'];
+
+            // Check whether the user has an EasyVerein ID stored in the users table.
+            $easyvereinMemberId = null;
+            try {
+                $userDb   = Database::getUserDB();
+                $userStmt = $userDb->prepare('SELECT easyverein_id FROM users WHERE id = ? LIMIT 1');
+                $userStmt->execute([$userId]);
+                $userRow = $userStmt->fetch(PDO::FETCH_ASSOC);
+                if ($userRow && !empty($userRow['easyverein_id'])) {
+                    $easyvereinMemberId = $userRow['easyverein_id'];
+                }
+            } catch (Exception $userEx) {
+                error_log('createRental: user lookup failed: ' . $userEx->getMessage());
+            }
+
+            // Log which identity source is used for this rental transaction.
+            if ($easyvereinMemberId !== null) {
+                error_log(sprintf(
+                    'createRental [EasyVerein-User]: user_id=%d, easyverein_member_id=%s, item=%s',
+                    $userId, $easyvereinMemberId, $easyvereinItemId
+                ));
+            } else {
+                error_log(sprintf(
+                    'createRental [Intranet-Fallback]: user_id=%d has no EasyVerein ID – easyverein_member_id=NULL, item=%s',
+                    $userId, $easyvereinItemId
+                ));
+            }
+
+            // Insert the rental record into the new inventory database ($dbInventory).
+            $stmt = $dbInventory->prepare(
+                'INSERT INTO inventory_rentals (item_id, user_id, easyverein_member_id, status, start_date, end_date, notes)
+                 VALUES (?, ?, ?, \'active\', ?, ?, ?)'
+            );
+            $stmt->execute([$itemId, $userId, $easyvereinMemberId, $startDate, $endDate, $notes]);
+            $rentalId = (int)$dbInventory->lastInsertId();
+
+            return ['success' => true, 'message' => 'Ausleihe erfolgreich gespeichert', 'rental_id' => $rentalId];
+        } catch (Exception $e) {
+            // Log the failure and return a structured error; the rental record will not be created.
+            error_log('createRental failed: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Fehler beim Erstellen der Ausleihe: ' . $e->getMessage(), 'rental_id' => null];
         }
     }
 
