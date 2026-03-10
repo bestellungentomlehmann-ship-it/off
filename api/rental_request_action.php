@@ -118,11 +118,36 @@ try {
         $evi = new EasyVereinInventory();
         $evi->approveRental($requestId, $userName, $userEmail, (int)$request['quantity']);
 
+        // Notify the applicant about the approval
+        if ($userEmail !== '') {
+            try {
+                $approvalBody = MailService::getTemplate(
+                    'Anfrage genehmigt',
+                    '<p class="email-text">Deine Inventar-Anfrage wurde vom Vorstand genehmigt.</p>' .
+                    '<table class="info-table">' .
+                    '<tr><td><strong>Anfrage-ID</strong></td><td>' . (int)$requestId . '</td></tr>' .
+                    '<tr><td><strong>Genehmigt am</strong></td><td>' . date('d.m.Y H:i') . '</td></tr>' .
+                    '</table>' .
+                    '<p class="email-text">Du kannst die Artikel nun wie vereinbart abholen.</p>'
+                );
+                MailService::sendEmail($userEmail, 'Deine Inventar-Anfrage wurde genehmigt', $approvalBody);
+            } catch (Exception $mailEx) {
+                error_log('rental_request_action: Fehler beim Senden der Genehmigungs-E-Mail: ' . $mailEx->getMessage());
+            }
+        }
+
         echo json_encode(['success' => true, 'message' => 'Anfrage genehmigt']);
         exit;
     }
 
     if ($action === 'reject') {
+        // Fetch the pending request to get the applicant's user_id before updating
+        $fetchStmt = $db->prepare(
+            "SELECT user_id FROM inventory_requests WHERE id = ? AND status = 'pending'"
+        );
+        $fetchStmt->execute([$requestId]);
+        $pendingRequest = $fetchStmt->fetch(PDO::FETCH_ASSOC);
+
         $stmt = $db->prepare(
             "UPDATE inventory_requests SET status = 'rejected' WHERE id = ? AND status = 'pending'"
         );
@@ -132,6 +157,32 @@ try {
             http_response_code(404);
             echo json_encode(['success' => false, 'message' => 'Anfrage nicht gefunden oder nicht im Status "ausstehend"']);
             exit;
+        }
+
+        // Notify the applicant about the rejection
+        if ($pendingRequest) {
+            try {
+                $userDb    = Database::getUserDB();
+                $userStmt  = $userDb->prepare("SELECT email FROM users WHERE id = ? LIMIT 1");
+                $userStmt->execute([(int)$pendingRequest['user_id']]);
+                $userRow   = $userStmt->fetch(PDO::FETCH_ASSOC);
+                $rejectEmail = $userRow['email'] ?? '';
+
+                if ($rejectEmail !== '') {
+                    $rejectBody = MailService::getTemplate(
+                        'Anfrage abgelehnt',
+                        '<p class="email-text">Deine Inventar-Anfrage wurde vom Vorstand abgelehnt.</p>' .
+                        '<table class="info-table">' .
+                        '<tr><td><strong>Anfrage-ID</strong></td><td>' . (int)$requestId . '</td></tr>' .
+                        '<tr><td><strong>Abgelehnt am</strong></td><td>' . date('d.m.Y H:i') . '</td></tr>' .
+                        '</table>' .
+                        '<p class="email-text">Bei Fragen wende dich bitte an den Vorstand.</p>'
+                    );
+                    MailService::sendEmail($rejectEmail, 'Deine Inventar-Anfrage wurde abgelehnt', $rejectBody);
+                }
+            } catch (Exception $mailEx) {
+                error_log('rental_request_action: Fehler beim Senden der Ablehnungs-E-Mail: ' . $mailEx->getMessage());
+            }
         }
 
         echo json_encode(['success' => true, 'message' => 'Anfrage abgelehnt']);
