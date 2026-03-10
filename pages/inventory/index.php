@@ -40,7 +40,7 @@ $title = 'Inventar - IBC Intranet';
 ob_start();
 ?>
 
-<div class="pb-28 lg:pb-0" id="inventoryContent">
+<div id="inventoryContent">
 <?php if ($checkoutSuccess): ?>
 <div class="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
     <i class="fas fa-check-circle mr-2"></i><?php echo htmlspecialchars($checkoutSuccess); ?>
@@ -140,7 +140,7 @@ ob_start();
 </div>
 <?php endif; ?>
 
-<!-- ─── Main Layout: Inventory (full-width; cart is fixed sidebar/bottom-sheet) ─── -->
+<!-- ─── Inventory Grid (full-width) ─── -->
 <div>
 <div>
 
@@ -278,116 +278,16 @@ ob_start();
 
 </div><!-- /.inventory -->
 </div><!-- /.main layout -->
-</div><!-- /.pb-28 (outer, #inventoryContent) -->
+</div><!-- /#inventoryContent -->
 
-<!-- ─── Cart Panel (fixed sidebar on desktop / bottom-sheet on mobile) ─── -->
-<div id="cartPanel"
-     class="fixed bottom-0 inset-x-0 z-50 flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl rounded-t-3xl transition-transform duration-300 ease-in-out lg:top-0 lg:right-0 lg:bottom-0 lg:left-auto lg:w-80 lg:rounded-none lg:border-l lg:border-gray-200 dark:border-slate-700/80"
-     role="dialog" aria-modal="true" aria-label="Ausleih-Warenkorb">
-
-    <!-- Drag handle (mobile bottom sheet only) -->
-    <div class="flex justify-center pt-3 pb-1 flex-shrink-0 lg:hidden">
-        <div class="w-10 h-1.5 bg-gray-300 dark:bg-slate-600 rounded-full"></div>
-    </div>
-
-    <!-- Panel Header -->
-    <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-4 flex items-center justify-between flex-shrink-0">
-        <div class="flex items-center gap-3">
-            <div class="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-                <i class="fas fa-shopping-cart text-white"></i>
-            </div>
-            <div>
-                <h2 class="text-base font-bold text-white leading-tight">Ausleih-Warenkorb</h2>
-                <p id="cartPanelCount" class="text-purple-100 text-xs mt-0.5">0 Artikel</p>
-            </div>
-        </div>
-        <button onclick="closeCartPanel()"
-                class="min-w-[44px] min-h-[44px] bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center text-white transition-colors lg:hidden"
-                aria-label="Schließen">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
-
-    <!-- Date Range + Purpose -->
-    <div class="px-5 py-4 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-800 flex-shrink-0 space-y-3">
-        <p class="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">
-            <i class="fas fa-calendar-alt mr-1.5"></i>Ausleihzeitraum (gilt für alle Artikel)
-        </p>
-        <div class="grid grid-cols-2 gap-3">
-            <div>
-                <label for="cartStartDate" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                    Von <span class="text-red-500">*</span>
-                </label>
-                <input type="date" id="cartStartDate"
-                       min="<?php echo date('Y-m-d'); ?>"
-                       value="<?php echo date('Y-m-d'); ?>"
-                       class="w-full px-3 py-2.5 border border-purple-200 dark:border-purple-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-shadow">
-            </div>
-            <div>
-                <label for="cartEndDate" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                    Bis <span class="text-red-500">*</span>
-                </label>
-                <input type="date" id="cartEndDate"
-                       min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
-                       value="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
-                       class="w-full px-3 py-2.5 border border-purple-200 dark:border-purple-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-shadow">
-            </div>
-        </div>
-        <div>
-            <label for="cartPurpose" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                <i class="fas fa-tag mr-1 text-purple-500"></i>Verwendungszweck <span class="text-red-500">*</span>
-            </label>
-            <input type="text" id="cartPurpose"
-                   placeholder="z. B. Vereinsveranstaltung, Projekt…"
-                   maxlength="200"
-                   class="w-full px-3 py-2.5 border border-purple-200 dark:border-purple-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 transition-shadow">
-        </div>
-    </div>
-
-    <!-- Cart Items (scrollable) -->
-    <div id="cartItemsList" class="flex-1 min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-3" style="display:none"></div>
-
-    <!-- Empty State -->
-    <div id="cartEmpty" class="flex-1 min-h-0 flex flex-col items-center justify-center px-5 py-12 text-center">
-        <div class="w-20 h-20 bg-purple-50 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-4">
-            <i class="fas fa-shopping-cart text-3xl text-purple-300 dark:text-purple-600"></i>
-        </div>
-        <p class="text-slate-500 dark:text-slate-400 font-medium">Ihr Warenkorb ist leer</p>
-        <p class="text-slate-400 dark:text-slate-500 text-sm mt-1">Klicken Sie auf „In den Warenkorb"</p>
-    </div>
-
-    <!-- Panel Footer -->
-    <div class="px-5 pb-6 pt-4 flex-shrink-0 border-t border-gray-100 dark:border-slate-700 space-y-3">
-        <!-- Status messages -->
-        <div id="cartMsg" class="hidden rounded-xl px-4 py-3 text-sm font-medium"></div>
-        <!-- Info hint -->
-        <div class="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl px-3 py-2.5">
-            <i class="fas fa-info-circle text-amber-500 text-xs mt-0.5 flex-shrink-0"></i>
-            <p class="text-xs text-amber-700 dark:text-amber-300">
-                Anfragen werden mit Status <strong>Ausstehend</strong> gespeichert und vom Vorstand geprüft.
-            </p>
-        </div>
-        <!-- Submit (full-width, large CTA) -->
-        <button type="button" id="cartSubmitBtn" onclick="submitCartRequests()"
-                class="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed text-white rounded-2xl font-extrabold text-lg transition-all shadow-xl hover:shadow-2xl transform hover:scale-[1.02] disabled:scale-100 disabled:shadow-none flex items-center justify-center gap-3">
-            <i class="fas fa-paper-plane text-xl"></i>
-            <span id="cartSubmitLabel">Anfrage senden</span>
-        </button>
-        <!-- Clear -->
-        <button type="button" onclick="clearCart()"
-                class="w-full py-2.5 bg-gray-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 rounded-xl transition-colors text-sm font-semibold border border-gray-200 dark:border-slate-700 flex items-center justify-center gap-2"
-                title="Warenkorb leeren">
-            <i class="fas fa-trash-alt text-xs"></i> Warenkorb leeren
-        </button>
-    </div>
-</div><!-- /#cartPanel -->
-
-<!-- ─── Floating Cart Button (mobile only) ─── -->
-<button id="cartFloatingBtn"
-        onclick="openCartPanel()"
-        class="fixed right-4 z-50 w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-full shadow-2xl hover:shadow-purple-500/40 flex items-center justify-center transition-all hover:scale-110 focus:outline-none focus:ring-4 focus:ring-purple-300 lg:hidden"
-        aria-label="Warenkorb öffnen">
-    <span class="text-2xl leading-none">🛒</span>
+<!-- ─── Floating Cart Button ─── -->
+<a href="checkout.php"
+   id="cartFab"
+   class="fixed top-24 right-8 z-50 w-14 h-14 rounded-full shadow-lg bg-ibc-blue flex items-center justify-center transition-all hover:scale-110 focus:outline-none focus:ring-4 focus:ring-purple-300"
+   aria-label="Zum Warenkorb">
+    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-16H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+    </svg>
     <span id="cartBadge"
           style="display:none"
           aria-live="polite"
@@ -395,46 +295,11 @@ ob_start();
           class="absolute -top-2 -right-2 min-w-[1.4rem] h-[1.4rem] bg-red-500 text-white text-xs font-extrabold rounded-full flex items-center justify-center px-1 shadow-lg ring-2 ring-white">
         0
     </span>
-</button>
-
-<!-- ─── Cart Overlay (mobile only) ─── -->
-<div id="cartOverlay"
-     class="fixed inset-0 z-40 hidden lg:hidden"
-     style="background: rgba(15,23,42,0.55); backdrop-filter: blur(3px);"
-     onclick="closeCartPanel()"></div>
+</a>
 
 <style>
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-/* ─── Cart sidebar width token (320px = Tailwind w-80) ─── */
-:root { --cart-sidebar-w: 320px; }
-/* ─── Cart Panel: bottom-sheet on mobile, fixed sidebar on desktop ─── */
-@media (max-width: 1023px) {
-    #cartPanel {
-        transform: translateY(100%);
-        max-height: 90vh;
-        /* overflow:hidden clips the panel at max-height; inner flex children
-           with min-h-0 + overflow-y:auto can still scroll independently */
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-}
-@media (min-width: 1024px) {
-    /* Reserve space on the right for the fixed cart sidebar */
-    #inventoryContent {
-        padding-right: var(--cart-sidebar-w);
-    }
-    #cartPanel {
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-}
-/* ─── Floating Button: safe-area bottom offset for mobile browsers ─── */
-#cartFloatingBtn {
-    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
-}
 @keyframes cart-pop {
     0%   { transform: scale(1); }
     40%  { transform: scale(1.22); }
@@ -442,7 +307,6 @@ ob_start();
     100% { transform: scale(1); }
 }
 .cart-pop { animation: cart-pop 0.35s cubic-bezier(0.36,0.07,0.19,0.97); }
-/* Badge pop when item is added */
 @keyframes badge-pop {
     0%   { transform: scale(1); }
     30%  { transform: scale(1.55); }
@@ -450,31 +314,14 @@ ob_start();
     100% { transform: scale(1); }
 }
 .badge-pop { animation: badge-pop 0.38s cubic-bezier(0.36,0.07,0.19,0.97); }
-/* Pulse glow on floating button when cart has items */
 @keyframes btn-pulse {
-    0%, 100% { box-shadow: 0 10px 25px rgba(124,58,237,0.35), 0 4px 10px rgba(37,99,235,0.2); }
-    50%       { box-shadow: 0 14px 40px rgba(124,58,237,0.6), 0 6px 18px rgba(37,99,235,0.4); }
+    0%, 100% { box-shadow: 0 10px 25px rgba(0,102,179,0.35), 0 4px 10px rgba(0,79,140,0.2); }
+    50%       { box-shadow: 0 14px 40px rgba(0,102,179,0.6), 0 6px 18px rgba(0,79,140,0.4); }
 }
-#cartFloatingBtn.has-items { animation: btn-pulse 2s ease-in-out infinite; }
-/* Pulsing glow on submit button */
-@keyframes submit-glow {
-    0%, 100% { box-shadow: 0 6px 24px rgba(124,58,237,0.25), 0 2px 6px rgba(37,99,235,0.15); }
-    50%       { box-shadow: 0 10px 36px rgba(124,58,237,0.45), 0 3px 14px rgba(37,99,235,0.3); }
-}
-#cartSubmitBtn:not([disabled]) { animation: submit-glow 3s ease-in-out infinite; }
-/* Cart item slide-in + hover highlight */
-@keyframes cart-slide-in {
-    from { opacity: 0; transform: translateX(10px); }
-    to   { opacity: 1; transform: translateX(0); }
-}
-.cart-item-card { animation: cart-slide-in 0.2s ease both; }
-.cart-item-card:hover { background: #f5f3ff !important; }
-.dark .cart-item-card:hover { background: rgba(109,40,217,0.12) !important; }
+#cartFab.has-items { animation: btn-pulse 2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-    .cart-pop, .badge-pop, .cart-item-card { animation: none; }
-    #cartPanel { transition: none !important; }
-    #cartSubmitBtn { animation: none !important; }
-    #cartFloatingBtn.has-items { animation: none !important; }
+    .cart-pop, .badge-pop { animation: none; }
+    #cartFab.has-items { animation: none !important; }
 }
 </style>
 
@@ -484,7 +331,6 @@ ob_start();
 
     var CART_KEY  = 'ibc_inventory_cart';
     var cart      = [];
-    var panelOpen = false;
     var csrfToken = <?php echo json_encode(CSRFHandler::getToken()); ?>;
 
     // ── Restore cart from localStorage on page load ──────────────────────────
@@ -522,25 +368,6 @@ ob_start();
         syncSession({ action: 'toggle', item_id: item.id, item_name: item.name, image_src: item.imageSrc || '', pieces: item.pieces, quantity: 1 });
     };
 
-    window.removeFromCart = function (id) {
-        cart = cart.filter(function (c) { return c.id !== id; });
-        updateCartUI();
-        updateCardButton(id);
-        syncSession({ action: 'remove', item_id: id });
-    };
-
-    window.updateCartQty = function (id, delta) {
-        var item = cart.find(function (c) { return c.id === id; });
-        if (!item) return;
-        var newQty = item.quantity + delta;
-        if (newQty < 1) { window.removeFromCart(id); return; }
-        if (newQty > item.pieces) newQty = item.pieces;
-        item.quantity = newQty;
-        persistCart();
-        if (panelOpen || isDesktop()) renderCartItems();
-        syncSession({ action: 'set_qty', item_id: id, quantity: newQty });
-    };
-
     window.clearCart = function () {
         var ids = cart.map(function (c) { return c.id; });
         cart = [];
@@ -548,29 +375,6 @@ ob_start();
         updateCartUI();
         syncSession({ action: 'clear' });
     };
-
-    // ── Panel open / close ───────────────────────────────────────────────────
-    window.openCartPanel = function () {
-        if (isDesktop()) return; // cart is always visible as sidebar on desktop
-        panelOpen = true;
-        document.getElementById('cartOverlay').classList.remove('hidden');
-        document.getElementById('cartPanel').style.transform = 'translateY(0)';
-        document.body.style.overflow = 'hidden';
-        renderCartItems();
-        hideCartMsg();
-    };
-
-    window.closeCartPanel = function () {
-        if (isDesktop()) return;
-        panelOpen = false;
-        document.getElementById('cartOverlay').classList.add('hidden');
-        document.getElementById('cartPanel').style.transform = 'translateY(100%)';
-        document.body.style.overflow = '';
-    };
-
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && panelOpen && !isDesktop()) closeCartPanel();
-    });
 
     // ── Persist cart to localStorage and notify global badge ─────────────────
     function persistCart() {
@@ -582,93 +386,22 @@ ob_start();
 
     // ── UI helpers ───────────────────────────────────────────────────────────
     function updateCartUI() {
-        var count      = cart.length;
-        var badge      = document.getElementById('cartBadge');
-        var floatBtn   = document.getElementById('cartFloatingBtn');
-        var panelCount = document.getElementById('cartPanelCount');
-        var submitLbl  = document.getElementById('cartSubmitLabel');
-        var submitBtn  = document.getElementById('cartSubmitBtn');
+        var count = cart.length;
+        var badge = document.getElementById('cartBadge');
+        var fab   = document.getElementById('cartFab');
 
-        badge.textContent         = count;
-        badge.style.display       = count > 0 ? 'flex' : 'none';
-        if (floatBtn) floatBtn.classList.toggle('has-items', count > 0);
-        if (panelCount) panelCount.textContent = count + ' Artikel';
-        if (submitLbl)  submitLbl.textContent  = count > 1 ? count + ' Anfragen senden' : 'Anfrage senden';
-        if (submitBtn)  submitBtn.disabled     = count === 0;
-        persistCart();
-        if (panelOpen || isDesktop()) renderCartItems();
-    }
-
-    function renderCartItems() {
-        var list  = document.getElementById('cartItemsList');
-        var empty = document.getElementById('cartEmpty');
-        if (!list) return;
-
-        if (cart.length === 0) {
-            list.style.display = 'none';
-            if (empty) empty.style.display = 'flex';
-            list.innerHTML = '';
-            return;
+        if (badge) {
+            badge.textContent   = count;
+            badge.style.display = count > 0 ? 'flex' : 'none';
         }
-
-        list.style.display = 'flex';
-        if (empty) empty.style.display = 'none';
-
-        list.innerHTML = cart.map(function (item) {
-            var safeSrc = isSafeImageSrc(item.imageSrc) ? item.imageSrc : '';
-            var thumbInner = safeSrc
-                ? '<img src="' + escHtml(safeSrc) + '" alt="' + escHtml(item.name) + '" '
-                  + 'class="w-full h-full object-contain" loading="lazy">'
-                : '<span class="flex w-full h-full items-center justify-center">'
-                  + '<i class="fas fa-box-open text-gray-300 dark:text-gray-600 text-base"></i></span>';
-
-            return '<div class="cart-item-card bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">'
-                + '<div class="flex items-center gap-3 px-3 py-3">'
-                // Tiny thumbnail with quantity badge overlay
-                + '<div class="relative flex-shrink-0">'
-                + '<div class="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30 border border-purple-100 dark:border-purple-800/50 flex items-center justify-center shadow-sm">'
-                + thumbInner + '</div>'
-                + '<span class="absolute -top-2 -right-2 min-w-[1.35rem] h-[1.35rem] bg-gradient-to-br from-purple-600 to-blue-500 text-white text-[10px] font-extrabold rounded-full flex items-center justify-center px-1 shadow ring-2 ring-white dark:ring-slate-800">'
-                + item.quantity + '</span>'
-                + '</div>'
-                // Info + quantity stepper
-                + '<div class="flex-1 min-w-0">'
-                + '<p class="font-semibold text-slate-900 dark:text-white text-sm leading-snug mb-2 truncate" title="' + escHtml(item.name) + '">' + escHtml(item.name) + '</p>'
-                + '<div class="flex items-center gap-1.5">'
-                + '<button data-action="dec" data-id="' + escHtml(item.id) + '" '
-                + 'class="min-w-[44px] min-h-[44px] rounded-lg bg-gray-100 dark:bg-slate-700 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors">'
-                + '<i class="fas fa-minus text-[10px]"></i></button>'
-                + '<span class="min-w-[2rem] text-center text-sm font-extrabold text-slate-900 dark:text-white bg-gray-50 dark:bg-slate-700 rounded-lg py-0.5 px-1.5 border border-gray-200 dark:border-slate-600">' + item.quantity + '</span>'
-                + '<button data-action="inc" data-id="' + escHtml(item.id) + '" '
-                + 'class="min-w-[44px] min-h-[44px] rounded-lg bg-gray-100 dark:bg-slate-700 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors">'
-                + '<i class="fas fa-plus text-[10px]"></i></button>'
-                + '<span class="text-[11px] text-slate-400 dark:text-slate-500">von ' + escHtml(String(item.pieces)) + '</span>'
-                + '</div>'
-                + '</div>'
-                // Remove button
-                + '<button data-action="remove" data-id="' + escHtml(item.id) + '" '
-                + 'class="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" '
-                + 'aria-label="Entfernen"><i class="fas fa-trash-alt text-xs"></i></button>'
-                + '</div>'
-                + '</div>';
-        }).join('');
+        if (fab) fab.classList.toggle('has-items', count > 0);
+        persistCart();
     }
-
-    // Event delegation for cart item controls (avoids inline onclick XSS risk)
-    document.getElementById('cartItemsList').addEventListener('click', function (e) {
-        var btn = e.target.closest('button[data-action]');
-        if (!btn) return;
-        var action = btn.dataset.action;
-        var id     = btn.dataset.id;
-        if (action === 'remove') window.removeFromCart(id);
-        if (action === 'dec')    window.updateCartQty(id, -1);
-        if (action === 'inc')    window.updateCartQty(id,  1);
-    });
 
     function updateCardButton(id) {
         var btn = document.getElementById('cartBtn-' + id);
         if (!btn) return;
-        var inCart   = cart.some(function (c) { return c.id === id; });
+        var inCart    = cart.some(function (c) { return c.id === id; });
         var baseClass = 'flex-1 py-2.5 text-white rounded-xl font-bold text-sm transition-all transform hover:scale-[1.02] shadow-md hover:shadow-lg flex items-center justify-center gap-2';
         if (inCart) {
             btn.className = baseClass + ' bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700';
@@ -680,8 +413,7 @@ ob_start();
     }
 
     function animateBadge() {
-        if (isDesktop()) return; // floating button is hidden on desktop
-        var btn   = document.getElementById('cartFloatingBtn');
+        var btn   = document.getElementById('cartFab');
         var badge = document.getElementById('cartBadge');
         if (!btn) return;
         btn.classList.remove('cart-pop');
@@ -694,129 +426,7 @@ ob_start();
         }
     }
 
-    function isSafeImageSrc(src) {
-        return typeof src === 'string' && /^(https?:\/\/|\/).+/i.test(src);
-    }
-
-    function escHtml(str) {
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    // ── Submit all cart requests ─────────────────────────────────────────────
-    window.submitCartRequests = function () {
-        if (cart.length === 0) return;
-
-        var startDate = document.getElementById('cartStartDate').value;
-        var endDate   = document.getElementById('cartEndDate').value;
-        var purpose   = (document.getElementById('cartPurpose').value || '').trim();
-
-        if (!startDate || !endDate) {
-            showCartMsg('Bitte Zeitraum auswählen.', 'error');
-            return;
-        }
-        if (startDate > endDate) {
-            showCartMsg('Startdatum muss vor dem Enddatum liegen.', 'error');
-            return;
-        }
-        if (!purpose) {
-            showCartMsg('Bitte Verwendungszweck angeben.', 'error');
-            document.getElementById('cartPurpose').focus();
-            return;
-        }
-
-        var btn = document.getElementById('cartSubmitBtn');
-        btn.disabled  = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-xl mr-2"></i>Wird gesendet...';
-        hideCartMsg();
-
-        var promises = cart.map(function (item) {
-            return fetch('/api/inventory_request.php', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({
-                    action:              'submit_request',
-                    inventory_object_id: item.id,
-                    start_date:          startDate,
-                    end_date:            endDate,
-                    quantity:            item.quantity,
-                    purpose:             purpose,
-                    csrf_token:          csrfToken
-                })
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) { return { item: item, data: data }; })
-            .catch(function (err) {
-                console.error('Cart request failed for item ' + item.id + ':', err);
-                return { item: item, data: { success: false, message: 'Netzwerkfehler' } };
-            });
-        });
-
-        Promise.all(promises).then(function (results) {
-            var failed = results.filter(function (r) { return !r.data.success; });
-            if (failed.length === 0) {
-                btn.innerHTML = '<i class="fas fa-check text-xl mr-2"></i>Gesendet!';
-                showCartMsg('Alle Anfragen erfolgreich eingereicht!', 'success');
-                setTimeout(function () {
-                    clearCart();
-                    closeCartPanel();
-                    btn.disabled  = false;
-                    btn.innerHTML = '<i class="fas fa-paper-plane text-xl mr-2"></i><span id="cartSubmitLabel">Anfrage senden</span>';
-                }, 2200);
-            } else {
-                var errDetails = failed.map(function (r) {
-                    return r.item.name + (r.data.message ? ': ' + r.data.message : '');
-                }).join('; ');
-                showCartMsg('Fehler: ' + errDetails, 'error');
-                btn.disabled  = false;
-                btn.innerHTML = '<i class="fas fa-paper-plane text-xl mr-2"></i><span id="cartSubmitLabel">Erneut versuchen</span>';
-            }
-        });
-    };
-
-    function showCartMsg(text, type) {
-        var el = document.getElementById('cartMsg');
-        el.textContent = text;
-        el.className = 'rounded-xl px-4 py-3 text-sm font-medium ' +
-            (type === 'success'
-                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700'
-                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700');
-        el.classList.remove('hidden');
-    }
-
-    function hideCartMsg() {
-        var el = document.getElementById('cartMsg');
-        if (el) el.classList.add('hidden');
-    }
-
-    // ── Viewport helpers ─────────────────────────────────────────────────────
-    function isDesktop() {
-        return window.innerWidth >= 1024;
-    }
-
-    // On resize: switch between sidebar and bottom-sheet modes
-    window.addEventListener('resize', function () {
-        var panel = document.getElementById('cartPanel');
-        if (!panel) return;
-        if (isDesktop()) {
-            // Desktop: clear any inline transform so CSS takes over (transform:none)
-            panel.style.transform = '';
-            document.getElementById('cartOverlay').classList.add('hidden');
-            document.body.style.overflow = '';
-            if (panelOpen) panelOpen = false;
-            renderCartItems();
-        } else if (!panelOpen) {
-            // Mobile: re-hide if not explicitly opened
-            panel.style.transform = 'translateY(100%)';
-        }
-    });
-
-    // Initial render for desktop (cart always visible); also restore card button states
-    if (isDesktop()) renderCartItems();
+    // Initial UI state
     updateCartUI();
     cart.forEach(function (item) { updateCardButton(item.id); });
 
