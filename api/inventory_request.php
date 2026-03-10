@@ -129,6 +129,27 @@ try {
             error_log('inventory_request: Fehler beim Senden der Benachrichtigungs-E-Mail: ' . $mailEx->getMessage());
         }
 
+        // Send confirmation email to the requester
+        try {
+            $requesterEmail = $_SESSION['user_email'] ?? '';
+            if ($requesterEmail !== '') {
+                $confirmBody = MailService::getTemplate(
+                    'Anfrage eingegangen',
+                    '<p class="email-text">Deine Anfrage ist beim Vorstand eingegangen und wird geprüft.</p>' .
+                    '<table class="info-table">' .
+                    '<tr><td><strong>Inventar-ID</strong></td><td>' . htmlspecialchars($inventoryObjectId) . '</td></tr>' .
+                    '<tr><td><strong>Zeitraum</strong></td><td>' . htmlspecialchars($startDate) . ' bis ' . htmlspecialchars($endDate) . '</td></tr>' .
+                    '<tr><td><strong>Menge</strong></td><td>' . (int)$quantity . '</td></tr>' .
+                    ($purpose !== '' ? '<tr><td><strong>Verwendungszweck</strong></td><td>' . htmlspecialchars($purpose) . '</td></tr>' : '') .
+                    '</table>' .
+                    '<p class="email-text">Du wirst benachrichtigt, sobald deine Anfrage bearbeitet wurde.</p>'
+                );
+                MailService::sendEmail($requesterEmail, 'Deine Inventar-Anfrage ist eingegangen', $confirmBody);
+            }
+        } catch (Exception $mailEx) {
+            error_log('inventory_request: Fehler beim Senden der Bestätigungs-E-Mail an Anfragesteller: ' . $mailEx->getMessage());
+        }
+
         echo json_encode([
             'success'    => true,
             'message'    => 'Anfrage erfolgreich eingereicht. Sie werden benachrichtigt, sobald Ihre Anfrage bearbeitet wurde.',
