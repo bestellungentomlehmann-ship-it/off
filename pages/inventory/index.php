@@ -291,8 +291,8 @@ ob_start();
                     <h2 id="lendModalTitle" class="text-xl font-extrabold text-slate-900 dark:text-white">Ausleihen / Entnehmen</h2>
                     <p id="lendModalItemName" class="text-sm text-slate-500 dark:text-slate-400 mt-0.5"></p>
                 </div>
-                <button type="button" onclick="closeLendModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors ml-4 flex-shrink-0" aria-label="Schließen">
-                    <i class="fas fa-times text-lg"></i>
+                <button type="button" onclick="closeLendModal()" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 hover:bg-red-100 dark:bg-slate-700 dark:hover:bg-red-900/40 text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-all duration-200 ml-4 flex-shrink-0 shadow-sm" aria-label="Schließen">
+                    <i class="fas fa-times text-base"></i>
                 </button>
             </div>
 

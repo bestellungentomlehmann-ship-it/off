@@ -581,8 +581,8 @@ if (!empty($logbookNote)):
                         <i class="fas fa-hand-holding-box text-green-600 mr-2" aria-hidden="true"></i>
                         Entnehmen / Ausleihen
                     </h2>
-                    <button type="button" onclick="closeCheckoutModal()" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" aria-label="Dialog schließen">
-                        <i class="fas fa-times text-xl" aria-hidden="true"></i>
+                    <button type="button" onclick="closeCheckoutModal()" class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 hover:bg-red-100 dark:bg-gray-700 dark:hover:bg-red-900/40 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-all duration-200 shadow-sm flex-shrink-0" aria-label="Dialog schließen">
+                        <i class="fas fa-times text-base" aria-hidden="true"></i>
                     </button>
                 </div>
 
