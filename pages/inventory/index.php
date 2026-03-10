@@ -313,42 +313,42 @@ ob_start();
         <p class="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">
             <i class="fas fa-calendar-alt mr-1.5"></i>Ausleihzeitraum (gilt für alle Artikel)
         </p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-3">
             <div>
-                <label for="cartStartDate" class="block text-xs text-slate-500 dark:text-slate-400 mb-1">
+                <label for="cartStartDate" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
                     Von <span class="text-red-500">*</span>
                 </label>
                 <input type="date" id="cartStartDate"
                        min="<?php echo date('Y-m-d'); ?>"
                        value="<?php echo date('Y-m-d'); ?>"
-                       class="w-full px-3 py-2 border border-purple-200 dark:border-purple-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100">
+                       class="w-full px-3 py-2.5 border border-purple-200 dark:border-purple-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-shadow">
             </div>
             <div>
-                <label for="cartEndDate" class="block text-xs text-slate-500 dark:text-slate-400 mb-1">
+                <label for="cartEndDate" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
                     Bis <span class="text-red-500">*</span>
                 </label>
                 <input type="date" id="cartEndDate"
                        min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
                        value="<?php echo date('Y-m-d', strtotime('+1 day')); ?>"
-                       class="w-full px-3 py-2 border border-purple-200 dark:border-purple-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100">
+                       class="w-full px-3 py-2.5 border border-purple-200 dark:border-purple-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-shadow">
             </div>
         </div>
         <div>
-            <label for="cartPurpose" class="block text-xs text-slate-500 dark:text-slate-400 mb-1">
-                <i class="fas fa-tag mr-1"></i>Verwendungszweck <span class="text-red-500">*</span>
+            <label for="cartPurpose" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                <i class="fas fa-tag mr-1 text-purple-500"></i>Verwendungszweck <span class="text-red-500">*</span>
             </label>
             <input type="text" id="cartPurpose"
                    placeholder="z. B. Vereinsveranstaltung, Projekt…"
                    maxlength="200"
-                   class="w-full px-3 py-2 border border-purple-200 dark:border-purple-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400">
+                   class="w-full px-3 py-2.5 border border-purple-200 dark:border-purple-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 transition-shadow">
         </div>
     </div>
 
     <!-- Cart Items (scrollable) -->
-    <div id="cartItemsList" class="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3" style="display:none"></div>
+    <div id="cartItemsList" class="flex-1 min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-3" style="display:none"></div>
 
     <!-- Empty State -->
-    <div id="cartEmpty" class="flex-1 flex flex-col items-center justify-center px-5 py-12 text-center">
+    <div id="cartEmpty" class="flex-1 min-h-0 flex flex-col items-center justify-center px-5 py-12 text-center">
         <div class="w-20 h-20 bg-purple-50 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-4">
             <i class="fas fa-shopping-cart text-3xl text-purple-300 dark:text-purple-600"></i>
         </div>
@@ -412,8 +412,12 @@ ob_start();
 @media (max-width: 1023px) {
     #cartPanel {
         transform: translateY(100%);
-        max-height: 92vh;
+        max-height: 90vh;
+        /* overflow:hidden clips the panel at max-height; inner flex children
+           with min-h-0 + overflow-y:auto can still scroll independently */
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
 }
 @media (min-width: 1024px) {
@@ -423,6 +427,8 @@ ob_start();
     }
     #cartPanel {
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
 }
 /* ─── Floating Button: safe-area bottom offset for mobile browsers ─── */
