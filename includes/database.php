@@ -79,7 +79,9 @@ class Database {
      */
     private static function migrateUserSchema(PDO $db): void {
         $pending = [
-            'use_custom_avatar' => "ALTER TABLE users ADD COLUMN use_custom_avatar TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = user uploaded own photo (Entra photo sync disabled), 0 = Entra photo is used' AFTER avatar_path",
+            'entra_photo_path'  => "ALTER TABLE users ADD COLUMN entra_photo_path VARCHAR(500) DEFAULT NULL COMMENT 'Cached profile photo path fetched from Microsoft Entra ID'",
+            'avatar_path'       => "ALTER TABLE users ADD COLUMN avatar_path VARCHAR(500) DEFAULT NULL COMMENT 'Active profile photo path; NULL = default avatar, custom_* = manually uploaded, uploads/profile_photos/entra_* = synced from Entra ID'",
+            'use_custom_avatar' => "ALTER TABLE users ADD COLUMN use_custom_avatar TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = user uploaded own photo (Entra photo sync disabled), 0 = Entra photo is used'",
         ];
         foreach ($pending as $column => $alterSql) {
             try {
