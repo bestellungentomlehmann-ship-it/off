@@ -482,9 +482,21 @@ ob_start();
 (function () {
     'use strict';
 
+    var CART_KEY  = 'ibc_inventory_cart';
     var cart      = [];
     var panelOpen = false;
     var csrfToken = <?php echo json_encode(CSRFHandler::getToken()); ?>;
+
+    // ── Restore cart from localStorage on page load ──────────────────────────
+    (function restoreCart() {
+        try {
+            var raw = localStorage.getItem(CART_KEY);
+            if (raw) {
+                var parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) { cart = parsed; }
+            }
+        } catch (e) {}
+    }());
 
     // ── Cart item toggle ─────────────────────────────────────────────────────
     window.toggleCartItem = function (item) {
@@ -512,6 +524,7 @@ ob_start();
         if (newQty < 1) { window.removeFromCart(id); return; }
         if (newQty > item.pieces) newQty = item.pieces;
         item.quantity = newQty;
+        persistCart();
         if (panelOpen || isDesktop()) renderCartItems();
     };
 
@@ -545,6 +558,14 @@ ob_start();
         if (e.key === 'Escape' && panelOpen && !isDesktop()) closeCartPanel();
     });
 
+    // ── Persist cart to localStorage and notify global badge ─────────────────
+    function persistCart() {
+        try {
+            localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        } catch (e) {}
+        window.dispatchEvent(new Event('ibc-inv-cart-updated'));
+    }
+
     // ── UI helpers ───────────────────────────────────────────────────────────
     function updateCartUI() {
         var count      = cart.length;
@@ -560,6 +581,7 @@ ob_start();
         if (panelCount) panelCount.textContent = count + ' Artikel';
         if (submitLbl)  submitLbl.textContent  = count > 1 ? count + ' Anfragen senden' : 'Anfrage senden';
         if (submitBtn)  submitBtn.disabled     = count === 0;
+        persistCart();
         if (panelOpen || isDesktop()) renderCartItems();
     }
 
@@ -779,8 +801,10 @@ ob_start();
         }
     });
 
-    // Initial render for desktop (cart always visible)
+    // Initial render for desktop (cart always visible); also restore card button states
     if (isDesktop()) renderCartItems();
+    updateCartUI();
+    cart.forEach(function (item) { updateCardButton(item.id); });
 
 }());
 </script>
