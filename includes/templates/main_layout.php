@@ -384,22 +384,6 @@ if (!isset($currentUser)) {
                     <span>Ausleihe</span>
                 </a>
 
-                <!-- Ausleih-Warenkorb (All) -->
-                <a href="<?php echo asset('pages/inventory/checkout.php'); ?>"
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/inventory/checkout.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
-                   <?php echo isActivePath('/inventory/checkout.php') ? 'aria-current="page"' : ''; ?>>
-                    <!-- Heroicons: shopping-cart outline -->
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                    <span>Ausleih-Warenkorb</span>
-                    <span id="nav-inv-cart-badge"
-                          style="display:none"
-                          aria-live="polite"
-                          aria-atomic="true"
-                          class="ml-auto bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">0</span>
-                </a>
-
                 <!-- Mitglieder (Board, Head, Member, Candidate) -->
                 <?php if (Auth::canAccessPage('members')): ?>
                 <a href="<?php echo asset('pages/members/index.php'); ?>" 
