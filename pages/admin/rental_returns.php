@@ -20,27 +20,70 @@ if (!Auth::check() || (!Auth::isBoard() && !Auth::hasRole(['alumni_finanz', 'alu
 $readOnly = !Auth::isBoard();
 
 // ── Helper: enrich rows with user name/email ──────────────────────────────────
+// Primary source: EasyVerein (match inventory_rentals.easyverein_member_id against users.easyverein_id)
+// Fallback source: User DB JOIN on user_id
 function enrichWithUsers(array $rows): array {
     if (empty($rows)) {
         return $rows;
     }
-    $userIds = array_unique(array_column($rows, 'user_id'));
-    $users   = [];
+
+    $userDb = null;
     try {
-        $userDb       = Database::getUserDB();
-        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-        $stmt         = $userDb->prepare(
-            "SELECT id, email, first_name, last_name FROM users WHERE id IN ({$placeholders})"
-        );
-        $stmt->execute($userIds);
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $users[(int)$row['id']] = $row;
-        }
+        $userDb = Database::getUserDB();
     } catch (Exception $e) {
-        error_log('rental_returns: user lookup failed: ' . $e->getMessage());
+        error_log('rental_returns: cannot connect to user DB: ' . $e->getMessage());
     }
+
+    // Primary: look up by easyverein_member_id matching users.easyverein_id
+    $easyvereinIds      = array_filter(
+        array_unique(array_column($rows, 'easyverein_member_id')),
+        fn($v) => $v !== null && $v !== ''
+    );
+    $usersByEasyvereinId = [];
+    if ($userDb !== null && !empty($easyvereinIds)) {
+        try {
+            $placeholders = implode(',', array_fill(0, count($easyvereinIds), '?'));
+            $stmt         = $userDb->prepare(
+                "SELECT easyverein_id, email, first_name, last_name
+                   FROM users WHERE easyverein_id IN ({$placeholders})"
+            );
+            $stmt->execute(array_values($easyvereinIds));
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $usersByEasyvereinId[$row['easyverein_id']] = $row;
+            }
+        } catch (Exception $e) {
+            error_log('rental_returns: EasyVerein-based user lookup failed: ' . $e->getMessage());
+        }
+    }
+
+    // Fallback: look up by local user_id
+    $userIds   = array_unique(array_column($rows, 'user_id'));
+    $usersById = [];
+    if ($userDb !== null) {
+        try {
+            $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+            $stmt         = $userDb->prepare(
+                "SELECT id, email, first_name, last_name FROM users WHERE id IN ({$placeholders})"
+            );
+            $stmt->execute($userIds);
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $usersById[(int)$row['id']] = $row;
+            }
+        } catch (Exception $e) {
+            error_log('rental_returns: user lookup failed: ' . $e->getMessage());
+        }
+    }
+
     foreach ($rows as &$row) {
-        $u = $users[(int)$row['user_id']] ?? null;
+        $u = null;
+        // Primary: EasyVerein member ID
+        if (!empty($row['easyverein_member_id'])) {
+            $u = $usersByEasyvereinId[$row['easyverein_member_id']] ?? null;
+        }
+        // Fallback: local user_id
+        if ($u === null) {
+            $u = $usersById[(int)$row['user_id']] ?? null;
+        }
         if ($u) {
             $name              = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
             $row['user_name']  = $name !== '' ? $name : ($u['email'] ?? null);
@@ -72,49 +115,74 @@ function buildItemNameMap(): array {
 }
 
 // ── Fetch data ────────────────────────────────────────────────────────────────
-$pendingRequests   = [];
-$activeLoans       = [];
-$pendingReturnLoans = [];
+$pendingRequests      = [];
+$activeLoans          = [];
+$pendingReturnLoans   = [];
 $pendingRentalReturns = [];
-$dbError           = '';
+$dbError              = '';
 
+// ── Pending requests: still stored in ContentDB (board-approval workflow) ──────
 try {
     $db   = Database::getContentDB();
     $stmt = $db->query(
-        "SELECT id, inventory_object_id, user_id, start_date, end_date, quantity, created_at
+        "SELECT id, inventory_object_id, user_id, start_date, end_date, quantity, created_at,
+                NULL AS easyverein_member_id
            FROM inventory_requests WHERE status = 'pending' ORDER BY created_at ASC"
     );
     $pendingRequests = enrichWithUsers($stmt->fetchAll(PDO::FETCH_ASSOC));
 
-    $stmt2 = $db->query(
-        "SELECT id, inventory_object_id, user_id, start_date, end_date, quantity, created_at
-           FROM inventory_requests WHERE status = 'approved' ORDER BY start_date ASC"
-    );
-    $activeLoans = enrichWithUsers($stmt2->fetchAll(PDO::FETCH_ASSOC));
-
+    // Pending return loans from the approval workflow (ContentDB)
     $stmt3 = $db->query(
-        "SELECT id, inventory_object_id, user_id, start_date, end_date, quantity, created_at
+        "SELECT id, inventory_object_id, user_id, start_date, end_date, quantity, created_at,
+                NULL AS easyverein_member_id
            FROM inventory_requests WHERE status = 'pending_return' ORDER BY created_at ASC"
     );
     $pendingReturnLoans = enrichWithUsers($stmt3->fetchAll(PDO::FETCH_ASSOC));
 
 } catch (Exception $e) {
-    $dbError = 'Datenbankfehler: ' . $e->getMessage();
+    $dbError = 'Datenbankfehler (ContentDB): ' . $e->getMessage();
     error_log('rental_returns: ' . $e->getMessage());
 }
 
-// Also load legacy inventory_rentals rows that are pending board confirmation.
-// The table may not exist in deployments running the new inventory_requests schema – silently ignore.
+// ── Active loans: primary source is the Inventory DB (dbs15419825) ─────────────
 try {
-    $stmt4 = $db->query(
-        "SELECT id, easyverein_item_id AS inventory_object_id, user_id,
-                rented_quantity AS quantity, rented_at AS created_at,
-                expected_return AS end_date
-           FROM inventory_rentals WHERE status = 'pending_return' ORDER BY rented_at ASC"
+    $dbInventory = Database::getInventoryDB();
+
+    $stmt2 = $dbInventory->query(
+        "SELECT r.id,
+                ii.easyverein_item_id AS inventory_object_id,
+                r.user_id,
+                r.start_date,
+                r.end_date,
+                1                    AS quantity,
+                r.created_at,
+                r.easyverein_member_id
+           FROM inventory_rentals r
+           JOIN inventory_items ii ON ii.id = r.item_id
+          WHERE r.status IN ('active', 'overdue')
+          ORDER BY r.start_date ASC"
     );
-    $pendingRentalReturns = enrichWithUsers($stmt4->fetchAll(PDO::FETCH_ASSOC));
+    $activeLoans = enrichWithUsers($stmt2->fetchAll(PDO::FETCH_ASSOC));
+
 } catch (Exception $e) {
-    // Legacy table may not exist – silently ignore
+    if ($dbError === '') {
+        $dbError = 'Datenbankfehler (InventoryDB): ' . $e->getMessage();
+    }
+    error_log('rental_returns: InventoryDB query failed: ' . $e->getMessage());
+}
+
+// ── Approved active loans from ContentDB approval workflow (secondary) ──────────
+try {
+    $db    = Database::getContentDB();
+    $stmt4   = $db->query(
+        "SELECT id, inventory_object_id, user_id, start_date, end_date, quantity, created_at,
+                NULL AS easyverein_member_id
+           FROM inventory_requests WHERE status = 'approved' ORDER BY start_date ASC"
+    );
+    $approvedLoans = enrichWithUsers($stmt4->fetchAll(PDO::FETCH_ASSOC));
+    $activeLoans   = array_merge($activeLoans, $approvedLoans);
+} catch (Exception $e) {
+    // Silently ignore if ContentDB approval table is unavailable
 }
 
 $itemNames = buildItemNameMap();

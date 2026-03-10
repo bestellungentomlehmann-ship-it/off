@@ -10,36 +10,53 @@ if (!Auth::check()) {
 
 $userId = (int)Auth::getUserId();
 
-// Load rental requests for the current user from inventory_requests (new flow).
+// Load active rentals from the Inventory DB (dbs15419825) – primary source.
+// The inventory_rentals table stores direct rentals created via Inventory::createRental().
 $rentals = [];
 try {
-    $db   = Database::getContentDB();
-    $stmt = $db->prepare(
-        "SELECT id, inventory_object_id AS easyverein_item_id, quantity, start_date AS rented_at, end_date, status, created_at
-           FROM inventory_requests
-          WHERE user_id = ? AND status IN ('pending', 'approved', 'pending_return')
-          ORDER BY created_at DESC"
+    $dbInventory = Database::getInventoryDB();
+    $stmt        = $dbInventory->prepare(
+        "SELECT r.id,
+                ii.easyverein_item_id,
+                1            AS quantity,
+                r.start_date AS rented_at,
+                r.end_date,
+                r.status,
+                r.created_at
+           FROM inventory_rentals r
+           JOIN inventory_items ii ON ii.id = r.item_id
+          WHERE r.user_id = ?
+            AND r.status IN ('pending', 'active', 'overdue')
+          ORDER BY r.created_at DESC"
     );
     $stmt->execute([$userId]);
     $rentals = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    error_log('my_rentals: inventory_requests query failed: ' . $e->getMessage());
+    error_log('my_rentals: inventory_rentals (InventoryDB) query failed: ' . $e->getMessage());
 }
 
-// Also load from legacy inventory_rentals table if it exists.
+// Also load pending/active requests from the Content DB (board-approval workflow).
+// These are requests submitted via Inventory::submitRequest() awaiting board sign-off.
 try {
-    $db   = Database::getContentDB();
-    $stmt = $db->prepare(
-        "SELECT id, easyverein_item_id, quantity, rented_at, NULL AS end_date, status, rented_at AS created_at
-           FROM inventory_rentals
-          WHERE user_id = ? AND status IN ('active', 'pending_return')
-          ORDER BY rented_at DESC"
+    $dbContent = Database::getContentDB();
+    $stmt      = $dbContent->prepare(
+        "SELECT id,
+                inventory_object_id AS easyverein_item_id,
+                quantity,
+                start_date          AS rented_at,
+                end_date,
+                status,
+                created_at
+           FROM inventory_requests
+          WHERE user_id = ?
+            AND status IN ('pending', 'approved', 'pending_return')
+          ORDER BY created_at DESC"
     );
     $stmt->execute([$userId]);
-    $legacyRentals = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $rentals = array_merge($rentals, $legacyRentals);
+    $requestRentals = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $rentals        = array_merge($rentals, $requestRentals);
 } catch (Exception $e) {
-    // Table may not exist in the new schema – silently ignore
+    // Table may not exist in this deployment – silently ignore
 }
 
 // Batch-resolve item names from EasyVerein to avoid N+1 API calls.
@@ -129,9 +146,10 @@ ob_start();
         $status             = $rental['status'];
         $isAwaitingApproval = $status === 'pending';
         $isAwaitingReturn   = $status === 'pending_return';
-        // Legacy rentals use 'active'; new requests use 'approved'
-        $isActive           = ($status === 'active' || $status === 'approved');
-        $isOverdue          = $isActive && !empty($rental['end_date']) && strtotime($rental['end_date']) < strtotime('today');
+        // InventoryDB uses 'active' and 'overdue'; ContentDB requests use 'approved'; legacy ContentDB uses 'active'
+        $isActive           = ($status === 'active' || $status === 'approved' || $status === 'overdue');
+        $isOverdue          = ($status === 'overdue')
+                              || ($isActive && $status !== 'overdue' && !empty($rental['end_date']) && strtotime($rental['end_date']) < strtotime('today'));
         $isEarlyReturn      = $isActive && !empty($rental['end_date']) && strtotime($rental['end_date']) > strtotime('today');
 
         if ($isAwaitingApproval) {
