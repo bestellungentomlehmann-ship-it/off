@@ -16,7 +16,7 @@ class User {
      */
     public static function getById($id) {
         $db = Database::getUserDB();
-        $sql = "SELECT id, email, role, entra_roles, entra_photo_path, tfa_enabled, is_alumni_validated, last_login, created_at, about_me, gender, birthday, show_birthday, job_title, company, first_name, last_name, privacy_hide_email, privacy_hide_phone, privacy_hide_career FROM users WHERE id = ?";
+        $sql = "SELECT id, email, role, entra_roles, entra_photo_path, avatar_path, use_custom_avatar, tfa_enabled, is_alumni_validated, last_login, created_at, about_me, gender, birthday, show_birthday, job_title, company, first_name, last_name, privacy_hide_email, privacy_hide_phone, privacy_hide_career FROM users WHERE id = ?";
         try {
             $stmt = $db->prepare($sql);
             $stmt->execute([$id]);
@@ -24,7 +24,7 @@ class User {
         } catch (PDOException $e) {
             // SQLSTATE 42S22 = unknown column; fall back for columns that may not exist yet
             if ($e->getCode() === '42S22') {
-                foreach (['entra_photo_path', 'privacy_hide_email', 'privacy_hide_phone', 'privacy_hide_career'] as $col) {
+                foreach (['entra_photo_path', 'avatar_path', 'privacy_hide_email', 'privacy_hide_phone', 'privacy_hide_career', 'use_custom_avatar'] as $col) {
                     if (strpos($e->getMessage(), $col) !== false) {
                         $sql = str_replace($col . ',', 'NULL AS ' . $col . ',', $sql);
                         $sql = str_replace(', ' . $col, ', NULL AS ' . $col, $sql);
@@ -153,8 +153,8 @@ class User {
         $db = Database::getUserDB();
         
         $sql = $role
-            ? "SELECT id, email, first_name, last_name, role, user_type, tfa_enabled, is_alumni_validated, last_login, created_at, entra_roles, entra_photo_path, azure_oid, is_locked_permanently, locked_until, avatar_path FROM users WHERE role = ? ORDER BY created_at DESC"
-            : "SELECT id, email, first_name, last_name, role, user_type, tfa_enabled, is_alumni_validated, last_login, created_at, entra_roles, entra_photo_path, azure_oid, is_locked_permanently, locked_until, avatar_path FROM users ORDER BY created_at DESC";
+            ? "SELECT id, email, first_name, last_name, role, user_type, tfa_enabled, is_alumni_validated, last_login, created_at, entra_roles, entra_photo_path, azure_oid, is_locked_permanently, locked_until, avatar_path, use_custom_avatar FROM users WHERE role = ? ORDER BY created_at DESC"
+            : "SELECT id, email, first_name, last_name, role, user_type, tfa_enabled, is_alumni_validated, last_login, created_at, entra_roles, entra_photo_path, azure_oid, is_locked_permanently, locked_until, avatar_path, use_custom_avatar FROM users ORDER BY created_at DESC";
         try {
             if ($role) {
                 $stmt = $db->prepare($sql);
@@ -166,7 +166,7 @@ class User {
             // SQLSTATE 42S22 = unknown column; fall back for columns that may not exist yet.
             // Replace ALL potentially-missing columns at once so a single retry suffices
             // even when multiple new columns are absent (e.g. schema not yet migrated).
-            $fallbackCols = ['entra_photo_path', 'is_locked_permanently', 'locked_until', 'avatar_path'];
+            $fallbackCols = ['entra_photo_path', 'is_locked_permanently', 'locked_until', 'avatar_path', 'use_custom_avatar'];
             $msg = $e->getMessage();
             $isKnownMissingCol = $e->getCode() === '42S22' && array_filter($fallbackCols, fn($c) => strpos($msg, $c) !== false);
             if ($isKnownMissingCol) {
@@ -494,18 +494,18 @@ class User {
             $relativePath = str_replace('\\', '/', substr($realPath, strlen($projectRoot) + 1));
 
             // Persist the path in the users table.
-            // Always update entra_photo_path. Also update avatar_path unless the user has a
-            // manually-uploaded custom photo (identified by the custom_ filename prefix).
+            // Always update entra_photo_path. Also update avatar_path unless the user has
+            // disabled Entra photo sync by uploading a custom photo (use_custom_avatar = 1).
             $db   = Database::getUserDB();
             $stmt = $db->prepare("UPDATE users SET entra_photo_path = ? WHERE id = ?");
             $stmt->execute([$relativePath, $userId]);
 
-            // Only overwrite avatar_path if it is not already pointing to a custom upload
-            $avatarStmt = $db->prepare("SELECT avatar_path FROM users WHERE id = ?");
+            // Only overwrite avatar_path when the user has not uploaded their own photo
+            $avatarStmt = $db->prepare("SELECT use_custom_avatar FROM users WHERE id = ?");
             $avatarStmt->execute([$userId]);
             $avatarFetched = $avatarStmt->fetch();
-            $currentAvatar = ($avatarFetched ?: [])['avatar_path'] ?? null;
-            if (empty($currentAvatar) || strpos($currentAvatar, 'custom_') === false) {
+            $useCustom     = (int) ($avatarFetched['use_custom_avatar'] ?? 0);
+            if ($useCustom === 0) {
                 $db->prepare("UPDATE users SET avatar_path = ? WHERE id = ?")
                    ->execute([$relativePath, $userId]);
             }

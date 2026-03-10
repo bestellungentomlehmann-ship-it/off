@@ -737,12 +737,11 @@ class AuthHandler {
                     try {
                         require_once __DIR__ . '/../models/User.php';
                         $userDb      = Database::getUserDB();
-                        $avatarStmt  = $userDb->prepare("SELECT avatar_path FROM users WHERE id = ?");
+                        $avatarStmt  = $userDb->prepare("SELECT use_custom_avatar FROM users WHERE id = ?");
                         $avatarStmt->execute([$userId]);
                         $avatarRow   = $avatarStmt->fetch();
-                        $currentAvatar = $avatarRow ? ($avatarRow['avatar_path'] ?? null) : null;
-                        // Skip photo sync if the user already has a manually-uploaded custom photo
-                        $hasUpload   = !empty($currentAvatar) && strpos($currentAvatar, 'custom_') !== false;
+                        // Skip photo sync if the user has disabled Entra sync by uploading their own photo
+                        $hasUpload   = (int) ($avatarRow ? ($avatarRow['use_custom_avatar'] ?? 0) : 0) === 1;
 
                         if (!$hasUpload) {
                             $photoData = $graphService->getUserPhoto($azureOid);
@@ -957,12 +956,13 @@ class AuthHandler {
             require_once __DIR__ . '/../../includes/models/User.php';
             require_once __DIR__ . '/../../includes/models/Alumni.php';
 
-            // Check users.avatar_path to determine if a custom (manually uploaded) photo exists
-            $avatarStmt  = $db->prepare("SELECT avatar_path FROM users WHERE id = ?");
+            // Check users.use_custom_avatar to determine if the user has uploaded their own photo
+            // and disabled Entra photo sync for their account.
+            $avatarStmt  = $db->prepare("SELECT use_custom_avatar, avatar_path FROM users WHERE id = ?");
             $avatarStmt->execute([$userId]);
-            $avatarRow   = $avatarStmt->fetch();
+            $avatarRow     = $avatarStmt->fetch();
+            $hasUpload     = (int) ($avatarRow ? ($avatarRow['use_custom_avatar'] ?? 0) : 0) === 1;
             $currentAvatar = $avatarRow ? ($avatarRow['avatar_path'] ?? null) : null;
-            $hasUpload   = !empty($currentAvatar) && strpos($currentAvatar, 'custom_') !== false;
 
             // Fetch alumni_profiles row for name sync below (existence check only)
             $contentDb    = Database::getContentDB();
