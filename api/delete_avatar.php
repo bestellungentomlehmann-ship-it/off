@@ -64,11 +64,10 @@ try {
         exit;
     }
 
-    // Reset users.avatar_path to NULL and clear use_custom_avatar so the login callback
-    // will re-fetch the photo from Entra ID on the user's next login instead of keeping
-    // the (now deleted) custom file.
+    // Reset use_custom_avatar and restore avatar_path to entra_photo_path (if present),
+    // so the Entra ID photo is shown immediately without waiting for the next login.
     $userDb = Database::getUserDB();
-    $avatarStmt = $userDb->prepare("UPDATE users SET avatar_path = NULL, use_custom_avatar = 0 WHERE id = ?");
+    $avatarStmt = $userDb->prepare("UPDATE users SET avatar_path = entra_photo_path, use_custom_avatar = 0 WHERE id = ?");
     if (!$avatarStmt->execute([$userId])) {
         error_log('delete_avatar.php: Could not reset avatar_path/use_custom_avatar for user ' . $userId);
     }
