@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../src/Database.php';
 require_once __DIR__ . '/../../includes/models/Inventory.php';
 require_once __DIR__ . '/../../includes/services/EasyVereinInventory.php';
 require_once __DIR__ . '/../../includes/database.php';
+require_once __DIR__ . '/../../includes/handlers/CSRFHandler.php';
 
 if (!Auth::check() || (!Auth::isBoard() && !Auth::hasRole(['alumni_finanz', 'alumni_vorstand']))) {
     header('Location: ../auth/login.php');
@@ -53,12 +54,17 @@ $activeRentals = array_filter($checkedOutStats['checkouts'], function($r) {
     return $r['status'] === 'rented';
 });
 
+// Fetch pending requests (ausstehende Anfragen)
+$pendingRequests = Inventory::getPendingRequests();
+
 // Fetch inventory items for Bestandsliste
 $inventoryItems = Inventory::getAll();
 
 // Toast messages from redirect
 $toastSuccess = isset($_GET['toast_success']) ? htmlspecialchars($_GET['toast_success']) : '';
 $toastError   = isset($_GET['toast_error'])   ? htmlspecialchars($_GET['toast_error'])   : '';
+
+$csrfToken = CSRFHandler::getToken();
 
 $title = 'Inventar-Dashboard - IBC Intranet';
 ob_start();
@@ -123,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 
 <!-- Summary Cards -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
     <div class="card p-6">
         <div class="flex items-center justify-between">
             <div>
@@ -149,6 +155,19 @@ document.addEventListener('DOMContentLoaded', function () {
     <div class="card p-6">
         <div class="flex items-center justify-between">
             <div>
+                <p class="text-sm font-medium text-gray-500 mb-1">Ausstehende Anfragen</p>
+                <p class="text-2xl sm:text-3xl font-bold <?php echo count($pendingRequests) > 0 ? 'text-yellow-600' : 'text-gray-800 dark:text-gray-100'; ?>">
+                    <?php echo count($pendingRequests); ?>
+                </p>
+            </div>
+            <div class="p-3 <?php echo count($pendingRequests) > 0 ? 'bg-yellow-100' : 'bg-gray-100'; ?> rounded-full">
+                <i class="fas fa-clock <?php echo count($pendingRequests) > 0 ? 'text-yellow-600' : 'text-gray-400'; ?> text-2xl"></i>
+            </div>
+        </div>
+    </div>
+    <div class="card p-6">
+        <div class="flex items-center justify-between">
+            <div>
                 <p class="text-sm font-medium text-gray-500 mb-1">Überfällig</p>
                 <p class="text-2xl sm:text-3xl font-bold <?php echo $checkedOutStats['overdue'] > 0 ? 'text-red-600' : 'text-gray-800 dark:text-gray-100'; ?>">
                     <?php echo $checkedOutStats['overdue']; ?>
@@ -159,6 +178,88 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         </div>
     </div>
+</div>
+
+<!-- Ausstehende Anfragen -->
+<div class="card p-6 mb-8">
+    <h2 class="text-lg sm:text-xl font-bold text-gray-800 mb-4">
+        <i class="fas fa-clock text-yellow-500 mr-2"></i>
+        Ausstehende Anfragen
+        <?php if (count($pendingRequests) > 0): ?>
+            <span class="ml-2 px-2 py-0.5 text-sm bg-yellow-100 text-yellow-700 rounded-full font-semibold pending-count-badge"><?php echo count($pendingRequests); ?></span>
+        <?php endif; ?>
+    </h2>
+
+    <?php if (empty($pendingRequests)): ?>
+    <div class="text-center py-10">
+        <i class="fas fa-check-circle text-5xl text-green-300 mb-3"></i>
+        <p class="text-gray-500">Keine ausstehenden Anfragen</p>
+    </div>
+    <?php else: ?>
+    <div class="overflow-x-auto w-full">
+        <table class="w-full card-table" id="pending-requests-table">
+            <thead class="bg-yellow-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Antragsteller</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artikel</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Menge</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zeitraum</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zweck</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                <?php foreach ($pendingRequests as $req): ?>
+                <tr id="pending-row-<?php echo (int)$req['id']; ?>" class="hover:bg-yellow-50">
+                    <td class="px-4 py-3 text-sm text-gray-800" data-label="Antragsteller">
+                        <i class="fas fa-user text-gray-400 mr-1"></i>
+                        <?php echo htmlspecialchars($req['user_name'] ?? $req['user_email'] ?? 'Unbekannt'); ?>
+                        <?php if (!empty($req['user_email']) && $req['user_email'] !== $req['user_name']): ?>
+                        <span class="block text-xs text-gray-400"><?php echo htmlspecialchars($req['user_email']); ?></span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-800" data-label="Artikel">
+                        <?php echo htmlspecialchars($req['item_name'] ?? '#' . $req['inventory_object_id']); ?>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600" data-label="Menge">
+                        <span class="font-semibold"><?php echo (int)$req['quantity']; ?></span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600" data-label="Zeitraum">
+                        <?php echo htmlspecialchars(date('d.m.Y', strtotime($req['start_date']))); ?>
+                        &ndash;
+                        <?php echo htmlspecialchars(date('d.m.Y', strtotime($req['end_date']))); ?>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" data-label="Zweck" title="<?php echo htmlspecialchars($req['purpose'] ?? ''); ?>">
+                        <?php echo htmlspecialchars($req['purpose'] ?? '-'); ?>
+                    </td>
+                    <td class="px-4 py-3 text-sm" data-label="Status">
+                        <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full font-semibold">
+                            <i class="fas fa-clock mr-1"></i>Ausstehend
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm" data-label="Aktionen">
+                        <div class="flex gap-2">
+                            <button
+                                onclick="handleRequest(<?php echo (int)$req['id']; ?>, 'approve')"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition"
+                                title="Anfrage genehmigen">
+                                <i class="fas fa-check"></i>Genehmigen
+                            </button>
+                            <button
+                                onclick="handleRequest(<?php echo (int)$req['id']; ?>, 'reject')"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition"
+                                title="Anfrage ablehnen">
+                                <i class="fas fa-times"></i>Ablehnen
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php endif; ?>
 </div>
 
 <!-- Active Rentals Table -->
@@ -296,6 +397,76 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 
 <script>
+var CSRF_TOKEN = <?php echo json_encode($csrfToken); ?>;
+
+function handleRequest(requestId, action) {
+    var label = action === 'approve' ? 'genehmigen' : 'ablehnen';
+    if (!confirm('Möchten Sie diese Anfrage wirklich ' + label + '?')) {
+        return;
+    }
+
+    var row = document.getElementById('pending-row-' + requestId);
+    if (row) {
+        row.style.opacity = '0.5';
+        row.style.pointerEvents = 'none';
+    }
+
+    fetch('/api/rental_request_action.php', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+            action:     action,
+            request_id: requestId,
+            csrf_token: CSRF_TOKEN
+        })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.success) {
+            showToast(data.message || (action === 'approve' ? 'Anfrage genehmigt' : 'Anfrage abgelehnt'), 'success');
+            if (row) {
+                row.remove();
+            }
+            // Update pending count badge
+            var pendingRows = document.querySelectorAll('#pending-requests-table tbody tr');
+            var badge = document.querySelector('.pending-count-badge');
+            if (badge) {
+                if (pendingRows.length === 0) {
+                    badge.remove();
+                } else {
+                    badge.textContent = pendingRows.length;
+                }
+            }
+            // If no rows left, show the empty state inline
+            if (pendingRows.length === 0) {
+                var tbody = document.querySelector('#pending-requests-table');
+                if (tbody) {
+                    var wrapper = tbody.closest('.overflow-x-auto');
+                    if (wrapper) {
+                        wrapper.innerHTML = '<div class="text-center py-10">'
+                            + '<i class="fas fa-check-circle text-5xl text-green-300 mb-3"></i>'
+                            + '<p class="text-gray-500">Keine ausstehenden Anfragen</p>'
+                            + '</div>';
+                    }
+                }
+            }
+        } else {
+            showToast(data.message || 'Fehler bei der Verarbeitung', 'error');
+            if (row) {
+                row.style.opacity = '1';
+                row.style.pointerEvents = '';
+            }
+        }
+    })
+    .catch(function (err) {
+        showToast('Netzwerkfehler. Bitte erneut versuchen.', 'error');
+        if (row) {
+            row.style.opacity = '1';
+            row.style.pointerEvents = '';
+        }
+    });
+}
+
 function showToast(message, type) {
     var container = document.getElementById('toast-container');
     if (!container) return;

@@ -473,6 +473,124 @@ class Inventory {
     public static function getAllReturns($pendingOnly = false): array { return []; }
 
     /**
+     * Submit a new inventory loan request with status 'pending'.
+     *
+     * Creates a record in inventory_requests so the board can approve or reject
+     * it before the item is actually assigned to the member.
+     *
+     * @param string|int  $inventoryObjectId EasyVerein inventory-object ID
+     * @param int         $userId            Requesting member's local user ID
+     * @param string      $startDate         Requested start date (YYYY-MM-DD)
+     * @param string      $endDate           Requested end date (YYYY-MM-DD)
+     * @param int         $quantity          Number of units requested
+     * @param string      $purpose           Reason / purpose of the loan
+     * @return array ['success' => bool, 'message' => string, 'request_id' => int|null]
+     */
+    public static function submitRequest($inventoryObjectId, $userId, $startDate, $endDate, $quantity, $purpose): array {
+        if ((int)$quantity <= 0) {
+            return ['success' => false, 'message' => 'Ungültige Menge'];
+        }
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+            return ['success' => false, 'message' => 'Ungültiges Datumsformat. Erwartet: YYYY-MM-DD'];
+        }
+
+        if ($startDate > $endDate) {
+            return ['success' => false, 'message' => 'Startdatum muss vor dem Enddatum liegen'];
+        }
+
+        try {
+            $db   = Database::getContentDB();
+            $stmt = $db->prepare(
+                "INSERT INTO inventory_requests
+                    (inventory_object_id, user_id, start_date, end_date, quantity, purpose, status, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())"
+            );
+            $stmt->execute([
+                (string)$inventoryObjectId,
+                (int)$userId,
+                $startDate,
+                $endDate,
+                (int)$quantity,
+                $purpose !== '' ? $purpose : null,
+            ]);
+            return ['success' => true, 'message' => 'Anfrage erfolgreich eingereicht', 'request_id' => (int)$db->lastInsertId()];
+        } catch (Exception $e) {
+            error_log('Inventory::submitRequest failed: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Fehler beim Speichern der Anfrage: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Get all inventory requests with status 'pending', enriched with
+     * the applicant's name/email and the EasyVerein item name.
+     *
+     * @return array Array of request rows with additional 'user_name', 'user_email', and 'item_name' keys.
+     */
+    public static function getPendingRequests(): array {
+        try {
+            $db   = Database::getContentDB();
+            $stmt = $db->query(
+                "SELECT id, inventory_object_id, user_id, start_date, end_date, quantity, purpose, created_at
+                 FROM inventory_requests
+                 WHERE status = 'pending'
+                 ORDER BY created_at ASC"
+            );
+            $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($requests)) {
+                return [];
+            }
+
+            // Enrich with user name / email from the user database.
+            $userIds = array_unique(array_column($requests, 'user_id'));
+            $users   = [];
+            try {
+                $userDb       = Database::getUserDB();
+                $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+                $uStmt        = $userDb->prepare(
+                    "SELECT id, email, first_name, last_name FROM users WHERE id IN ({$placeholders})"
+                );
+                $uStmt->execute($userIds);
+                foreach ($uStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    $users[(int)$row['id']] = $row;
+                }
+            } catch (Exception $ue) {
+                error_log('getPendingRequests: user lookup failed: ' . $ue->getMessage());
+            }
+
+            // Enrich with EasyVerein item names.
+            $itemNames = [];
+            try {
+                foreach (self::evi()->getItems() as $ev) {
+                    $itemNames[(string)($ev['id'] ?? '')] = $ev['name'] ?? '';
+                }
+            } catch (Exception $ie) {
+                error_log('getPendingRequests: EasyVerein item lookup failed: ' . $ie->getMessage());
+            }
+
+            foreach ($requests as &$request) {
+                $user = $users[(int)$request['user_id']] ?? null;
+                if ($user) {
+                    $name                 = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+                    $request['user_name'] = $name !== '' ? $name : ($user['email'] ?? null);
+                    $request['user_email'] = $user['email'] ?? null;
+                } else {
+                    $request['user_name']  = null;
+                    $request['user_email'] = null;
+                }
+                $request['item_name'] = $itemNames[(string)$request['inventory_object_id']] ?? null;
+            }
+            unset($request);
+
+            return $requests;
+        } catch (Exception $e) {
+            error_log('getPendingRequests failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Get all rental records with status 'pending_return', enriched with
      * the borrower's name/email and the EasyVerein item name.
      *
