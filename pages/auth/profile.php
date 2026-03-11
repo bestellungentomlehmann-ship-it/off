@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../includes/handlers/GoogleAuthenticator.php';
 require_once __DIR__ . '/../../includes/models/User.php';
 require_once __DIR__ . '/../../includes/models/Alumni.php';
 require_once __DIR__ . '/../../includes/models/Member.php';
+require_once __DIR__ . '/../../includes/models/JobBoard.php';
 require_once __DIR__ . '/../../includes/utils/SecureImageUpload.php';
 require_once __DIR__ . '/../../src/MailService.php';
 require_once __DIR__ . '/../../includes/handlers/CSRFHandler.php';
@@ -72,6 +73,19 @@ if (!$profile) {
     $profile['show_birthday'] = $user['show_birthday'] ?? ($profile['show_birthday'] ?? 0);
     $profile['about_me'] = $user['about_me'] ?? ($profile['about_me'] ?? '');
 }
+
+// Load the most recent job board listing with a PDF so it can be reused as profile CV
+$jobBoardCvPath = null;
+$db = Database::getContentDB();
+$jbStmt = $db->prepare(
+    "SELECT pdf_path FROM job_board WHERE user_id = ? AND pdf_path IS NOT NULL ORDER BY created_at DESC LIMIT 1"
+);
+$jbStmt->execute([(int)$user['id']]);
+$jbRow = $jbStmt->fetch(PDO::FETCH_ASSOC);
+if ($jbRow && !empty($jbRow['pdf_path'])) {
+    $jobBoardCvPath = $jbRow['pdf_path'];
+}
+unset($db, $jbStmt, $jbRow);
 
 // Handle 2FA setup
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -177,8 +191,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
-            // Handle CV upload (PDF only)
-            if (!empty($_FILES['cv_file']['name'])) {
+            // Handle CV: either reuse from job board listing or upload a new file
+            $cvSource = $_POST['cv_source'] ?? 'upload';
+            if ($cvSource === 'job_board' && $jobBoardCvPath !== null) {
+                // Option A: Reuse CV from the user's most recent job board listing
+                $srcFile       = realpath(__DIR__ . '/../../' . $jobBoardCvPath);
+                $allowedSrcDir = realpath(__DIR__ . '/../../uploads/jobs');
+                if ($srcFile !== false && $allowedSrcDir !== false && str_starts_with($srcFile, $allowedSrcDir . DIRECTORY_SEPARATOR)) {
+                    $cvUploadDir = __DIR__ . '/../../uploads/cv/';
+                    if (!is_dir($cvUploadDir)) {
+                        mkdir($cvUploadDir, 0755, true);
+                    }
+                    $cvFilename  = 'cv_' . $user['id'] . '_' . bin2hex(random_bytes(8)) . '.pdf';
+                    $cvUploadPath = $cvUploadDir . $cvFilename;
+                    if (copy($srcFile, $cvUploadPath)) {
+                        chmod($cvUploadPath, 0644);
+                        // Delete old profile CV if it exists
+                        if (!empty($profile['cv_path'])) {
+                            $projectRootCheck = realpath(__DIR__ . '/../../');
+                            if ($projectRootCheck !== false) {
+                                $oldCvFull = $projectRootCheck . '/' . ltrim($profile['cv_path'], '/');
+                                if (file_exists($oldCvFull)) {
+                                    $realOld = realpath($oldCvFull);
+                                    $cvAllowedDir = realpath(__DIR__ . '/../../uploads/cv');
+                                    if ($realOld !== false && $cvAllowedDir !== false && str_starts_with($realOld, $cvAllowedDir . DIRECTORY_SEPARATOR)) {
+                                        @unlink($realOld);
+                                    }
+                                }
+                            }
+                        }
+                        $cvProjectRoot = realpath(__DIR__ . '/../../');
+                        $realCvPath    = realpath($cvUploadPath);
+                        $cvRelativePath = str_replace('\\', '/', substr($realCvPath, strlen($cvProjectRoot) + 1));
+                        $profileData['cv_path'] = $cvRelativePath;
+                    } else {
+                        throw new Exception('Lebenslauf aus Job-Gesuch konnte nicht übernommen werden.');
+                    }
+                } else {
+                    throw new Exception('Lebenslauf aus Job-Gesuch konnte nicht gefunden werden.');
+                }
+            } elseif (!empty($_FILES['cv_file']['name'])) {
+                // Option B: Upload a new CV file (PDF only)
                 $cvFile = $_FILES['cv_file'];
                 if ($cvFile['error'] !== UPLOAD_ERR_OK) {
                     throw new Exception('Fehler beim Hochladen des Lebenslaufs (Code: ' . $cvFile['error'] . ')');
@@ -204,16 +257,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception('Fehler beim Speichern des Lebenslaufs');
                 }
                 chmod($cvUploadPath, 0644);
-                // Delete old CV if it exists
+                // Delete old CV if it exists (only files within uploads/cv/)
                 if (!empty($profile['cv_path'])) {
-                    $projectRootCheck = realpath(__DIR__ . '/../../');
-                    if ($projectRootCheck !== false) {
-                        $oldCvFull = $projectRootCheck . '/' . ltrim($profile['cv_path'], '/');
-                        if (file_exists($oldCvFull)) {
-                            $realOld = realpath($oldCvFull);
-                            if ($realOld !== false && str_starts_with($realOld, $projectRootCheck . DIRECTORY_SEPARATOR)) {
-                                @unlink($realOld);
-                            }
+                    $cvAllowedDir = realpath(__DIR__ . '/../../uploads/cv');
+                    if ($cvAllowedDir !== false) {
+                        $oldCvFull = realpath(__DIR__ . '/../../' . $profile['cv_path']);
+                        if ($oldCvFull !== false && str_starts_with($oldCvFull, $cvAllowedDir . DIRECTORY_SEPARATOR)) {
+                            @unlink($oldCvFull);
                         }
                     }
                 }
@@ -1076,13 +1126,56 @@ ob_start();
                         </div>
                     </div>
                     <?php endif; ?>
-                    <input
-                        type="file"
-                        name="cv_file"
-                        accept="application/pdf,.pdf"
-                        class="w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-300 dark:hover:file:bg-blue-900/50"
-                    >
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Lade deinen Lebenslauf als PDF hoch. <?php if (!empty($profile['cv_path'])): ?>Das Hochladen einer neuen Datei ersetzt den bestehenden Lebenslauf.<?php endif; ?></p>
+                    <?php if ($jobBoardCvPath !== null): ?>
+                    <div class="mb-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-briefcase text-blue-500 mr-1"></i>
+                            Du hast einen Lebenslauf in einem Job-Gesuch hinterlegt.
+                        </p>
+                        <div class="flex flex-col gap-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="cv_source" value="job_board" id="cv_source_job" class="text-blue-600">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">
+                                    <i class="fas fa-file-pdf text-red-500 mr-1"></i>Lebenslauf aus Job-Gesuch ins Profil übernehmen
+                                </span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="cv_source" value="upload" id="cv_source_upload_profile" checked class="text-blue-600">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Neue Datei hochladen</span>
+                            </label>
+                        </div>
+                    </div>
+                    <?php else: ?>
+                    <input type="hidden" name="cv_source" value="upload">
+                    <?php endif; ?>
+                    <div id="cv_profile_upload_field">
+                        <input
+                            type="file"
+                            name="cv_file"
+                            id="cv_file_input"
+                            accept="application/pdf,.pdf"
+                            class="w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-300 dark:hover:file:bg-blue-900/50"
+                        >
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Lade deinen Lebenslauf als PDF hoch. <?php if (!empty($profile['cv_path'])): ?>Das Hochladen einer neuen Datei ersetzt den bestehenden Lebenslauf.<?php endif; ?></p>
+                    </div>
+                    <?php if ($jobBoardCvPath !== null): ?>
+                    <script>
+                    (function () {
+                        var jobRadio     = document.getElementById('cv_source_job');
+                        var uploadRadio  = document.getElementById('cv_source_upload_profile');
+                        var uploadField  = document.getElementById('cv_profile_upload_field');
+                        var fileInput    = document.getElementById('cv_file_input');
+                        function toggle() {
+                            var showUpload = uploadRadio.checked;
+                            uploadField.style.display = showUpload ? '' : 'none';
+                            fileInput.disabled = !showUpload;
+                        }
+                        jobRadio.addEventListener('change', toggle);
+                        uploadRadio.addEventListener('change', toggle);
+                        toggle();
+                    })();
+                    </script>
+                    <?php endif; ?>
                 </div>
                 
                 <button type="submit" name="update_profile" class="w-full btn-primary">
