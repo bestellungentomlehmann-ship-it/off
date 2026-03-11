@@ -207,6 +207,9 @@ ob_start();
                         <div class="directory-card-avatar-wrap">
                             <div class="directory-avatar directory-avatar--sm rounded-circle overflow-hidden border border-3 border-white shadow"
                                  style="background-color:<?php echo htmlspecialchars($avatarColor); ?>;position:relative;color:#fff;font-weight:700;">
+                                <div style="position:absolute;inset:0;" class="d-flex align-items-center justify-content-center">
+                                    <?php echo htmlspecialchars($initials); ?>
+                                </div>
                                 <img
                                     src="<?php echo htmlspecialchars($imageSrc); ?>"
                                     alt="<?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>"
@@ -214,9 +217,6 @@ ob_start();
                                     style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
                                     onerror="this.onerror=null; this.style.display='none';"
                                 >
-                                <div style="position:absolute;inset:0;" class="d-flex align-items-center justify-content-center">
-                                    <?php echo htmlspecialchars($initials); ?>
-                                </div>
                             </div>
                         </div>
                     </div>

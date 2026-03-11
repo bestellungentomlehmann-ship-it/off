@@ -698,13 +698,25 @@ if (!isset($currentUser)) {
 
             <!-- User Info -->
             <div class='flex items-start gap-2 mb-2'>
-                <?php if (!empty($navProfileImageUrl)): ?>
-                <img src="<?php echo htmlspecialchars(asset($navProfileImageUrl)); ?>" alt="Profilbild" class="w-9 h-9 rounded-full object-cover shadow border border-white/20 shrink-0" style="aspect-ratio:1/1;">
-                <?php else: ?>
-                <div class='w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow border border-white/20 shrink-0'>
-                    <?php echo $initials; ?>
+                <?php
+                // Determine sidebar image source: prefer local avatar, fall back to Entra photo via email
+                $sidebarImageSrc = '';
+                if (!empty($navProfileImageUrl)) {
+                    $sidebarImageSrc = asset($navProfileImageUrl);
+                } elseif (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $sidebarImageSrc = asset('fetch-profile-photo.php') . '?email=' . urlencode($email);
+                }
+                ?>
+                <div style="position:relative;width:2.25rem;height:2.25rem;" class="shrink-0">
+                    <!-- Initials fallback (rendered behind the profile image) -->
+                    <div class='absolute inset-0 rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow border border-white/20'>
+                        <?php echo $initials; ?>
+                    </div>
+                    <?php if (!empty($sidebarImageSrc)): ?>
+                    <!-- Profile image (renders on top of initials; hidden on error to reveal initials) -->
+                    <img src="<?php echo htmlspecialchars($sidebarImageSrc); ?>" alt="Profilbild" class="absolute inset-0 w-full h-full rounded-full object-cover shadow border border-white/20" style="aspect-ratio:1/1;" onerror="this.style.display='none';">
+                    <?php endif; ?>
                 </div>
-                <?php endif; ?>
                 <div class='flex-1 min-w-0'>
                     <?php if (!empty($firstname) || !empty($lastname)): ?>
                     <p class='text-xs font-semibold text-white truncate leading-snug mb-0.5' title='<?php echo htmlspecialchars($firstname . ' ' . $lastname); ?>'>
