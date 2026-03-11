@@ -51,16 +51,6 @@ ob_start();
 ?>
 
 <style>
-.idea-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-.idea-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.10);
-}
-.dark .idea-card:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-}
 .vote-btn {
     transition: all 0.15s ease;
 }
@@ -77,65 +67,35 @@ ob_start();
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.97); } to { opacity: 1; transform: none; } }
 </style>
 
-<div class="max-w-5xl mx-auto">
+<div class="max-w-7xl mx-auto">
 
-    <!-- Hero Header -->
-    <div class="mb-8 rounded-2xl overflow-hidden relative">
-        <div class="bg-gradient-to-br from-yellow-400 via-amber-400 to-yellow-500 dark:from-yellow-500/20 dark:via-amber-600/20 dark:to-yellow-600/10 px-6 py-6 sm:py-7">
-            <!-- subtle decorative blob -->
-            <div class="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-            <div class="absolute bottom-0 left-1/3 w-24 h-24 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-            <div class="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-2xl bg-white/30 dark:bg-yellow-500/20 backdrop-blur-sm flex items-center justify-center shadow-lg flex-shrink-0">
-                        <i class="fas fa-lightbulb text-white dark:text-yellow-400 text-2xl drop-shadow"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-2xl sm:text-3xl font-extrabold text-white dark:text-gray-50 tracking-tight leading-tight">Ideenbox</h1>
-                        <p class="text-gray-900 dark:text-gray-400 text-sm mt-0.5">Teile Deine Ideen – stimme ab, was umgesetzt werden soll.</p>
-                    </div>
-                </div>
-                <button
-                    id="openIdeaModal"
-                    class="inline-flex items-center gap-2 px-5 py-3 bg-white dark:bg-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-400 text-yellow-600 dark:text-gray-900 font-bold rounded-xl shadow-md hover:shadow-lg transition-all text-sm flex-shrink-0 self-start sm:self-auto"
-                >
-                    <i class="fas fa-plus"></i>
-                    Neue Idee
-                </button>
-            </div>
-            <?php if (!empty($ideas)):
-                $totalScore = array_sum(array_map(fn($i) => ($i['upvotes'] ?? 0) - ($i['downvotes'] ?? 0), $ideas));
-            ?>
-            <div class="relative flex flex-wrap gap-4 mt-5 pt-5 border-t border-gray-900/20 dark:border-yellow-500/20">
-                <div class="flex items-center gap-2 text-gray-900 dark:text-gray-300 text-sm font-medium">
-                    <i class="fas fa-list-ul text-gray-900/70 dark:text-yellow-400/70 text-xs"></i>
-                    <span><?php echo count($ideas); ?> Idee<?php echo count($ideas) !== 1 ? 'n' : ''; ?></span>
-                </div>
-                <div class="flex items-center gap-2 text-gray-900 dark:text-gray-300 text-sm font-medium">
-                    <i class="fas fa-star text-gray-900/70 dark:text-yellow-400/70 text-xs"></i>
-                    <span><?php echo $totalScore; ?> Gesamtstimmen</span>
-                </div>
-            </div>
-            <?php endif; ?>
+    <!-- Header -->
+    <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+                <i class="fas fa-lightbulb mr-3 text-yellow-500"></i>
+                Ideenbox
+            </h1>
+            <p class="text-gray-600 dark:text-gray-300 leading-relaxed">Teile Deine Ideen – stimme ab, was umgesetzt werden soll.</p>
         </div>
+        <button
+            id="openIdeaModal"
+            class="btn-primary w-full sm:w-auto justify-center"
+        >
+            <i class="fas fa-plus mr-2"></i>
+            Neue Idee
+        </button>
     </div>
 
     <!-- Idea Cards -->
     <?php if (empty($ideas)): ?>
-    <div class="py-16 text-center">
-        <div class="relative w-24 h-24 mx-auto mb-6">
-            <div class="w-24 h-24 rounded-3xl bg-yellow-50 dark:bg-yellow-900/20 flex items-center justify-center shadow-sm">
-                <i class="fas fa-lightbulb text-5xl text-yellow-400 dark:text-yellow-500"></i>
-            </div>
-            <div class="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-yellow-400 dark:bg-yellow-500 flex items-center justify-center shadow-md">
-                <i class="fas fa-plus text-white text-xs"></i>
-            </div>
-        </div>
+    <div class="card p-12 text-center rounded-2xl border border-dashed border-gray-300 dark:border-gray-600">
+        <i class="fas fa-lightbulb text-5xl text-yellow-400 dark:text-yellow-500 mb-4"></i>
         <p class="text-base sm:text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">Noch keine Ideen vorhanden</p>
         <p class="text-gray-500 dark:text-gray-400 mb-7 text-sm max-w-xs mx-auto">Sei der Erste und teile Deine Idee mit dem Team!</p>
         <button onclick="document.getElementById('openIdeaModal').click()"
-            class="inline-flex items-center gap-2 px-6 py-3 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold rounded-xl shadow-sm hover:shadow-md transition-all text-sm">
-            <i class="fas fa-lightbulb"></i>Erste Idee einreichen
+            class="btn-primary">
+            <i class="fas fa-lightbulb mr-2"></i>Erste Idee einreichen
         </button>
     </div>
     <?php else: ?>
@@ -152,7 +112,7 @@ ob_start();
             $score          = $upvotes - $downvotes;
             $accentColor    = $sc['accent'];
         ?>
-        <div class="idea-card group bg-yellow-100 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 shadow-md overflow-hidden flex flex-col"
+        <div class="card group overflow-hidden flex flex-col"
              style="border-top: 3px solid <?php echo $accentColor; ?>;"
              data-idea-id="<?php echo $idea['id']; ?>">
 
@@ -160,7 +120,7 @@ ob_start();
             <div class="flex gap-0 flex-1">
 
                 <!-- Vote Column -->
-                <div class="flex flex-col items-center justify-center gap-2 px-3 py-5 bg-yellow-50 dark:bg-yellow-800/20 border-r border-yellow-200 dark:border-yellow-700 min-w-[64px]">
+                <div class="flex flex-col items-center justify-center gap-2 px-3 py-5 bg-gray-50 dark:bg-gray-800/50 border-r border-gray-100 dark:border-gray-700 min-w-[64px]">
                     <button
                         onclick="castVote(<?php echo $idea['id']; ?>, 'up')"
                         title="Upvote"
@@ -219,7 +179,7 @@ ob_start();
             </div>
 
             <!-- Card Footer / Meta -->
-            <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-gray-600 dark:text-gray-500 px-4 py-2.5 border-t border-yellow-200 dark:border-yellow-800 bg-yellow-50/70 dark:bg-yellow-800/20">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-gray-600 dark:text-gray-500 px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/30">
                 <div class="flex items-center gap-1.5">
                     <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
                           style="background-color: <?php echo htmlspecialchars($avatarColor); ?>">
@@ -245,9 +205,9 @@ ob_start();
 <div id="ideaModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" style="display:none">
     <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         <!-- Modal Header -->
-        <div class="px-6 py-5 flex items-center justify-between bg-gradient-to-r from-yellow-400/10 to-amber-400/5 dark:from-yellow-500/10 dark:to-amber-600/5 border-b border-yellow-100 dark:border-yellow-900/30">
+        <div class="px-6 py-5 flex items-center justify-between border-b border-gray-100 dark:border-gray-700">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-yellow-400/20 dark:bg-yellow-500/20 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
                     <i class="fas fa-lightbulb text-yellow-500 dark:text-yellow-400 text-base"></i>
                 </div>
                 <div>
