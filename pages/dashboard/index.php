@@ -289,35 +289,50 @@ ob_start();
     .hero-quick-action {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        padding: 0.4rem 0.9rem;
+        gap: 0.45rem;
+        padding: 0.55rem 1.1rem;
         border-radius: 9999px;
-        font-size: 0.875rem;
-        font-weight: 600;
-        background: rgba(255, 255, 255, 0.18);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.28);
+        font-size: 0.8125rem;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1.5px solid rgba(255, 255, 255, 0.32);
         color: #fff !important;
         text-decoration: none !important;
-        transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        letter-spacing: 0.02em;
+        transition: background 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .hero-quick-action i {
+        font-size: 0.8rem;
+        opacity: 0.95;
     }
     .hero-quick-action:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        background: rgba(255, 255, 255, 0.28);
+        border-color: rgba(255, 255, 255, 0.55);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.2);
         text-decoration: none !important;
         color: #fff !important;
     }
+    .hero-quick-action--events   { background: rgba(59,130,246,0.35);  border-color: rgba(147,197,253,0.5); }
+    .hero-quick-action--events:hover   { background: rgba(59,130,246,0.52); }
+    .hero-quick-action--inventory { background: rgba(249,115,22,0.32); border-color: rgba(253,186,116,0.5); }
+    .hero-quick-action--inventory:hover { background: rgba(249,115,22,0.48); }
+    .hero-quick-action--invoices  { background: rgba(16,185,129,0.32);  border-color: rgba(110,231,183,0.5); }
+    .hero-quick-action--invoices:hover  { background: rgba(16,185,129,0.48); }
+    .hero-quick-action--profile   { background: rgba(168,85,247,0.32);  border-color: rgba(216,180,254,0.5); }
+    .hero-quick-action--profile:hover   { background: rgba(168,85,247,0.48); }
 
     /* ── Stat Cards ─────────────────────────────────────── */
     .dash-stat-card {
-        border-radius: 1rem;
+        border-radius: 1.25rem;
         padding: 1.5rem;
         background: var(--bg-card);
-        border: 1px solid var(--border-color);
+        border: 1.5px solid var(--border-color);
         box-shadow: var(--shadow-card);
-        transition: all 0.25s ease;
+        transition: all 0.28s cubic-bezier(.22,.61,.36,1);
         position: relative;
         overflow: hidden;
         text-decoration: none !important;
@@ -328,28 +343,38 @@ ob_start();
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0;
-        height: 3px;
-        border-radius: 1rem 1rem 0 0;
+        height: 4px;
+        border-radius: 1.25rem 1.25rem 0 0;
         background: var(--dash-stat-color, var(--ibc-blue));
-        opacity: 0.8;
+        opacity: 1;
+    }
+    .dash-stat-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at 80% 0%, var(--dash-stat-bg, transparent) 0%, transparent 65%);
+        pointer-events: none;
+        border-radius: inherit;
     }
     .dash-stat-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-5px);
         box-shadow: var(--shadow-card-hover);
+        border-color: var(--dash-stat-color, var(--ibc-blue));
         text-decoration: none !important;
         color: inherit;
     }
     .dash-stat-icon {
         width: 3rem;
         height: 3rem;
-        border-radius: 0.75rem;
+        border-radius: 0.875rem;
         display: flex;
         align-items: center;
         justify-content: center;
         background: var(--dash-stat-bg, rgba(0,102,179,0.08));
         color: var(--dash-stat-color, var(--ibc-blue));
-        font-size: 1.1rem;
+        font-size: 1.15rem;
         flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
     }
 
     /* ── Profile Completeness Ring ──────────────────────── */
@@ -565,22 +590,51 @@ ob_start();
 
     /* ── Hero Typography & Decorative ───────────────────── */
     .hero-date-text {
-        font-size: 0.875rem;
-        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.8125rem;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
-        opacity: 0.78;
-        margin-bottom: 0.5rem;
+        letter-spacing: 0.12em;
+        opacity: 1;
+        margin-bottom: 0.75rem;
+        background: rgba(255,255,255,0.18);
+        border: 1px solid rgba(255,255,255,0.28);
+        padding: 0.3rem 0.8rem;
+        border-radius: 9999px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        width: fit-content;
     }
     .hero-subtitle-text {
-        font-size: 1.0625rem;
-        opacity: 0.85;
-        margin-bottom: 1.25rem;
+        font-size: 1rem;
+        opacity: 0.82;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+        max-width: 38rem;
     }
     .hero-badge-icon {
-        width: 3rem;
-        height: 3rem;
-        opacity: 0.92;
+        width: 3.25rem;
+        height: 3.25rem;
+        opacity: 0.95;
+    }
+    /* Animated shimmer on hero orbs */
+    @keyframes hero-orb-pulse {
+        0%, 100% { opacity: 0.55; transform: scale(1); }
+        50% { opacity: 0.85; transform: scale(1.08); }
+    }
+    /* Fade-in-up for hero content */
+    @keyframes hero-fadein {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        .hero-orb-1 { animation: hero-orb-pulse 6s ease-in-out infinite; }
+        .hero-orb-2 { animation: hero-orb-pulse 8s ease-in-out 2s infinite; }
+        .hero-content-animate {
+            animation: hero-fadein 0.55s cubic-bezier(.22,.61,.36,1) both;
+        }
     }
 </style>
 
@@ -790,9 +844,9 @@ function dismissProfileReviewPrompt() {
 <!-- Hero Section with Personalized Greeting -->
 <div class="dash-wrap mb-10">
     <div class="hero-gradient relative overflow-hidden rounded-2xl text-white shadow-xl"
-         style="background: linear-gradient(135deg, #004f8c 0%, #0066b3 35%, #007a5c 70%, #00a651 100%); padding: 2.5rem 2rem 2rem;">
+         style="background: linear-gradient(135deg, #003d6e 0%, #0066b3 30%, #00845f 65%, #00a651 100%); padding: 2.75rem 2.25rem 2.25rem; min-height: 13rem;">
         <!-- Decorative grid pattern -->
-        <svg class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg" style="opacity:0.06">
+        <svg class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg" style="opacity:0.05">
             <defs>
                 <pattern id="dash-hero-grid" width="36" height="36" patternUnits="userSpaceOnUse">
                     <path d="M 36 0 L 0 0 0 36" fill="none" stroke="white" stroke-width="1"/>
@@ -800,51 +854,53 @@ function dismissProfileReviewPrompt() {
             </defs>
             <rect width="100%" height="100%" fill="url(#dash-hero-grid)"/>
         </svg>
-        <!-- Glowing orbs -->
-        <div class="absolute -top-10 -right-10 w-64 h-64 rounded-full pointer-events-none"
-             style="background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)"></div>
-        <div class="absolute -bottom-10 -left-10 w-56 h-56 rounded-full pointer-events-none"
-             style="background: radial-gradient(circle, rgba(0,200,120,0.18) 0%, transparent 70%)"></div>
+        <!-- Glowing orbs (animated) -->
+        <div class="absolute -top-12 -right-12 w-72 h-72 rounded-full pointer-events-none hero-orb-1"
+             style="background: radial-gradient(circle, rgba(255,255,255,0.13) 0%, transparent 70%)"></div>
+        <div class="absolute -bottom-12 -left-12 w-60 h-60 rounded-full pointer-events-none hero-orb-2"
+             style="background: radial-gradient(circle, rgba(0,210,130,0.22) 0%, transparent 70%)"></div>
+        <div class="absolute top-1/2 right-1/4 w-40 h-40 rounded-full pointer-events-none"
+             style="background: radial-gradient(circle, rgba(99,179,237,0.12) 0%, transparent 70%); transform: translateY(-50%);"></div>
 
         <!-- Content -->
-        <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div>
-                <!-- Date -->
+        <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hero-content-animate">
+            <div class="flex-1 min-w-0">
+                <!-- Date pill -->
                 <p class="hero-date-text hero-date">
-                    <i class="fas fa-calendar-day mr-2"></i><?php
+                    <i class="fas fa-calendar-day" style="opacity:0.85"></i><?php
                         $germanMonths = [1=>'Januar',2=>'Februar',3=>'März',4=>'April',5=>'Mai',6=>'Juni',7=>'Juli',8=>'August',9=>'September',10=>'Oktober',11=>'November',12=>'Dezember'];
                         $monthNum = (int)date('n');
                         echo date('d') . '. ' . ($germanMonths[$monthNum] ?? '') . ' ' . date('Y');
                     ?>
                 </p>
                 <!-- Greeting -->
-                <h1 class="font-extrabold tracking-tight hero-title mb-2" style="font-size: clamp(1.75rem, 4vw, 2.75rem); line-height: 1.15">
+                <h1 class="font-extrabold tracking-tight hero-title mb-2" style="font-size: clamp(1.85rem, 4vw, 2.85rem); line-height: 1.12; text-shadow: 0 2px 8px rgba(0,0,0,0.18);">
                     <?php echo htmlspecialchars($greeting); ?>, <?php echo htmlspecialchars($displayName); ?>! 👋
                 </h1>
                 <p class="hero-subtitle hero-subtitle-text">
                     Willkommen zurück im IBC&nbsp;Intranet – hier ist deine Übersicht für heute.
                 </p>
                 <!-- Quick action pill buttons -->
-                <div class="flex flex-wrap gap-2">
-                    <a href="../events/index.php" class="hero-quick-action">
+                <div class="flex flex-wrap gap-2 mt-1">
+                    <a href="../events/index.php" class="hero-quick-action hero-quick-action--events">
                         <i class="fas fa-calendar-alt"></i> Events
                     </a>
-                    <a href="../inventory/index.php" class="hero-quick-action">
+                    <a href="../inventory/index.php" class="hero-quick-action hero-quick-action--inventory">
                         <i class="fas fa-box-open"></i> Inventar
                     </a>
                     <?php if ($canAccessInvoices): ?>
-                    <a href="/pages/invoices/index.php" class="hero-quick-action">
+                    <a href="/pages/invoices/index.php" class="hero-quick-action hero-quick-action--invoices">
                         <i class="fas fa-file-invoice-dollar"></i> Rechnungen
                     </a>
                     <?php endif; ?>
-                    <a href="../auth/profile.php" class="hero-quick-action">
+                    <a href="../auth/profile.php" class="hero-quick-action hero-quick-action--profile">
                         <i class="fas fa-user-circle"></i> Profil
                     </a>
                 </div>
             </div>
             <!-- Decorative icon badge (desktop only) -->
             <div class="hidden lg:flex items-center justify-center flex-shrink-0"
-                 style="width: 7rem; height: 7rem; background: rgba(255,255,255,0.13); border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.22); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+                 style="width: 7.5rem; height: 7.5rem; background: rgba(255,255,255,0.12); border-radius: 1.75rem; border: 1.5px solid rgba(255,255,255,0.28); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.15);">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="hero-badge-icon" aria-hidden="true">
                     <path fill-rule="evenodd" d="M3 6a3 3 0 0 1 3-3h2.25a3 3 0 0 1 3 3v2.25a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6Zm9.75 0a3 3 0 0 1 3-3H18a3 3 0 0 1 3 3v2.25a3 3 0 0 1-3 3h-2.25a3 3 0 0 1-3-3V6ZM3 15.75a3 3 0 0 1 3-3h2.25a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2.25Zm9.75 0a3 3 0 0 1 3-3H18a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3h-2.25a3 3 0 0 1-3-3v-2.25Z" clip-rule="evenodd" />
                 </svg>
@@ -857,10 +913,13 @@ function dismissProfileReviewPrompt() {
 <div class="dash-wrap mb-10">
     <div class="dash-section-hdr">
         <div class="dash-section-hdr-left">
-            <div class="dash-section-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff">
+            <div class="dash-section-icon" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; box-shadow: 0 4px 14px rgba(124,58,237,0.35);">
                 <i class="fas fa-tachometer-alt"></i>
             </div>
-            <h2 class="dash-section-title">Schnellübersicht</h2>
+            <div>
+                <h2 class="dash-section-title">Schnellübersicht</h2>
+                <p class="text-xs font-medium mt-0.5" style="color: var(--text-muted)">Deine wichtigsten Kennzahlen auf einen Blick</p>
+            </div>
         </div>
     </div>
     <div class="grid grid-cols-1 <?php echo $canAccessInvoices ? 'sm:grid-cols-3' : 'sm:grid-cols-2'; ?> gap-5">
@@ -873,7 +932,7 @@ function dismissProfileReviewPrompt() {
                 <div class="dash-stat-icon">
                     <i class="fas fa-box-open"></i>
                 </div>
-                <span class="text-xs font-bold uppercase tracking-wider" style="color: #f97316">Ausleihen</span>
+                <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full" style="color: #f97316; background: rgba(249,115,22,0.1);">Ausleihen</span>
             </div>
             <div class="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-1" style="color: var(--text-main)"><?php echo $openTasksCount; ?></div>
             <div class="text-sm font-semibold mb-2" style="color: var(--text-main)">Meine Ausleihen</div>
@@ -893,7 +952,7 @@ function dismissProfileReviewPrompt() {
                 <div class="dash-stat-icon">
                     <i class="fas fa-calendar-alt"></i>
                 </div>
-                <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--ibc-blue)">Events</span>
+                <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full" style="color: var(--ibc-blue); background: rgba(0,102,179,0.1);">Events</span>
             </div>
             <?php if (!empty($nextEvents)):
                 $nextEvent = $nextEvents[0];
@@ -924,7 +983,7 @@ function dismissProfileReviewPrompt() {
                 <div class="dash-stat-icon">
                     <i class="fas fa-file-invoice-dollar"></i>
                 </div>
-                <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--ibc-green)">Rechnungen</span>
+                <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full" style="color: var(--ibc-green); background: rgba(0,166,81,0.1);">Rechnungen</span>
             </div>
             <div class="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-1" style="color: var(--text-main)"><?php echo $openInvoicesCount; ?></div>
             <div class="text-sm font-semibold mb-2" style="color: var(--text-main)">Offene Rechnungen</div>
