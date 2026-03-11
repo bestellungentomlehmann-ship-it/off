@@ -374,6 +374,7 @@ function resolveImagePath(?string $imagePath): ?string {
     if ($fullPath !== false && str_starts_with($fullPath, $basePath) && is_file($fullPath)) {
         return $imagePath;
     }
+    error_log('[resolveImagePath] File not found for path: ' . $imagePath);
     return null;
 }
 
