@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Per-form rate limiting: prevent job-posting spam without affecting other actions
     $rateLimitWait = checkFormRateLimit('last_job_submit_time');
     if ($rateLimitWait > 0) {
-        $errors[] = 'Bitte warte noch ' . $rateLimitWait . ' ' . ($rateLimitWait === 1 ? 'Sekunde' : 'Sekunden') . ', bevor du erneut ein Gesuch aufgibst.';
+        $errors[] = 'Bitte warte noch ' . $rateLimitWait . ' ' . ($rateLimitWait === 1 ? 'Sekunde' : 'Sekunden') . ', bevor du erneut eine Anzeige erstellst.';
     } else {
         $title       = strip_tags(trim($_POST['title'] ?? ''));
         $searchType  = strip_tags(trim($_POST['search_type'] ?? ''));
@@ -164,11 +164,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($newId) {
                 recordFormSubmit('last_job_submit_time');
-                $_SESSION['success_message'] = 'Dein Gesuch wurde erfolgreich aufgegeben!';
+                $_SESSION['success_message'] = 'Deine Anzeige wurde erfolgreich erstellt!';
                 header('Location: index.php');
                 exit;
             } else {
-                $errors[] = 'Das Gesuch konnte nicht gespeichert werden. Bitte versuche es erneut.';
+                $errors[] = 'Die Anzeige konnte nicht gespeichert werden. Bitte versuche es erneut.';
                 // Clean up uploaded file to avoid orphaned files on disk
                 if ($pdfPath !== null) {
                     $uploadedFile = __DIR__ . '/../../' . $pdfPath;
@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$pageTitle = 'Gesuch aufgeben - IBC Intranet';
+$pageTitle = 'Anzeige erstellen - IBC Intranet';
 ob_start();
 ?>
 
@@ -206,10 +206,10 @@ ob_start();
         <div class="mb-6">
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100">
                 <i class="fas fa-plus-circle text-blue-600 mr-2"></i>
-                Gesuch aufgeben
+                Anzeige erstellen
             </h1>
             <p class="text-gray-600 dark:text-gray-300 mt-2">
-                Stelle dein Gesuch ein und lass andere Mitglieder wissen, wonach du suchst.
+                Stelle deine Anzeige ein und lass andere Mitglieder wissen, wonach du suchst.
             </p>
         </div>
 
@@ -335,7 +335,7 @@ ob_start();
                 </a>
                 <button type="submit"
                         class="w-full sm:w-auto px-6 p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl">
-                    <i class="fas fa-paper-plane mr-2"></i>Gesuch aufgeben
+                    <i class="fas fa-paper-plane mr-2"></i>Anzeige erstellen
                 </button>
             </div>
         </form>

@@ -1556,4 +1556,43 @@ class MailService {
 
         return self::sendEmailWithEmbeddedImage($toEmail, $subject, $htmlBody);
     }
+
+    /**
+     * Send a contact message from one user to a job listing owner
+     *
+     * @param string $toEmail        Recipient (listing owner) email address
+     * @param string $toName         Recipient display name
+     * @param string $senderName     Display name of the message sender
+     * @param string $senderContact  Contact email address provided by the sender
+     * @param string $listingTitle   Title of the job listing
+     * @param string $message        The message body
+     * @return bool
+     */
+    public static function sendJobListingContact(
+        string $toEmail,
+        string $toName,
+        string $senderName,
+        string $senderContact,
+        string $listingTitle,
+        string $message
+    ): bool {
+        $subject = '[IBC Jobbörse] Neue Nachricht zu deiner Anzeige: ' . $listingTitle;
+
+        $bodyContent =
+            '<p class="email-text">Hallo ' . htmlspecialchars($toName, ENT_QUOTES, 'UTF-8') . ',</p>' .
+            '<p class="email-text">ein Mitglied hat dir eine Nachricht zu deiner Anzeige <strong>' . htmlspecialchars($listingTitle, ENT_QUOTES, 'UTF-8') . '</strong> gesendet.</p>' .
+            '<table class="info-table">' .
+            '<tr><td style="padding:10px 15px;font-weight:bold;width:40%">Von</td><td style="padding:10px 15px">' . htmlspecialchars($senderName, ENT_QUOTES, 'UTF-8') . '</td></tr>' .
+            '<tr><td style="padding:10px 15px;font-weight:bold">Kontakt-E-Mail</td><td style="padding:10px 15px"><a href="mailto:' . htmlspecialchars($senderContact, ENT_QUOTES, 'UTF-8') . '" style="color:#6D9744">' . htmlspecialchars($senderContact, ENT_QUOTES, 'UTF-8') . '</a></td></tr>' .
+            '</table>' .
+            '<p class="email-text"><strong>Nachricht:</strong></p>' .
+            '<div style="background:#f9fafb;border-left:4px solid #6D9744;padding:15px 20px;margin:10px 0;border-radius:0 6px 6px 0;color:#333;">' .
+            nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8')) .
+            '</div>' .
+            '<p class="email-text">Du kannst dem Absender direkt unter <a href="mailto:' . htmlspecialchars($senderContact, ENT_QUOTES, 'UTF-8') . '" style="color:#6D9744">' . htmlspecialchars($senderContact, ENT_QUOTES, 'UTF-8') . '</a> antworten.</p>';
+
+        $htmlBody = self::getTemplate('Neue Nachricht zu deiner Anzeige', $bodyContent);
+
+        return self::sendEmailWithEmbeddedImage($toEmail, $subject, $htmlBody);
+    }
 }

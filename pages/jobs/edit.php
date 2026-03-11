@@ -21,7 +21,7 @@ $listingId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $listing   = $listingId > 0 ? JobBoard::getById($listingId) : null;
 
 if (!$listing || (int)$listing['user_id'] !== $userId) {
-    $_SESSION['error_message'] = 'Das Gesuch wurde nicht gefunden oder du hast keine Berechtigung, es zu bearbeiten.';
+    $_SESSION['error_message'] = 'Die Anzeige wurde nicht gefunden oder du hast keine Berechtigung, sie zu bearbeiten.';
     header('Location: index.php');
     exit;
 }
@@ -190,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            $_SESSION['success_message'] = 'Dein Gesuch wurde erfolgreich aktualisiert!';
+            $_SESSION['success_message'] = 'Deine Anzeige wurde erfolgreich aktualisiert!';
             header('Location: index.php');
             exit;
         } else {
@@ -203,12 +203,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     unlink($realUploadedFile);
                 }
             }
-            $errors[] = 'Das Gesuch konnte nicht aktualisiert werden. Bitte versuche es erneut.';
+            $errors[] = 'Die Anzeige konnte nicht aktualisiert werden. Bitte versuche es erneut.';
         }
     }
 }
 
-$pageTitle = 'Gesuch bearbeiten - IBC Intranet';
+$pageTitle = 'Anzeige ändern - IBC Intranet';
 ob_start();
 ?>
 
@@ -231,10 +231,10 @@ ob_start();
         <div class="mb-6">
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100">
                 <i class="fas fa-edit text-blue-600 mr-2"></i>
-                Gesuch bearbeiten
+                Anzeige ändern
             </h1>
             <p class="text-gray-600 dark:text-gray-300 mt-2">
-                Bearbeite dein Gesuch und aktualisiere deine Angaben.
+                Bearbeite deine Anzeige und aktualisiere deine Angaben.
             </p>
         </div>
 
