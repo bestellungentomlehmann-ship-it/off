@@ -959,6 +959,15 @@ class AuthHandler {
             require_once __DIR__ . '/../../includes/models/User.php';
             require_once __DIR__ . '/../../includes/models/Alumni.php';
 
+            // Re-load $mail from the database to ensure we use the stored email value,
+            // not just what was present in the JWT claims.
+            $mailStmt = $db->prepare("SELECT email FROM users WHERE id = ?");
+            $mailStmt->execute([$userId]);
+            $mailRow = $mailStmt->fetch();
+            if ($mailRow && !empty($mailRow['email'])) {
+                $mail = $mailRow['email'];
+            }
+
             // Check users.use_custom_avatar to determine if the user has uploaded their own photo
             // and disabled Entra photo sync for their account.
             $avatarStmt  = $db->prepare("SELECT use_custom_avatar, avatar_path FROM users WHERE id = ?");
@@ -1013,10 +1022,12 @@ class AuthHandler {
                 // Use client-credentials flow (no user token) so the service uses the
                 // app-level permissions from .env – identical to the standalone test script.
                 $photoService = new MicrosoftGraphService();
+                error_log('[syncEntraData] Passing email identifier to getUserPhoto: ' . $mail);
                 $photoData = $photoService->getUserPhoto($mail);
                 error_log(sprintf('[syncEntraData] getUserPhoto for user %d (mail: %s): %s', $userId, $mail, $photoData !== null ? 'returned photo data (' . strlen($photoData) . ' bytes)' : 'returned null (no photo available)'));
                 if ($photoData === null) {
                     error_log(sprintf('[syncEntraData] getUserPhoto returned null for user %d (mail: %s) – no photo fetched from Entra', $userId, $mail));
+                    error_log('Sync fehlgeschlagen für E-Mail: ' . $mail);
                 }
                 if ($photoData !== null) {
                     $cachedPath = User::cacheEntraPhoto($userId, $photoData);
