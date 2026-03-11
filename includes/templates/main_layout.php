@@ -720,14 +720,14 @@ if (!isset($currentUser)) {
                     $sidebarImageSrc = asset('fetch-profile-photo.php') . '?email=' . urlencode($email);
                 }
                 ?>
-                <div style="position:relative;width:2.25rem;height:2.25rem;" class="shrink-0">
+                <div class="relative w-9 h-9 shrink-0">
                     <!-- Initials fallback (rendered behind the profile image) -->
-                    <div class='absolute inset-0 rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow border border-white/20'>
+                    <div class='absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow border border-white/20'>
                         <?php echo $initials; ?>
                     </div>
                     <?php if (!empty($sidebarImageSrc)): ?>
                     <!-- Profile image (renders on top of initials; hidden on error to reveal initials) -->
-                    <img src="<?php echo htmlspecialchars($sidebarImageSrc); ?>" alt="Profilbild" class="absolute inset-0 w-full h-full rounded-full object-cover shadow border border-white/20" style="aspect-ratio:1/1;" onerror="this.style.display='none';">
+                    <img src="<?php echo htmlspecialchars($sidebarImageSrc); ?>" alt="Profilbild" class="absolute inset-0 w-full h-full rounded-full object-cover shadow border border-white/20" onerror="this.style.display='none';">
                     <?php endif; ?>
                 </div>
                 <div class='flex-1 min-w-0'>
