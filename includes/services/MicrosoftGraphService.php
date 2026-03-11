@@ -306,12 +306,12 @@ class MicrosoftGraphService {
      * null is returned without throwing so callers can fall back gracefully
      * to the default profile image.
      *
-     * @param string $userId User Object ID from Azure AD / Microsoft Entra
+     * @param string $identifier User OID or email address
      * @return string|null Raw binary content of the photo, or null if no photo found
      * @throws Exception For non-404 HTTP errors or network-level failures
      */
-    public function getUserPhoto(string $userId): ?string {
-        $photoUrl = "https://graph.microsoft.com/v1.0/users/{$userId}/photo/\$value";
+    public function getUserPhoto(string $identifier): ?string {
+        $photoUrl = "https://graph.microsoft.com/v1.0/users/{$identifier}/photo/\$value";
 
         try {
             // Use http_errors => false so 4xx/5xx responses are returned as response
