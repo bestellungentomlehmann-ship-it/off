@@ -2,7 +2,10 @@
 require_once __DIR__ . '/../../src/Auth.php';
 require_once __DIR__ . '/../../includes/handlers/CSRFHandler.php';
 require_once __DIR__ . '/../../includes/models/JobBoard.php';
+require_once __DIR__ . '/../../includes/models/Alumni.php';
+require_once __DIR__ . '/../../includes/models/Member.php';
 require_once __DIR__ . '/../../src/Database.php';
+require_once __DIR__ . '/../../includes/helpers.php';
 
 // Check authentication
 if (!Auth::check()) {
@@ -21,6 +24,20 @@ if (!$listing || (int)$listing['user_id'] !== $userId) {
     $_SESSION['error_message'] = 'Das Gesuch wurde nicht gefunden oder du hast keine Berechtigung, es zu bearbeiten.';
     header('Location: index.php');
     exit;
+}
+
+// Load the user's profile CV path so it can be reused in this listing
+$profileCvPath = null;
+$userRole = $user['role'] ?? '';
+if (isMemberRole($userRole)) {
+    $userProfile = Member::getProfileByUserId($userId);
+} elseif (isAlumniRole($userRole)) {
+    $userProfile = Alumni::getProfileByUserId($userId);
+} else {
+    $userProfile = null;
+}
+if (!empty($userProfile['cv_path'])) {
+    $profileCvPath = $userProfile['cv_path'];
 }
 
 $errors      = [];
@@ -52,8 +69,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newPdfPath  = null;
     $updatePdf   = false;
 
-    // Handle PDF upload (optional but strictly validated)
-    if (isset($_FILES['cv_pdf']) && $_FILES['cv_pdf']['error'] !== UPLOAD_ERR_NO_FILE) {
+    // Option A: Reuse the CV from the user's profile
+    $cvSource = $_POST['cv_source'] ?? 'upload';
+    if ($cvSource === 'profile' && $profileCvPath !== null) {
+        $srcFile       = realpath(__DIR__ . '/../../' . $profileCvPath);
+        $allowedSrcDir = realpath(__DIR__ . '/../../uploads/cv');
+        if ($srcFile !== false && $allowedSrcDir !== false && str_starts_with($srcFile, $allowedSrcDir . DIRECTORY_SEPARATOR)) {
+            $uploadDir = __DIR__ . '/../../uploads/jobs/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+            $htaccess = $uploadDir . '.htaccess';
+            if (!file_exists($htaccess)) {
+                file_put_contents($htaccess, "php_flag engine off\nAddType text/plain .php .php3 .phtml\n");
+            }
+            $safeName = bin2hex(random_bytes(16)) . '.pdf';
+            $destPath = $uploadDir . $safeName;
+            if (copy($srcFile, $destPath)) {
+                chmod($destPath, 0644);
+                $newPdfPath = 'uploads/jobs/' . $safeName;
+                $updatePdf  = true;
+            } else {
+                $errors[] = 'Lebenslauf aus Profil konnte nicht übernommen werden.';
+            }
+        } else {
+            $errors[] = 'Lebenslauf aus Profil konnte nicht gefunden werden.';
+        }
+    } elseif ($removePdf) {
+        $updatePdf = true; // will clear the path
+    }
+
+    // Option B: Upload a new PDF (only when cv_source is not 'profile')
+    if ($cvSource !== 'profile' && !$removePdf && isset($_FILES['cv_pdf']) && $_FILES['cv_pdf']['error'] !== UPLOAD_ERR_NO_FILE) {
         $file = $_FILES['cv_pdf'];
 
         if ($file['error'] === UPLOAD_ERR_INI_SIZE || $file['error'] === UPLOAD_ERR_FORM_SIZE) {
@@ -113,8 +160,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-    } elseif ($removePdf) {
-        $updatePdf = true; // will clear the path
     }
 
     if (empty($errors)) {
@@ -250,7 +295,7 @@ ob_start();
             <!-- PDF Upload -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Lebenslauf hochladen (optional)
+                    Lebenslauf (optional)
                 </label>
                 <?php if (!empty($listing['pdf_path'])): ?>
                 <div class="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center justify-between gap-3">
@@ -264,19 +309,62 @@ ob_start();
                     </label>
                 </div>
                 <?php endif; ?>
-                <input
-                    type="file"
-                    name="cv_pdf"
-                    accept=".pdf,application/pdf"
-                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                >
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    <i class="fas fa-shield-alt mr-1 text-green-500"></i>
-                    Ausschließlich <strong>.pdf</strong>-Dateien erlaubt. Maximum: <strong>5 MB</strong>. Alle anderen Formate werden abgelehnt.
-                    <?php if (!empty($listing['pdf_path'])): ?>
-                    Eine neue Datei ersetzt den bestehenden Lebenslauf.
-                    <?php endif; ?>
-                </p>
+                <?php if ($profileCvPath !== null): ?>
+                <div class="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-user-circle text-blue-500 mr-1"></i>
+                        Du hast einen Lebenslauf in deinem Profil hinterlegt.
+                    </p>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="cv_source" value="profile" id="cv_source_profile" class="text-blue-600">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">
+                                <i class="fas fa-file-pdf text-red-500 mr-1"></i>Lebenslauf aus Profil übernehmen
+                            </span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="cv_source" value="upload" id="cv_source_upload" checked class="text-blue-600">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">Neue Datei hochladen</span>
+                        </label>
+                    </div>
+                </div>
+                <?php else: ?>
+                <input type="hidden" name="cv_source" value="upload">
+                <?php endif; ?>
+                <div id="cv_upload_field">
+                    <input
+                        type="file"
+                        name="cv_pdf"
+                        id="cv_pdf_input"
+                        accept=".pdf,application/pdf"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                    >
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        <i class="fas fa-shield-alt mr-1 text-green-500"></i>
+                        Ausschließlich <strong>.pdf</strong>-Dateien erlaubt. Maximum: <strong>5 MB</strong>. Alle anderen Formate werden abgelehnt.
+                        <?php if (!empty($listing['pdf_path'])): ?>
+                        Eine neue Datei ersetzt den bestehenden Lebenslauf.
+                        <?php endif; ?>
+                    </p>
+                </div>
+                <?php if ($profileCvPath !== null): ?>
+                <script>
+                (function () {
+                    var profileRadio = document.getElementById('cv_source_profile');
+                    var uploadRadio  = document.getElementById('cv_source_upload');
+                    var uploadField  = document.getElementById('cv_upload_field');
+                    var pdfInput     = document.getElementById('cv_pdf_input');
+                    function toggle() {
+                        var showUpload = uploadRadio.checked;
+                        uploadField.style.display = showUpload ? '' : 'none';
+                        pdfInput.disabled = !showUpload;
+                    }
+                    profileRadio.addEventListener('change', toggle);
+                    uploadRadio.addEventListener('change', toggle);
+                    toggle();
+                })();
+                </script>
+                <?php endif; ?>
             </div>
 
             <!-- Submit -->
