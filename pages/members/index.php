@@ -157,8 +157,14 @@ ob_start();
                 // Generate initials for fallback
                 $initials = getMemberInitials($member['first_name'], $member['last_name']);
                 
-                // Resolve profile image using avatar_path as the single source of truth
-                $imageSrc = asset(getProfileImageUrl($member['avatar_path'] ?? null));
+                // Resolve profile image: prefer Entra ID photo via fetch-profile-photo.php when
+                // an e-mail address is available; fall back to the locally stored avatar otherwise.
+                $memberEmail = $member['email'] ?? '';
+                if (!empty($memberEmail)) {
+                    $imageSrc = asset('fetch-profile-photo.php') . '?email=' . urlencode($memberEmail);
+                } else {
+                    $imageSrc = asset(getProfileImageUrl($member['avatar_path'] ?? null));
+                }
                 
                 // Info snippet: Show position, or study_program + degree
                 $infoSnippet = '';
@@ -206,7 +212,7 @@ ob_start();
                                     alt="<?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>"
                                     loading="lazy"
                                     style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
-                                    onerror="this.style.display='none';"
+                                    onerror="this.onerror=null; this.style.display='none';"
                                 >
                                 <div style="position:absolute;inset:0;" class="d-flex align-items-center justify-content-center">
                                     <?php echo htmlspecialchars($initials); ?>

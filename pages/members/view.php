@@ -98,10 +98,18 @@ ob_start();
             <div class="flex justify-center md:justify-start flex-shrink-0">
                 <?php 
                 $initials = strtoupper(substr($profile['first_name'], 0, 1) . substr($profile['last_name'], 0, 1));
-                $_defaultImg = defined('DEFAULT_PROFILE_IMAGE') ? DEFAULT_PROFILE_IMAGE : 'assets/img/default_profil.png';
-                $_pictureUrl = User::getProfilePictureUrl($profile['user_id']);
-                $hasActualImage = $_pictureUrl !== $_defaultImg;
-                $imagePath = $hasActualImage ? asset($_pictureUrl) : '';
+                // Prefer Entra ID photo via fetch-profile-photo.php when an e-mail address is
+                // available; fall back to the locally stored avatar / default image otherwise.
+                $_profileEmail = $profileUser['email'] ?? '';
+                if (!empty($_profileEmail)) {
+                    $hasActualImage = true;
+                    $imagePath = asset('fetch-profile-photo.php') . '?email=' . urlencode($_profileEmail);
+                } else {
+                    $_defaultImg = defined('DEFAULT_PROFILE_IMAGE') ? DEFAULT_PROFILE_IMAGE : 'assets/img/default_profil.png';
+                    $_pictureUrl = User::getProfilePictureUrl($profile['user_id']);
+                    $hasActualImage = $_pictureUrl !== $_defaultImg;
+                    $imagePath = $hasActualImage ? asset($_pictureUrl) : '';
+                }
                 ?>
                 <div class="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-4xl font-bold overflow-hidden shadow-lg">
                     <?php if ($hasActualImage): ?>
@@ -109,7 +117,7 @@ ob_start();
                             src="<?php echo htmlspecialchars($imagePath, ENT_QUOTES, 'UTF-8'); ?>" 
                             alt="<?php echo htmlspecialchars($profile['first_name'] . ' ' . $profile['last_name'], ENT_QUOTES, 'UTF-8'); ?>"
                             class="w-full h-full object-cover"
-                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                            onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
                         >
                         <div style="display:none;" class="w-full h-full flex items-center justify-center text-4xl">
                             <?php echo htmlspecialchars($initials, ENT_QUOTES, 'UTF-8'); ?>
