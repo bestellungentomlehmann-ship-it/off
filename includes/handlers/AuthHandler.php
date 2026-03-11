@@ -1005,13 +1005,16 @@ class AuthHandler {
                 }
             }
 
+            error_log(sprintf('[syncEntraData] Photo sync condition hasUpload for user %d: %s', $userId, $hasUpload ? 'true (skipping, user has own upload)' : 'false (will fetch from Entra)'));
             if (!$hasUpload) {
                 // Prefer the delegated user token (User.Read scope already granted during OAuth login).
                 // Fall back to client-credentials flow only when no token was passed.
                 $photoService = new MicrosoftGraphService($userAccessToken);
                 $photoData = $photoService->getUserPhoto($azureOid);
+                error_log(sprintf('[syncEntraData] getUserPhoto for user %d (OID: %s): %s', $userId, $azureOid, $photoData !== null ? 'returned photo data (' . strlen($photoData) . ' bytes)' : 'returned null (no photo available)'));
                 if ($photoData !== null) {
-                    User::cacheEntraPhoto($userId, $photoData);
+                    $cachedPath = User::cacheEntraPhoto($userId, $photoData);
+                    error_log(sprintf('[syncEntraData] cacheEntraPhoto for user %d: %s', $userId, $cachedPath !== null ? 'cached at ' . $cachedPath : 'returned null (caching failed or skipped)'));
                 } elseif (!empty($currentAvatar) && strpos($currentAvatar, 'entra_') !== false) {
                     // User no longer has a photo in Entra – clear the stale cached path so
                     // the default profile image is shown instead of an outdated Entra photo.
