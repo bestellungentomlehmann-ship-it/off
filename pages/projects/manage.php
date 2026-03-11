@@ -688,7 +688,8 @@ document.getElementById('deleteModal')?.addEventListener('click', (e) => {
 
         <!-- Form Actions -->
         <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <a href="manage.php" class="w-full sm:w-auto px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition no-underline text-center">
+            <a href="manage.php" class="btn-cancel sm:w-auto">
+                <i class="fas fa-times mr-2"></i>
                 Abbrechen
             </a>
             <?php if ($project): ?>
@@ -697,13 +698,13 @@ document.getElementById('deleteModal')?.addEventListener('click', (e) => {
                     Änderungen speichern
                 </button>
             <?php else: ?>
-                <button type="submit" name="save_draft" value="1" class="flex-1 px-6 py-3 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-700 transition">
+                <button type="submit" name="save_draft" value="1" class="flex-1 btn-secondary">
                     <i class="fas fa-file mr-2"></i>
                     Als Entwurf speichern
                 </button>
                 <button type="submit" class="flex-1 btn-primary">
                     <i class="fas fa-paper-plane mr-2"></i>
-                    Projekt veröffentlichen
+                    Veröffentlichen
                 </button>
             <?php endif; ?>
         </div>

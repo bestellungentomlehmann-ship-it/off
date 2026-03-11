@@ -2504,6 +2504,142 @@ body:not(.dark-mode) .btn-primary:active::after {
     100% { background-position: 0% 50%; }
 }
 
+/* Secondary Button - Gray Gradient (e.g. "Als Entwurf speichern") */
+.btn-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    background-size: 200% 200%;
+    color: #ffffff !important;
+    padding: 0.75rem 2rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 12px rgba(75, 85, 99, 0.30);
+    transition: all var(--transition-normal);
+    border: none;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none !important;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(75, 85, 99, 0.45);
+    filter: brightness(1.08);
+}
+
+.btn-secondary:active {
+    transform: translateY(0) scale(0.97);
+    filter: brightness(0.9);
+    box-shadow: 0 2px 6px rgba(75, 85, 99, 0.25);
+    transition: transform 0.1s ease, filter 0.1s ease, box-shadow 0.1s ease;
+}
+
+/* Light Mode ripple for btn-secondary */
+body:not(.dark-mode) .btn-secondary::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+body:not(.dark-mode) .btn-secondary:active::after {
+    width: 300px;
+    height: 300px;
+    transition: width 0s, height 0s;
+}
+
+/* Dark Mode overrides for btn-secondary */
+body.dark-mode .btn-secondary {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    box-shadow: 0 4px 16px rgba(75, 85, 99, 0.40);
+}
+
+body.dark-mode .btn-secondary:hover {
+    box-shadow: 0 8px 24px rgba(75, 85, 99, 0.55);
+    transform: translateY(-2px);
+}
+
+/* Dark Mode ripple for btn-secondary */
+body.dark-mode .btn-secondary::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+body.dark-mode .btn-secondary:active::after {
+    width: 300px;
+    height: 300px;
+    transition: width 0s, height 0s;
+}
+
+/* Cancel / Ghost Button (e.g. "Abbrechen") */
+.btn-cancel {
+    background: transparent;
+    color: var(--text-main) !important;
+    padding: 0.75rem 2rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border: 2px solid var(--border-color, #d1d5db);
+    box-shadow: none;
+    transition: all var(--transition-normal);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none !important;
+}
+
+.btn-cancel:hover {
+    background: rgba(107, 114, 128, 0.10);
+    border-color: #9ca3af;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.btn-cancel:active {
+    transform: translateY(0) scale(0.97);
+    background: rgba(107, 114, 128, 0.18);
+    transition: transform 0.1s ease, background 0.1s ease;
+}
+
+/* Dark Mode overrides for btn-cancel */
+body.dark-mode .btn-cancel {
+    color: #d1d5db !important;
+    border-color: rgba(255, 255, 255, 0.20);
+}
+
+body.dark-mode .btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+body.dark-mode .btn-cancel:active {
+    background: rgba(255, 255, 255, 0.14);
+}
+
 /* Premium Login Button - Deep Purple to Blue Gradient */
 .btn-login-premium {
     /* Typography */
@@ -3180,6 +3316,8 @@ body.dark-mode .sidebar {
     /* Button Optimizations - Larger touch targets */
     /* Make all standalone primary buttons full-width on mobile */
     .btn-primary,
+    .btn-secondary,
+    .btn-cancel,
     .btn-block,
     .btn-mobile-full {
         min-height: 44px;
@@ -3210,7 +3348,9 @@ body.dark-mode .sidebar {
     button,
     a.btn,
     .btn,
-    .btn-primary {
+    .btn-primary,
+    .btn-secondary,
+    .btn-cancel {
         min-height: 44px;
     }
 
