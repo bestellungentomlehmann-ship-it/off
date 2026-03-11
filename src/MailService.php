@@ -1595,4 +1595,158 @@ class MailService {
 
         return self::sendEmailWithEmbeddedImage($toEmail, $subject, $htmlBody);
     }
+
+    /**
+     * Send welcome email to a new alumni including intranet login info and
+     * the alumni contract as attachments (DOCX + PDF).
+     *
+     * Only called when the new alumni indicated they have NOT yet received the
+     * alumni contract (has_alumni_contract = 0).
+     *
+     * @param string $toEmail    Recipient e-mail address
+     * @param string $firstName  Recipient first name
+     * @param string $lastName   Recipient last name
+     * @param string $vorstandEmail  E-mail address where the signed contract must be sent
+     * @return bool  true on success, false on failure
+     */
+    public static function sendNewAlumniWelcomeWithContract(
+        string $toEmail,
+        string $firstName,
+        string $lastName,
+        string $vorstandEmail
+    ): bool {
+        if (self::isVendorMissing()) {
+            error_log('sendNewAlumniWelcomeWithContract: Composer vendor missing');
+            return false;
+        }
+
+        $intranetUrl = defined('BASE_URL') ? BASE_URL : 'https://intra.business-consulting.de';
+        $subject     = 'Willkommen im IBC Alumni-Netzwerk – deine Zugangsdaten & Alumni Vertrag';
+
+        $bodyContent =
+            '<p class="email-text">Hallo ' . htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8') . ',</p>' .
+            '<p class="email-text">herzlich willkommen im IBC Alumni-Netzwerk! Dein Zugang zum IBC Intranet wurde soeben freigeschaltet.</p>' .
+            '<table class="info-table">' .
+            '<tr><td style="padding:10px 15px;font-weight:bold;width:40%">Intranet-Login</td>' .
+            '<td style="padding:10px 15px"><a href="' . htmlspecialchars($intranetUrl, ENT_QUOTES, 'UTF-8') . '" style="color:#6D9744">' . htmlspecialchars($intranetUrl, ENT_QUOTES, 'UTF-8') . '</a></td></tr>' .
+            '<tr><td style="padding:10px 15px;font-weight:bold">E-Mail</td><td style="padding:10px 15px">' . htmlspecialchars($toEmail, ENT_QUOTES, 'UTF-8') . '</td></tr>' .
+            '</table>' .
+            '<p class="email-text">Im Anhang dieser E-Mail findest du den <strong>Alumni Vertrag</strong> (als PDF und DOCX). ' .
+            'Bitte drucke den Vertrag aus, fülle ihn vollständig aus, unterschreibe ihn und sende das ausgefüllte Exemplar an den Vorstand:</p>' .
+            '<p class="email-text" style="text-align:center;">' .
+            '<a href="mailto:' . htmlspecialchars($vorstandEmail, ENT_QUOTES, 'UTF-8') . '" style="color:#6D9744;font-weight:bold;">' .
+            htmlspecialchars($vorstandEmail, ENT_QUOTES, 'UTF-8') . '</a></p>' .
+            '<p class="email-text">Bei Fragen stehen wir dir gerne zur Verfügung.</p>';
+
+        $callToAction = '<a href="' . htmlspecialchars($intranetUrl, ENT_QUOTES, 'UTF-8') . '" class="button">Zum Intranet</a>';
+
+        $htmlBody = self::getTemplate(
+            'Willkommen im Alumni-Netzwerk',
+            $bodyContent,
+            $callToAction
+        );
+
+        // Locate the alumni contract attachments
+        $baseDir    = __DIR__ . '/../assets/mail_data/';
+        $attachPdf  = $baseDir . 'Alumni-Vertrag-IBC.pdf';
+        $attachDocx = $baseDir . 'Alumni-Vertrag-IBC.docx';
+
+        $pdfExists  = file_exists($attachPdf);
+        $docxExists = file_exists($attachDocx);
+
+        if (!$pdfExists && !$docxExists) {
+            error_log(
+                'sendNewAlumniWelcomeWithContract: neither PDF nor DOCX attachment found in '
+                . $baseDir . ' – email to ' . $toEmail . ' NOT sent'
+            );
+            return false;
+        }
+
+        try {
+            $mail = self::createMailer();
+            $mail->addAddress($toEmail, $firstName . ' ' . $lastName);
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body    = $htmlBody;
+
+            // Embed logo
+            $imagePath = __DIR__ . '/../assets/img/ibc_logo_original_navbar.webp';
+            if (!file_exists($imagePath)) {
+                $imagePath = __DIR__ . '/../assets/img/ibc_logo_original_navbar.png';
+            }
+            if (file_exists($imagePath)) {
+                $mail->addEmbeddedImage($imagePath, 'ibc_logo');
+            }
+
+            // Attach the alumni contract in both formats
+            if ($pdfExists) {
+                $mail->addAttachment($attachPdf, 'Alumni-Vertrag-IBC.pdf');
+            } else {
+                error_log('sendNewAlumniWelcomeWithContract: PDF attachment not found at ' . $attachPdf);
+            }
+            if ($docxExists) {
+                $mail->addAttachment(
+                    $attachDocx,
+                    'Alumni-Vertrag-IBC.docx',
+                    'base64',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                );
+            } else {
+                error_log('sendNewAlumniWelcomeWithContract: DOCX attachment not found at ' . $attachDocx);
+            }
+
+            ob_start();
+            $mail->send();
+            ob_end_clean();
+            return true;
+
+        } catch (\Exception $e) {
+            error_log('sendNewAlumniWelcomeWithContract: failed to send to ' . $toEmail . ': ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Send a deactivation request to the IT department asking them to disable
+     * an old user account now that a new account has been created.
+     *
+     * This replaces the old behaviour of automatically disabling the account
+     * via Graph API during the approval process. The IT team receives the
+     * request and carries out the deactivation manually.
+     *
+     * @param string $oldEmail        E-mail / UPN of the account to be deactivated
+     * @param string $newUserName     Display name of the newly created user
+     * @param string $newUserEmail    E-mail of the newly created user
+     * @param string $requestType     Short description: 'Alumni Recovery' or 'Neue Alumni'
+     * @return bool  true on success, false on failure
+     */
+    public static function sendDeactivationRequest(
+        string $oldEmail,
+        string $newUserName,
+        string $newUserEmail,
+        string $requestType = 'Alumni'
+    ): bool {
+        $itEmail = defined('MAIL_IT_RESSORT') ? MAIL_IT_RESSORT : 'it@business-consulting.de';
+        $subject = '[IBC Intranet] Bitte um User-Deaktivierung – ' . $requestType;
+
+        $bodyContent =
+            '<p class="email-text">Hallo IT-Ressort,</p>' .
+            '<p class="email-text">im Rahmen des ' . htmlspecialchars($requestType, ENT_QUOTES, 'UTF-8') . '-Prozesses wurde ein neuer Benutzer angelegt. ' .
+            'Bitte deaktiviere den nachfolgenden alten Benutzer-Account im Microsoft Entra / Active Directory:</p>' .
+            '<table class="info-table">' .
+            '<tr><td style="padding:10px 15px;font-weight:bold;width:40%">Zu deaktivierender Account</td>' .
+            '<td style="padding:10px 15px">' . htmlspecialchars($oldEmail, ENT_QUOTES, 'UTF-8') . '</td></tr>' .
+            '<tr><td style="padding:10px 15px;font-weight:bold">Neuer Account (Ersatz)</td>' .
+            '<td style="padding:10px 15px">' . htmlspecialchars($newUserName, ENT_QUOTES, 'UTF-8') .
+            ' &lt;' . htmlspecialchars($newUserEmail, ENT_QUOTES, 'UTF-8') . '&gt;</td></tr>' .
+            '<tr><td style="padding:10px 15px;font-weight:bold">Prozess</td>' .
+            '<td style="padding:10px 15px">' . htmlspecialchars($requestType, ENT_QUOTES, 'UTF-8') . '</td></tr>' .
+            '</table>' .
+            '<p class="email-text">Diese Anfrage wurde automatisch nach Genehmigung durch den Vorstand bzw. die Alumni-Führung erstellt.</p>' .
+            '<p class="email-text">Bitte bestätige die Deaktivierung nach Abschluss.</p>';
+
+        $htmlBody = self::getTemplate('Bitte um User-Deaktivierung', $bodyContent);
+
+        return self::sendEmail($itEmail, $subject, $htmlBody);
+    }
 }

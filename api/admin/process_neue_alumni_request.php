@@ -1,15 +1,18 @@
 <?php
 /**
- * API: Process Alumni Access Request (Admin)
+ * API: Process Neue Alumni Registration Request (Admin)
  *
- * Accepts or rejects a pending alumni access request. On approval the handler:
+ * Accepts or rejects a pending new alumni registration request. On approval the handler:
  *  1. Checks whether the new e-mail already has an Entra account
  *     – YES → reuse the existing account and ensure it is in the alumni distribution list
  *     – NO  → create a B2B Guest invitation and add the new account to the list
  *  2. Sets the DB status to 'approved'
- *  3. Sends a confirmation e-mail to the applicant via MailService
- *  4. If old_email is set: sends a deactivation request e-mail to the IT department
- *     (instead of disabling the old account directly)
+ *  3a. If has_alumni_contract = 0: sends a welcome email with intranet login info
+ *      AND the Alumni Vertrag (DOCX + PDF) attached, requesting the signed copy
+ *      be sent to the Vorstand email.
+ *  3b. If has_alumni_contract = 1: sends a standard welcome email (no attachment).
+ *  4.  If old_email is set: sends a deactivation request to the IT department
+ *      instead of disabling the old account directly.
  *
  * Required permissions: alumni_finanz, alumni_vorstand, vorstand_finanzen,
  *                       vorstand_extern, vorstand_intern
@@ -22,7 +25,7 @@ require_once __DIR__ . '/../../src/Auth.php';
 require_once __DIR__ . '/../../src/Database.php';
 require_once __DIR__ . '/../../src/MailService.php';
 require_once __DIR__ . '/../../includes/handlers/CSRFHandler.php';
-require_once __DIR__ . '/../../includes/models/AlumniAccessRequest.php';
+require_once __DIR__ . '/../../includes/models/NewAlumniRequest.php';
 require_once __DIR__ . '/../../includes/services/MicrosoftGraphService.php';
 require_once __DIR__ . '/../../config/config.php';
 
@@ -36,7 +39,6 @@ if (!Auth::check()) {
 }
 
 // ── Role check ─────────────────────────────────────────────────────────────────
-// Only board members and alumni board/auditor roles may process requests
 $allowedRoles = [
     Auth::ROLE_BOARD_FINANCE,
     Auth::ROLE_BOARD_INTERNAL,
@@ -77,7 +79,7 @@ if (!in_array($action, ['approve', 'reject'], true)) {
 }
 
 // ── Load request from DB ───────────────────────────────────────────────────────
-$request = AlumniAccessRequest::getById($requestId);
+$request = NewAlumniRequest::getById($requestId);
 if (!$request) {
     http_response_code(404);
     echo json_encode(['success' => false, 'message' => 'Anfrage nicht gefunden']);
@@ -94,7 +96,7 @@ $processedBy = (int) ($_SESSION['user_id'] ?? 0);
 
 // ── Rejection path ─────────────────────────────────────────────────────────────
 if ($action === 'reject') {
-    $ok = AlumniAccessRequest::updateStatus($requestId, 'rejected', $processedBy);
+    $ok = NewAlumniRequest::updateStatus($requestId, 'rejected', $processedBy);
     if ($ok) {
         echo json_encode(['success' => true, 'message' => 'Anfrage abgelehnt']);
     } else {
@@ -105,22 +107,21 @@ if ($action === 'reject') {
 }
 
 // ── Alumni distribution-list group ID ─────────────────────────────────────────
-// The Object ID of the "Verteiler Alumni" group in Microsoft Entra.
-// Can be overridden by defining ALUMNI_DISTRIBUTION_GROUP_ID in config.php / .env.
 if (!defined('ALUMNI_DISTRIBUTION_GROUP_ID')) {
     define('ALUMNI_DISTRIBUTION_GROUP_ID', '9e927fce-9029-4564-b2b6-e52c9f1588dd');
 }
 
-$firstName = $request['first_name'];
-$lastName  = $request['last_name'];
-$newEmail  = $request['new_email'];
-$oldEmail  = $request['old_email'] ?? null;
-$groupWarning = null;
+$firstName          = $request['first_name'];
+$lastName           = $request['last_name'];
+$newEmail           = $request['new_email'];
+$oldEmail           = $request['old_email'] ?? null;
+$hasAlumniContract  = (bool) ($request['has_alumni_contract'] ?? false);
+$groupWarning       = null;
 
 try {
     $graphService = new MicrosoftGraphService();
 
-    // Step 2 – Resolve or create the Entra account for the new e-mail ────────
+    // Step 1 – Resolve or create the Entra account for the new e-mail ────────
     $existingUser = $graphService->getUserByEmail($newEmail);
 
     if ($existingUser !== null) {
@@ -131,14 +132,12 @@ try {
         $entraUserId = $graphService->inviteGuestUser($newEmail, $firstName, $lastName);
     }
 
-    // Step 3 – Add the account to the alumni distribution list ───────────────
+    // Step 2 – Add the account to the alumni distribution list ───────────────
     try {
         $graphService->addUserToGroup($entraUserId, ALUMNI_DISTRIBUTION_GROUP_ID);
     } catch (Exception $groupEx) {
-        // Adding to the distribution list may fail for Exchange-backed groups.
-        // Log the error but do not abort – the account was created successfully.
         error_log(
-            'process_alumni_request(admin): could not add user to distribution list'
+            'process_neue_alumni_request(admin): could not add user to distribution list'
             . ' for request #' . $requestId . ': ' . $groupEx->getMessage()
         );
         $groupWarning = 'Gast-Account wurde erstellt, aber der User konnte nicht automatisch'
@@ -147,9 +146,8 @@ try {
     }
 
 } catch (Exception $e) {
-    // Do not reveal internal details in the response
     error_log(
-        'process_alumni_request(admin): Entra operation failed for request #'
+        'process_neue_alumni_request(admin): Entra operation failed for request #'
         . $requestId . ': ' . $e->getMessage()
     );
     http_response_code(500);
@@ -160,48 +158,64 @@ try {
     exit;
 }
 
-// Step 4 – Update DB status ───────────────────────────────────────────────────
-$ok = AlumniAccessRequest::updateStatus($requestId, 'approved', $processedBy);
+// Step 3 – Update DB status ───────────────────────────────────────────────────
+$ok = NewAlumniRequest::updateStatus($requestId, 'approved', $processedBy);
 if (!$ok) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Datenbankfehler beim Akzeptieren']);
     exit;
 }
 
-// Step 5 – Send confirmation e-mail to the applicant ─────────────────────────
+// Step 4 – Send e-mail to the new alumni ──────────────────────────────────────
+// Vorstand email: used both as the "send signed contract to" address and as
+// a fallback for the invoice notification email.
+$vorstandEmail = defined('INVOICE_NOTIFICATION_EMAIL')
+    ? INVOICE_NOTIFICATION_EMAIL
+    : 'vorstand@business-consulting.de';
+
 try {
-    $subject = 'Willkommen im IBC Alumni-Verteiler';
+    if (!$hasAlumniContract) {
+        // No contract received yet → send welcome email WITH contract attachments
+        MailService::sendNewAlumniWelcomeWithContract(
+            $newEmail,
+            $firstName,
+            $lastName,
+            $vorstandEmail
+        );
+    } else {
+        // Contract already received → send standard welcome email
+        $subject = 'Willkommen im IBC Alumni-Netzwerk';
+        $intranetUrl = defined('BASE_URL') ? BASE_URL : 'https://intra.business-consulting.de';
 
-    $bodyContent = '
-        <p class="email-text">Hallo ' . htmlspecialchars($firstName) . ',</p>
-        <p class="email-text">
-            du wurdest erfolgreich in den Verteiler aufgenommen und dein Microsoft Entra
-            Gast-Zugang ist bereit. Du kannst dich nun einloggen.
-        </p>
-        <p class="email-text">
-            Falls du Fragen hast oder Hilfe benötigst, melde dich gerne bei uns.
-        </p>';
+        $bodyContent =
+            '<p class="email-text">Hallo ' . htmlspecialchars($firstName) . ',</p>' .
+            '<p class="email-text">' .
+            'du wurdest erfolgreich in den Verteiler aufgenommen und dein Microsoft Entra ' .
+            'Gast-Zugang ist bereit. Du kannst dich nun einloggen.' .
+            '</p>' .
+            '<p class="email-text">' .
+            'Falls du Fragen hast oder Hilfe benötigst, melde dich gerne bei uns.' .
+            '</p>';
 
-    $intranetUrl  = defined('BASE_URL') ? BASE_URL : '';
-    $callToAction = '<a href="' . htmlspecialchars($intranetUrl) . '" class="button">Zum Intranet</a>';
+        $callToAction = '<a href="' . htmlspecialchars($intranetUrl) . '" class="button">Zum Intranet</a>';
 
-    $htmlBody = MailService::getTemplate(
-        'Willkommen im Alumni-Netzwerk',
-        $bodyContent,
-        $callToAction
-    );
+        $htmlBody = MailService::getTemplate(
+            'Willkommen im Alumni-Netzwerk',
+            $bodyContent,
+            $callToAction
+        );
 
-    MailService::sendEmail($newEmail, $subject, $htmlBody);
+        MailService::sendEmail($newEmail, $subject, $htmlBody);
+    }
 } catch (Exception $mailEx) {
-    // Mail failure must not roll back the approval
     error_log(
-        'process_alumni_request(admin): confirmation mail failed for request #'
+        'process_neue_alumni_request(admin): welcome mail failed for request #'
         . $requestId . ': ' . $mailEx->getMessage()
     );
 }
 
-// Step 6 – Send deactivation request to IT if old account exists ──────────────
-// We deliberately do NOT disable the old account automatically via Graph API.
+// Step 5 – Send deactivation request to IT if old account exists ──────────────
+// We deliberately do NOT disable the old account automatically.
 // Instead, we send an email to the IT department requesting manual deactivation.
 if (!empty($oldEmail)) {
     try {
@@ -209,11 +223,11 @@ if (!empty($oldEmail)) {
             $oldEmail,
             $firstName . ' ' . $lastName,
             $newEmail,
-            'Alumni Recovery'
+            'Neue Alumni'
         );
     } catch (Exception $deactivateEx) {
         error_log(
-            'process_alumni_request(admin): deactivation request mail failed for request #'
+            'process_neue_alumni_request(admin): deactivation request mail failed for request #'
             . $requestId . ': ' . $deactivateEx->getMessage()
         );
     }
@@ -221,6 +235,6 @@ if (!empty($oldEmail)) {
 
 $responseMessage = $groupWarning !== null
     ? $groupWarning
-    : 'Anfrage akzeptiert und Gast-Zugang eingerichtet';
+    : 'Anfrage akzeptiert und Alumni-Zugang eingerichtet';
 
 echo json_encode(['success' => true, 'message' => $responseMessage]);

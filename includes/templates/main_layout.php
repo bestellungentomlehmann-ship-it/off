@@ -524,6 +524,16 @@ if (!isset($currentUser)) {
                 </a>
                 <?php endif; ?>
 
+                <!-- Neue Alumni-Anfragen (Alumni-Führung + Vorstand) -->
+                <?php if (Auth::hasRole(['alumni_finanz', 'alumni_vorstand', 'vorstand_finanzen', 'vorstand_extern', 'vorstand_intern'])): ?>
+                <a href="<?php echo asset('pages/admin/neue_alumni_requests.php'); ?>"
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/neue_alumni_requests.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo is_nav_active('/admin/neue_alumni_requests.php') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-user-plus w-5 mr-3" aria-hidden="true"></i>
+                    <span>Neue Alumni</span>
+                </a>
+                <?php endif; ?>
+
 
                 <!-- Shop-Verwaltung (Board + Resortleiter) -->
                 <?php if (Auth::hasRole(['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'ressortleiter'])): ?>
