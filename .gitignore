@@ -3,3 +3,9 @@ vendor/
 uploads/
 .env
 logs/*.log
+# Profile photo cache – generated at runtime; keep only the .htaccess
+assets/img/cache/profile_photos/*.jpg
+assets/img/cache/profile_photos/*.jpeg
+assets/img/cache/profile_photos/*.png
+assets/img/cache/profile_photos/*.webp
+assets/img/cache/profile_photos/*.gif
