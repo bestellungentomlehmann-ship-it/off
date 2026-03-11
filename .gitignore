@@ -9,3 +9,4 @@ assets/img/cache/profile_photos/*.jpeg
 assets/img/cache/profile_photos/*.png
 assets/img/cache/profile_photos/*.webp
 assets/img/cache/profile_photos/*.gif
+node_modules

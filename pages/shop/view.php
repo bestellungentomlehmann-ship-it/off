@@ -291,11 +291,6 @@ ob_start();
                         <?php echo htmlspecialchars($product['gender']); ?>
                     </span>
                     <?php endif; ?>
-                    <?php if (!empty($product['sku'])): ?>
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-medium rounded-full border border-gray-200 dark:border-gray-600">
-                        SKU: <?php echo htmlspecialchars($product['sku']); ?>
-                    </span>
-                    <?php endif; ?>
                 </div>
 
                 <!-- Product name -->
@@ -550,17 +545,6 @@ ob_start();
                         <div>
                             <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wide mb-0.5">Abholort</p>
                             <p class="break-words hyphens-auto"><?php echo htmlspecialchars($product['pickup_location']); ?></p>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (!empty($product['sku'])): ?>
-                    <div class="flex items-start gap-3 text-gray-600 dark:text-gray-400">
-                        <div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <i class="fas fa-barcode text-gray-500 dark:text-gray-400 text-xs"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wide mb-0.5">Artikelnummer</p>
-                            <p class="font-mono"><?php echo htmlspecialchars($product['sku']); ?></p>
                         </div>
                     </div>
                     <?php endif; ?>

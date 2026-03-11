@@ -65,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'gender'           => trim($_POST['gender'] ?? ''),
             'pickup_location'  => trim($_POST['pickup_location'] ?? ''),
             'variants'         => trim($_POST['variants_text'] ?? ''),
-            'sku'              => trim($_POST['sku'] ?? ''),
             'image_path'    => null,
         ];
 
@@ -165,6 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     $hasVariants = isset($_POST['has_variants']);
+                    $isBulkOrder = !empty($data['is_bulk_order']);
                     if (!$hasVariants) {
                         // No named variants – store a single default variant.
                         // Stock tracking is handled via bulk_min_goal for bulk orders;
@@ -184,7 +184,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     $variants[] = [
                                         'type'           => $typeName,
                                         'value'          => $valueName,
-                                        'stock_quantity' => (int) ($valueData['stock'] ?? 0),
+                                        // Bulk orders have no stock tracking per variant
+                                        'stock_quantity' => $isBulkOrder ? null : (int) ($valueData['stock'] ?? 0),
                                     ];
                                 }
                             }
@@ -821,15 +822,6 @@ ob_start();
                                            class="w-full pl-7 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm">
                                 </div>
                             </div>
-                            <!-- SKU -->
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                                    SKU <span class="font-normal text-gray-400 dark:text-gray-500">(optional)</span>
-                                </label>
-                                <input type="text" name="sku" id="modal-sku"
-                                       placeholder="z.B. IBC-HOODIE-2024"
-                                       class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm">
-                            </div>
                         </div>
 
                         <!-- Organisation -->
@@ -917,7 +909,7 @@ ob_start();
                             </div>
                             <div>
                                 <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100">Produktvarianten</h3>
-                                <p class="text-xs text-purple-600 dark:text-purple-400 mt-0.5">Farben &amp; Größen mit Lagerbestand</p>
+                                <p class="text-xs text-purple-600 dark:text-purple-400 mt-0.5" id="modal-variants-subtitle">Farben &amp; Größen mit Lagerbestand</p>
                             </div>
                         </div>
                         <!-- Toggle -->
@@ -1067,10 +1059,10 @@ function openProductModal(product) {
     document.getElementById('modal-name').value        = isEdit ? (product.name || '') : '';
     document.getElementById('modal-description').value = isEdit ? (product.description || '') : '';
     document.getElementById('modal-base-price').value  = isEdit ? parseFloat(product.base_price || 0).toFixed(2) : '0.00';
-    document.getElementById('modal-active').checked    = isEdit ? (product.active == 1) : true;
+    document.getElementById('modal-active').checked    = isEdit ? (product.active === 1) : false;
 
     // Bulk order fields
-    const isBulk = isEdit && product.is_bulk_order == 1;
+    const isBulk = isEdit && product.is_bulk_order === 1;
     document.getElementById('modal-is-bulk-order').checked = isBulk;
     document.getElementById('modal-bulk-end-date').value   = isEdit ? (product.bulk_end_date || '') : '';
     document.getElementById('modal-bulk-min-goal').value   = isEdit ? (product.bulk_min_goal || '') : '';
@@ -1081,7 +1073,6 @@ function openProductModal(product) {
     document.getElementById('modal-gender').value          = isEdit ? (product.gender || 'Keine') : 'Keine';
     document.getElementById('modal-hints').value           = isEdit ? (product.hints || '') : '';
     document.getElementById('modal-pickup-location').value = isEdit ? (product.pickup_location || '') : '';
-    document.getElementById('modal-sku').value             = isEdit ? (product.sku || '') : '';
 
     // "Also create for other gender" checkbox – only relevant for new products
     updateAlsoGenderArea(isEdit);
@@ -1229,8 +1220,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── Bulk order fields toggle ──────────────────────────────────────────────────
 
+function updateVariantStockVisibility() {
+    const isBulk    = document.getElementById('modal-is-bulk-order').checked;
+    const container = document.getElementById('variants-container');
+
+    // Show/hide the "Lagerbestand" header and stock inputs in all variant blocks
+    container.querySelectorAll('.stock-col').forEach(function(el) {
+        el.classList.toggle('hidden', isBulk);
+    });
+
+    // Adjust grid column template: 3-col when stock visible, 2-col when hidden
+    container.querySelectorAll('.variant-grid-header').forEach(function(el) {
+        el.classList.toggle('grid-cols-[1fr_auto_auto]', !isBulk);
+        el.classList.toggle('grid-cols-[1fr_auto]', isBulk);
+    });
+    container.querySelectorAll('.value-row').forEach(function(el) {
+        el.classList.toggle('grid-cols-[1fr_auto_auto]', !isBulk);
+        el.classList.toggle('grid-cols-[1fr_auto]', isBulk);
+    });
+
+    // Update the variants section subtitle
+    const subtitle = document.getElementById('modal-variants-subtitle');
+    if (subtitle) {
+        subtitle.textContent = isBulk
+            ? 'Farben & Größen (kein Lagerbestand bei Sammelbestellung)'
+            : 'Farben & Größen mit Lagerbestand';
+    }
+}
+
 function toggleBulkOrderFields(show) {
     document.getElementById('modal-bulk-fields').classList.toggle('hidden', !show);
+    updateVariantStockVisibility();
     updateAlsoGenderStockSection();
 }
 
@@ -1413,6 +1433,7 @@ function buildVariantUI(variants) {
         document.getElementById('modal-section-variants').classList.add('hidden');
         document.getElementById('modal-no-variants-placeholder').classList.remove('hidden');
     }
+    updateVariantStockVisibility();
 }
 
 function createVariantBlock(idx, typeName, values) {
@@ -1434,9 +1455,9 @@ function createVariantBlock(idx, typeName, values) {
         </div>
         <div class="px-4 py-3">
             <div class="overflow-x-auto w-full">
-                <div class="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-0 mb-1.5 px-1 min-w-[280px]">
+                <div class="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-0 mb-1.5 px-1 min-w-[280px] variant-grid-header">
                     <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Größe</span>
-                    <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide text-right w-24">Lagerbestand</span>
+                    <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide text-right w-24 stock-col">Lagerbestand</span>
                     <span class="w-7"></span>
                 </div>
                 <div class="value-rows space-y-2 min-w-[280px]">
@@ -1462,7 +1483,7 @@ function valueRowHtml(vIdx, valIdx, value, stock) {
                class="px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-gray-100 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
         <input type="number" name="variants[${vIdx}][values][${valIdx}][stock]"
                value="${stockNum}" min="0"
-               class="w-24 px-2.5 py-1.5 border rounded-lg text-sm text-right focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${stockClass}"
+               class="stock-col w-24 px-2.5 py-1.5 border rounded-lg text-sm text-right focus:ring-2 focus:ring-purple-500 focus:border-transparent transition ${stockClass}"
                oninput="updateStockColor(this)">
         <button type="button" onclick="this.closest('.value-row').remove()"
                 class="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" title="Größe entfernen">
@@ -1516,6 +1537,7 @@ function toggleVariantMode(hasVariants) {
             createVariantBlock(variantCount++, '', [{value:'',stock_quantity:0}])
         );
     }
+    updateVariantStockVisibility();
     updateAlsoGenderStockSection();
 }
 
@@ -1587,7 +1609,6 @@ openProductModal(<?php
         'category'      => $editProduct['category'],
         'pickup_location' => $editProduct['pickup_location'],
         'gender'        => $editProduct['gender'],
-        'sku'           => $editProduct['sku'],
         'image_path'    => !empty($editProduct['image_path']) ? asset($editProduct['image_path']) : '',
         'images'        => $imagesForJs,
         'variants'      => $editProduct['variants'],
