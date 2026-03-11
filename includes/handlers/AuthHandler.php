@@ -554,15 +554,27 @@ class AuthHandler {
         require_once __DIR__ . '/../services/MicrosoftGraphService.php';
         require_once __DIR__ . '/../models/Alumni.php';
 
-        $azureRoles = $claims['roles'] ?? [];
-        error_log("DEBUG AZURE ROLES FROM TOKEN: " . print_r($azureRoles, true));
-
-        // Get Azure Object ID from claims for Microsoft Graph API calls
         $azureOid = $claims['oid'] ?? $claims['sub'] ?? null;
 
-        // Select role directly from Entra App Roles (stored 1:1 in the database).
-        // Roles come from $idToken['roles'] and reflect the Entra enterprise-app role assignments.
-        // Priority ensures the most-privileged role wins when a user has multiple roles.
+        // Fetch App Role assignments directly from the Enterprise Application via Graph API.
+        // This is more reliable than the JWT 'roles' claim and reflects role changes
+        // made in the portal without requiring a new token. Falls back to JWT claims on failure.
+        $azureRoles = [];
+        if ($azureOid) {
+            try {
+                $graphSvc = new MicrosoftGraphService(); // client-credentials flow
+                $azureRoles = $graphSvc->getUserAppRoles($azureOid);
+            } catch (Exception $e) {
+                error_log('[completeMicrosoftLogin] getUserAppRoles failed for OID ' . $azureOid . ': ' . $e->getMessage());
+                $azureRoles = $claims['roles'] ?? []; // fallback to JWT claims
+            }
+        } else {
+            $azureRoles = $claims['roles'] ?? [];
+        }
+        error_log("DEBUG AZURE ROLES FROM ENTERPRISE APP: " . print_r($azureRoles, true));
+
+        // Select the highest-priority role from the Enterprise Application assignments.
+        // Roles returned by getUserAppRoles() are already translated to role name strings.
         $validEntraRoles = [
             'anwaerter'         => 1,
             'mitglied'          => 2,
@@ -576,29 +588,20 @@ class AuthHandler {
             'alumni_finanz'     => 10,
         ];
 
-        // UUID fallback: if Entra sends App Role IDs (UUIDs) instead of value strings,
-        // translate them to role names using the ROLE_MAPPING constant.
-        if (!defined('ROLE_MAPPING')) {
-            error_log('[completeMicrosoftLogin] ROLE_MAPPING constant is not defined – UUID-based role translation unavailable.');
-        }
-        $roleUuidToName = defined('ROLE_MAPPING') ? array_flip(ROLE_MAPPING) : [];
-
         $highestPriority = 0;
-        $selectedRole = 'mitglied'; // Default if no valid App Role found
+        $selectedRole = 'mitglied'; // Default if no role is assigned in the Enterprise Application
 
         foreach ($azureRoles as $roleValue) {
-            // Normalize: translate UUID to role name if needed
-            $normalizedRole = isset($roleUuidToName[$roleValue]) ? $roleUuidToName[$roleValue] : $roleValue;
-            if (isset($validEntraRoles[$normalizedRole]) && $validEntraRoles[$normalizedRole] > $highestPriority) {
-                $highestPriority = $validEntraRoles[$normalizedRole];
-                $selectedRole = $normalizedRole;
+            if (isset($validEntraRoles[$roleValue]) && $validEntraRoles[$roleValue] > $highestPriority) {
+                $highestPriority = $validEntraRoles[$roleValue];
+                $selectedRole = $roleValue;
             }
         }
 
         $roleName = $selectedRole;
 
         // Log the selected role for debugging
-        error_log("Selected role for user {$azureOid}: {$roleName}");
+        error_log("Selected role for user {$azureOid}: {$roleName} (from Enterprise App Roles: " . implode(', ', $azureRoles) . ")");
         
         // Get user email from claims
         // Priority: email -> preferred_username -> upn
@@ -880,9 +883,28 @@ class AuthHandler {
         // Prefer explicit email/mail over UPN which may carry an #EXT# suffix
         $mail = $userData['email'] ?? $userData['mail'] ?? $userData['preferred_username'] ?? null;
 
-        // --- 2. Determine role from Entra App Roles (passed via $userData['roles']) ---
-        // Roles come directly from $idToken['roles'] and are stored 1:1 in the database.
-        $appRoles = $userData['roles'] ?? [];
+        // --- 2. Determine role from the Enterprise Application (Unternehmensanwendung) ---
+        // Fetch App Role assignments directly from the Graph API so that role changes
+        // made in the portal take effect immediately, regardless of what the JWT claims
+        // contain. Falls back to JWT claims only when the Graph call fails.
+        $graphSvc = null;
+        try {
+            $graphSvc = new MicrosoftGraphService(); // client-credentials flow
+        } catch (Exception $e) {
+            error_log('[syncEntraData] Could not create MicrosoftGraphService: ' . $e->getMessage());
+        }
+
+        $appRoles = [];
+        if ($graphSvc !== null) {
+            try {
+                $appRoles = $graphSvc->getUserAppRoles($azureOid);
+            } catch (Exception $e) {
+                error_log('[syncEntraData] getUserAppRoles failed for OID ' . $azureOid . ': ' . $e->getMessage());
+                $appRoles = $userData['roles'] ?? []; // fallback to JWT claims
+            }
+        } else {
+            $appRoles = $userData['roles'] ?? [];
+        }
 
         $validEntraRoles = [
             'anwaerter'         => 1,
@@ -897,26 +919,17 @@ class AuthHandler {
             'alumni_finanz'     => 10,
         ];
 
-        // UUID fallback: if Entra sends App Role IDs (UUIDs) instead of value strings,
-        // translate them to role names using the ROLE_MAPPING constant.
-        if (!defined('ROLE_MAPPING')) {
-            error_log('[syncEntraData] ROLE_MAPPING constant is not defined – UUID-based role translation unavailable.');
-        }
-        $roleUuidToName = defined('ROLE_MAPPING') ? array_flip(ROLE_MAPPING) : [];
-
         $highestPriority = 0;
-        $selectedRole    = 'mitglied'; // Default when no valid App Role found
+        $selectedRole    = 'mitglied'; // Default when no role is assigned in the Enterprise Application
 
         foreach ($appRoles as $roleValue) {
-            // Normalize: translate UUID to role name if needed
-            $normalizedRole = isset($roleUuidToName[$roleValue]) ? $roleUuidToName[$roleValue] : $roleValue;
-            if (isset($validEntraRoles[$normalizedRole]) && $validEntraRoles[$normalizedRole] > $highestPriority) {
-                $highestPriority = $validEntraRoles[$normalizedRole];
-                $selectedRole    = $normalizedRole;
+            if (isset($validEntraRoles[$roleValue]) && $validEntraRoles[$roleValue] > $highestPriority) {
+                $highestPriority = $validEntraRoles[$roleValue];
+                $selectedRole    = $roleValue;
             }
         }
 
-        error_log(sprintf('[syncEntraData] Role for user %d: %s (from App Roles: %s)', $userId, $selectedRole, implode(', ', $appRoles)));
+        error_log(sprintf('[syncEntraData] Role for user %d: %s (from Enterprise App Roles via Graph API: %s)', $userId, $selectedRole, implode(', ', $appRoles)));
 
         // --- 3. Overwrite entra_roles JSON field with App Roles from token ---
         try {
@@ -1019,24 +1032,25 @@ class AuthHandler {
 
             error_log(sprintf('[syncEntraData] Photo sync condition hasUpload for user %d: %s', $userId, $hasUpload ? 'true (skipping, user has own upload)' : 'false (will fetch from Entra)'));
             if (!$hasUpload) {
-                // Use client-credentials flow (no user token) so the service uses the
-                // app-level permissions from .env – identical to the standalone test script.
-                $photoService = new MicrosoftGraphService();
-                error_log('[syncEntraData] Passing email identifier to getUserPhoto: ' . $mail);
-                $photoData = $photoService->getUserPhoto($mail);
-                error_log(sprintf('[syncEntraData] getUserPhoto for user %d (mail: %s): %s', $userId, $mail, $photoData !== null ? 'returned photo data (' . strlen($photoData) . ' bytes)' : 'returned null (no photo available)'));
-                if ($photoData === null) {
-                    error_log(sprintf('[syncEntraData] getUserPhoto returned null for user %d (mail: %s) – no photo fetched from Entra', $userId, $mail));
-                    error_log('Sync fehlgeschlagen für E-Mail: ' . $mail);
-                }
-                if ($photoData !== null) {
-                    $cachedPath = User::cacheEntraPhoto($userId, $photoData);
-                    error_log(sprintf('[syncEntraData] cacheEntraPhoto for user %d: %s', $userId, $cachedPath !== null ? 'cached at ' . $cachedPath : 'returned null (caching failed or skipped)'));
-                } elseif (!empty($currentAvatar) && strpos($currentAvatar, 'entra_') !== false) {
-                    // User no longer has a photo in Entra – clear the stale cached path so
-                    // the default profile image is shown instead of an outdated Entra photo.
-                    $db->prepare("UPDATE users SET avatar_path = NULL WHERE id = ?")
-                       ->execute([$userId]);
+                if ($graphSvc === null) {
+                    error_log('[syncEntraData] Skipping photo sync: MicrosoftGraphService unavailable (check Azure credentials)');
+                } else {
+                    error_log('[syncEntraData] Passing email identifier to getUserPhoto: ' . $mail);
+                    $photoData = $graphSvc->getUserPhoto($mail);
+                    error_log(sprintf('[syncEntraData] getUserPhoto for user %d (mail: %s): %s', $userId, $mail, $photoData !== null ? 'returned photo data (' . strlen($photoData) . ' bytes)' : 'returned null (no photo available)'));
+                    if ($photoData === null) {
+                        error_log(sprintf('[syncEntraData] getUserPhoto returned null for user %d (mail: %s) – no photo fetched from Entra', $userId, $mail));
+                        error_log('Sync fehlgeschlagen für E-Mail: ' . $mail);
+                    }
+                    if ($photoData !== null) {
+                        $cachedPath = User::cacheEntraPhoto($userId, $photoData);
+                        error_log(sprintf('[syncEntraData] cacheEntraPhoto for user %d: %s', $userId, $cachedPath !== null ? 'cached at ' . $cachedPath : 'returned null (caching failed or skipped)'));
+                    } elseif (!empty($currentAvatar) && strpos($currentAvatar, 'entra_') !== false) {
+                        // User no longer has a photo in Entra – clear the stale cached path so
+                        // the default profile image is shown instead of an outdated Entra photo.
+                        $db->prepare("UPDATE users SET avatar_path = NULL WHERE id = ?")
+                           ->execute([$userId]);
+                    }
                 }
             }
         } catch (Exception $e) {

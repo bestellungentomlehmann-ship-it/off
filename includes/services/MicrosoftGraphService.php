@@ -350,6 +350,60 @@ class MicrosoftGraphService {
     }
     
     /**
+     * Get the app role names assigned to a user in the Enterprise Application.
+     *
+     * Calls GET /users/{azureOid}/appRoleAssignments, translates the returned
+     * appRoleId UUIDs to role name strings using ROLE_MAPPING, and returns
+     * only roles that are known to this application.
+     *
+     * Use this instead of the JWT 'roles' claim to read directly from the
+     * Enterprise Application (Unternehmensanwendung) so that role changes made
+     * in the portal are reflected immediately without waiting for a new token.
+     *
+     * @param string $azureOid User Object ID (OID) from Azure AD
+     * @return array  Array of role name strings (e.g. ['mitglied', 'ressortleiter'])
+     * @throws Exception If the API request fails
+     */
+    public function getUserAppRoles(string $azureOid): array {
+        $url = "https://graph.microsoft.com/v1.0/users/{$azureOid}/appRoleAssignments";
+
+        try {
+            $response = $this->httpClient->get($url, [
+                'headers'     => ['Authorization' => 'Bearer ' . $this->accessToken],
+                'http_errors' => false,
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            if ($statusCode !== 200) {
+                error_log('MicrosoftGraphService::getUserAppRoles HTTP ' . $statusCode . ' for OID ' . $azureOid . ': ' . (string) $response->getBody());
+                return [];
+            }
+
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            if (!isset($body['value']) || !is_array($body['value'])) {
+                return [];
+            }
+
+            // Build reverse mapping: UUID -> role name
+            $roleUuidToName = defined('ROLE_MAPPING') ? array_flip(ROLE_MAPPING) : [];
+
+            $roles = [];
+            foreach ($body['value'] as $assignment) {
+                $appRoleId = $assignment['appRoleId'] ?? null;
+                if ($appRoleId !== null && isset($roleUuidToName[$appRoleId])) {
+                    $roles[] = $roleUuidToName[$appRoleId];
+                }
+            }
+
+            return $roles;
+
+        } catch (GuzzleException $e) {
+            throw new Exception('Failed to get user app roles: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get current app role assignment ID for a user
      * Retrieves the assignment ID (not the role ID!) of the user's current role
      * that matches one of the roles in ROLE_MAPPING

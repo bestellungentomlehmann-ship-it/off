@@ -13,7 +13,7 @@
  * so that <img> tags in the frontend never break.
  */
 
-require_once __DIR__ . '/private/secrets.php';
+require_once __DIR__ . '/config/config.php';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -241,10 +241,10 @@ if ($cached !== null) {
     exit;
 }
 
-// 3. Obtain Azure credentials from environment.
-$tenantId     = $_ENV['AZURE_TENANT_ID']     ?? '';
-$clientId     = $_ENV['AZURE_CLIENT_ID']     ?? '';
-$clientSecret = $_ENV['AZURE_CLIENT_SECRET'] ?? '';
+// 3. Obtain Azure credentials from configuration constants.
+$tenantId     = defined('AZURE_TENANT_ID')     ? AZURE_TENANT_ID     : '';
+$clientId     = defined('AZURE_CLIENT_ID')     ? AZURE_CLIENT_ID     : '';
+$clientSecret = defined('AZURE_CLIENT_SECRET') ? AZURE_CLIENT_SECRET : '';
 
 if ($tenantId === '' || $clientId === '' || $clientSecret === '') {
     error_log('fetch-profile-photo.php: Azure credentials missing in .env');
