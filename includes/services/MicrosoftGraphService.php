@@ -74,10 +74,10 @@ class MicrosoftGraphService {
         try {
             $response = $this->httpClient->post($tokenUrl, [
                 'form_params' => [
-                    'client_id' => $clientId,
+                    'client_id'     => $clientId,
                     'client_secret' => $clientSecret,
-                    'scope' => 'https://graph.microsoft.com/.default',
-                    'grant_type' => 'client_credentials'
+                    'scope'         => 'https://graph.microsoft.com/.default',
+                    'grant_type'    => 'client_credentials',
                 ]
             ]);
             
@@ -311,7 +311,7 @@ class MicrosoftGraphService {
      * @throws Exception For non-404 HTTP errors or network-level failures
      */
     public function getUserPhoto(string $identifier): ?string {
-        $photoUrl = "https://graph.microsoft.com/v1.0/users/{$identifier}/photo/\$value";
+        $photoUrl = 'https://graph.microsoft.com/v1.0/users/' . $identifier . '/photo/$value';
 
         try {
             // Use http_errors => false so 4xx/5xx responses are returned as response
@@ -329,6 +329,10 @@ class MicrosoftGraphService {
             if ($statusCode === 200) {
                 return $response->getBody()->getContents();
             }
+
+            // Log non-200 responses for debugging (helps distinguish 404 vs 401 etc.)
+            $responseBody = (string) $response->getBody();
+            error_log('MicrosoftGraphService::getUserPhoto HTTP ' . $statusCode . ' for ' . $identifier . ': ' . $responseBody);
 
             // User has no photo in Entra – return null so the caller falls back to
             // the default profile image without any PHP error being raised
