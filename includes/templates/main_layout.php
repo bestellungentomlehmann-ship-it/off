@@ -465,8 +465,8 @@ if (!isset($currentUser)) {
                 <!-- Admin Dashboard -->
                 <?php if (Auth::isAdmin()): ?>
                 <a href="<?php echo asset('pages/admin/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/index.php') || (isActivePath('/admin/') && !isActivePath('/admin/users') && !isActivePath('/admin/stats') && !isActivePath('/admin/audit') && !isActivePath('/admin/db_maintenance') && !isActivePath('/admin/settings')) ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
-                   <?php echo isActivePath('/admin/index.php') || (isActivePath('/admin/') && !isActivePath('/admin/users') && !isActivePath('/admin/stats') && !isActivePath('/admin/audit') && !isActivePath('/admin/db_maintenance') && !isActivePath('/admin/settings')) ? 'aria-current="page"' : ''; ?>>
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo isActivePath('/admin/index.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo isActivePath('/admin/index.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-tachometer-alt w-5 mr-3" aria-hidden="true"></i>
                     <span>Dashboard</span>
                 </a>
