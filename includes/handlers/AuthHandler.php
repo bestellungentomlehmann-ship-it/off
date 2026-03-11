@@ -1007,11 +1007,14 @@ class AuthHandler {
 
             error_log(sprintf('[syncEntraData] Photo sync condition hasUpload for user %d: %s', $userId, $hasUpload ? 'true (skipping, user has own upload)' : 'false (will fetch from Entra)'));
             if (!$hasUpload) {
-                // Prefer the delegated user token (User.Read scope already granted during OAuth login).
-                // Fall back to client-credentials flow only when no token was passed.
-                $photoService = new MicrosoftGraphService($userAccessToken);
-                $photoData = $photoService->getUserPhoto($azureOid);
-                error_log(sprintf('[syncEntraData] getUserPhoto for user %d (OID: %s): %s', $userId, $azureOid, $photoData !== null ? 'returned photo data (' . strlen($photoData) . ' bytes)' : 'returned null (no photo available)'));
+                // Use client-credentials flow (no user token) so the service uses the
+                // app-level permissions from .env – identical to the standalone test script.
+                $photoService = new MicrosoftGraphService();
+                $photoData = $photoService->getUserPhoto($mail);
+                error_log(sprintf('[syncEntraData] getUserPhoto for user %d (mail: %s): %s', $userId, $mail, $photoData !== null ? 'returned photo data (' . strlen($photoData) . ' bytes)' : 'returned null (no photo available)'));
+                if ($photoData === null) {
+                    error_log(sprintf('[syncEntraData] getUserPhoto returned null for user %d (mail: %s) – no photo fetched from Entra', $userId, $mail));
+                }
                 if ($photoData !== null) {
                     $cachedPath = User::cacheEntraPhoto($userId, $photoData);
                     error_log(sprintf('[syncEntraData] cacheEntraPhoto for user %d: %s', $userId, $cachedPath !== null ? 'cached at ' . $cachedPath : 'returned null (caching failed or skipped)'));
