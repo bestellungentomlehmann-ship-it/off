@@ -130,7 +130,7 @@ if (isset($_SESSION['error_message'])) {
             );
 
             $emailSent = MailService::sendEmail(
-                MAIL_SUPPORT,
+                MAIL_IT_RESSORT,
                 'Änderungsantrag: ' . $requestType . ' von ' . $user['email'],
                 $emailBody
             );
