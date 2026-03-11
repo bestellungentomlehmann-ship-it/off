@@ -106,23 +106,25 @@ ob_start();
 
 <div class="max-w-2xl mx-auto">
     <div class="mb-6">
-        <a href="index.php" class="text-ibc-green hover:text-ibc-green-dark inline-flex items-center mb-4">
-            <i class="fas fa-arrow-left mr-2"></i>Zurück zu Nützliche Links
+        <a href="index.php" class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-ibc-green dark:hover:text-ibc-green transition-colors mb-4 no-underline">
+            <i class="fas fa-arrow-left text-xs"></i>Zurück zu Nützliche Links
         </a>
     </div>
 
     <?php if (!empty($errors)): ?>
-    <div class="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+    <div class="mb-6 flex flex-col gap-1.5 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl text-sm">
         <?php foreach ($errors as $error): ?>
-            <div><i class="fas fa-exclamation-circle mr-2"></i><?php echo htmlspecialchars($error); ?></div>
+            <div class="flex items-center gap-2"><i class="fas fa-exclamation-circle flex-shrink-0"></i><?php echo htmlspecialchars($error); ?></div>
         <?php endforeach; ?>
     </div>
     <?php endif; ?>
 
-    <div class="card p-8">
-        <div class="mb-6">
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100">
-                <i class="fas fa-<?php echo $isEdit ? 'edit' : 'plus-circle'; ?> text-ibc-green mr-2"></i>
+    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 sm:p-8">
+        <div class="mb-6 flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center shadow-sm flex-shrink-0">
+                <i class="fas fa-<?php echo $isEdit ? 'edit' : 'plus-circle'; ?> text-ibc-green text-xl"></i>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
                 <?php echo $isEdit ? 'Link bearbeiten' : 'Neuen Link erstellen'; ?>
             </h1>
         </div>
@@ -139,7 +141,7 @@ ob_start();
                     required
                     value="<?php echo htmlspecialchars($title); ?>"
                     placeholder="z.B. IBC Website"
-                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-ibc-green dark:bg-gray-700 dark:text-gray-100"
+                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-ibc-green focus:border-ibc-green dark:bg-gray-800 dark:text-gray-100"
                 >
             </div>
 
@@ -152,20 +154,20 @@ ob_start();
                     required
                     value="<?php echo htmlspecialchars($url); ?>"
                     placeholder="https://beispiel.de"
-                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-ibc-green dark:bg-gray-700 dark:text-gray-100"
+                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-ibc-green focus:border-ibc-green dark:bg-gray-800 dark:text-gray-100"
                 >
             </div>
 
             <!-- Description -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Beschreibung (optional)</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Beschreibung <span class="text-gray-400 font-normal">(optional)</span></label>
                 <input
                     type="text"
                     name="description"
                     value="<?php echo htmlspecialchars($description); ?>"
                     placeholder="Kurze Beschreibung des Links"
                     maxlength="500"
-                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-ibc-green dark:bg-gray-700 dark:text-gray-100"
+                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-ibc-green focus:border-ibc-green dark:bg-gray-800 dark:text-gray-100"
                 >
             </div>
 
@@ -179,7 +181,7 @@ ob_start();
                     value="<?php echo htmlspecialchars($icon); ?>"
                 >
                 <!-- Icon Picker -->
-                <div class="grid grid-cols-6 sm:grid-cols-8 gap-3 p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700" id="icon_picker">
+                <div class="grid grid-cols-6 sm:grid-cols-8 gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800" id="icon_picker">
                     <?php
                     $iconList = [
                         'fas fa-globe', 'fas fa-envelope', 'fas fa-file', 'fas fa-chart-bar',
@@ -199,22 +201,22 @@ ob_start();
                         data-icon="<?php echo htmlspecialchars($ic); ?>"
                         title="<?php echo htmlspecialchars($ic); ?>"
                         aria-label="<?php echo htmlspecialchars($ic); ?>"
-                        class="icon-picker-btn flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-ibc-green hover:text-ibc-green transition <?php echo $isSelected ? 'ring-2 ring-ibc-green text-ibc-green border-ibc-green' : ''; ?>"
+                        class="icon-picker-btn flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:border-ibc-green hover:text-ibc-green transition <?php echo $isSelected ? 'ring-2 ring-ibc-green text-ibc-green border-ibc-green' : ''; ?>"
                     ><i class="<?php echo htmlspecialchars($ic); ?>" aria-hidden="true"></i></button>
                     <?php endforeach; ?>
                 </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
                     Aktuell gewählt: <span id="icon_label" class="font-mono"><?php echo htmlspecialchars($icon); ?></span>
                 </p>
             </div>
 
             <!-- Submit Buttons -->
-            <div class="flex justify-end space-x-4 pt-4">
-                <a href="index.php" class="px-6 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition">
+            <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <a href="index.php" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition text-sm w-full sm:w-auto no-underline">
                     Abbrechen
                 </a>
-                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-ibc-green to-ibc-green-dark text-white rounded-lg font-semibold hover:opacity-90 transition-all shadow-lg">
-                    <i class="fas fa-save mr-2"></i><?php echo $isEdit ? 'Änderungen speichern' : 'Link erstellen'; ?>
+                <button type="submit" class="btn-primary w-full sm:w-auto justify-center">
+                    <i class="fas fa-save"></i><?php echo $isEdit ? 'Änderungen speichern' : 'Link erstellen'; ?>
                 </button>
             </div>
         </form>
