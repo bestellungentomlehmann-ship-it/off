@@ -172,10 +172,7 @@ if (!isset($currentUser)) {
             img:not([class*="w-"]) { max-width: 100%; height: auto; }
 
             /* Ensure grids stack on mobile - use .grid-no-stack to opt out */
-            .grid:not(.grid-no-stack):not(.grid-cols-1) {
-                grid-template-columns: 1fr !important;
-                gap: 1rem !important;
-            }
+            /* Note: applied below 640px only so Tailwind sm: breakpoints take effect at 640px+ */
 
             /* Improved stat cards on mobile */
             .stat-icon { width: 48px !important; height: 48px !important; font-size: 1.25rem !important; }
@@ -193,6 +190,14 @@ if (!isset($currentUser)) {
             .submenu a {
                 padding-left: 2.25rem !important;
                 font-size: 0.875rem !important;
+            }
+        }
+
+        /* Extra small screens (below Tailwind sm: breakpoint): stack all grids to single column */
+        @media (max-width: 639px) {
+            .grid:not(.grid-no-stack):not(.grid-cols-1) {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
             }
         }
 

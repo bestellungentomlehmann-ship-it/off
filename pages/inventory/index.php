@@ -224,7 +224,7 @@ ob_start();
             <?php endif; ?>
 
             <!-- Stock Info -->
-            <div class="grid grid-cols-3 gap-2 mb-4">
+            <div class="grid grid-cols-3 grid-no-stack gap-2 mb-4">
                 <div class="text-center px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-700/50">
                     <p class="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Gesamt</p>
                     <p class="font-bold text-slate-700 dark:text-slate-200 text-sm"><?php echo $itemPieces; ?></p>

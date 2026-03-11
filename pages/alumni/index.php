@@ -132,7 +132,7 @@ ob_start();
             <?php endif; ?>
         </div>
     <?php else: ?>
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <?php foreach ($profiles as $profile): ?>
                 <?php
                 // Determine role badge color
@@ -146,7 +146,6 @@ ob_start();
                 $badgeClass = $roleBadgeColors[$displayRoleKey] ?? 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600';
                 $displayRole = htmlspecialchars($profile['display_role'] ?? Auth::getRoleLabel($profile['role'] ?? ''));
                 ?>
-                <div class="col">
                 <div class="card directory-card directory-card--alumni d-flex flex-column h-100">
                     <!-- Card Header: gradient band with avatar -->
                     <div class="directory-card-header">
@@ -241,7 +240,6 @@ ob_start();
                         </a>
                         <?php endif; ?>
                     </div>
-                </div>
                 </div>
             <?php endforeach; ?>
         </div>

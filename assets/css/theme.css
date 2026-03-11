@@ -3279,8 +3279,8 @@ body.dark-mode .sidebar {
    Mobile-First Approach
    ======================================== */
 
-/* Base Mobile Styles (0-640px) - Mobile First */
-@media (max-width: 640px) {
+/* Base Mobile Styles (0-639px) - Mobile First */
+@media (max-width: 639px) {
     /* Typography - Better readability on small screens */
     body {
         font-size: 0.9375rem; /* 15px */
@@ -3457,8 +3457,8 @@ body.dark-mode .sidebar {
     }
 }
 
-/* Small Tablets (641px - 768px) */
-@media (min-width: 641px) and (max-width: 768px) {
+/* Small Tablets (640px - 768px) */
+@media (min-width: 640px) and (max-width: 768px) {
     body {
         font-size: 1rem;
     }

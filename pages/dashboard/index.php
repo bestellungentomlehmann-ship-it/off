@@ -1080,7 +1080,7 @@ function dismissProfileReviewPrompt() {
             'closed'  => ['label' => 'Anmeldung geschlossen', 'color' => 'text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300'],
         ];
     ?>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <?php foreach ($events as $event): ?>
         <?php
             $ts = strtotime($event['start_time']);
@@ -1217,7 +1217,7 @@ function dismissProfileReviewPrompt() {
     </div>
 
     <?php if (!empty($helperEvents)): ?>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <?php foreach ($helperEvents as $event): ?>
         <div class="dash-helper-card">
             <h3 class="text-base font-bold leading-snug break-words hyphens-auto" style="color: var(--text-main)">
@@ -1286,7 +1286,7 @@ function dismissProfileReviewPrompt() {
             'Vorstand'           => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300',
         ];
     ?>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <?php foreach ($recentBlogPosts as $post): ?>
         <?php
             $catColor = $blogCategoryColors[$post['category'] ?? ''] ?? $blogCategoryColors['Allgemein'];
