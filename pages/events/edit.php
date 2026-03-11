@@ -743,14 +743,14 @@ ob_start();
 
         <!-- Form Actions -->
         <?php if (!$readOnly): ?>
-        <div class="flex space-x-4 pt-6 border-t">
-            <a href="manage.php" class="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 ease-premium text-center no-underline">
-                Abbrechen
+        <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t">
+            <a href="manage.php" class="w-full sm:flex-1 px-6 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 text-center no-underline font-medium inline-flex items-center justify-center">
+                <i class="fas fa-times mr-2"></i>Abbrechen
             </a>
-            <button type="submit" name="save_draft" class="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 ease-premium text-center inline-flex items-center justify-center">
+            <button type="submit" name="save_draft" class="w-full sm:flex-1 px-6 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 text-amber-700 dark:text-amber-400 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all duration-200 font-medium inline-flex items-center justify-center">
                 <i class="fas fa-file-alt mr-2"></i>Als Entwurf speichern
             </button>
-            <button type="submit" name="publish_event" class="flex-1 btn-primary inline-flex items-center justify-center">
+            <button type="submit" name="publish_event" class="w-full sm:flex-1 btn-primary inline-flex items-center justify-center">
                 <i class="fas fa-paper-plane mr-2"></i>Veröffentlichen
             </button>
         </div>
