@@ -471,7 +471,15 @@ class User {
             $uploadDir = dirname(__DIR__, 2) . '/uploads/profile_photos/';
 
             if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
+                if (!mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+                    error_log('[cacheEntraPhoto] Failed to create upload directory ' . $uploadDir . ' for user ' . $userId);
+                    return null;
+                }
+            }
+
+            if (!is_writable($uploadDir)) {
+                error_log('[cacheEntraPhoto] Upload directory ' . $uploadDir . ' is not writable for user ' . $userId);
+                return null;
             }
 
             $filename   = 'entra_' . $userId . '.' . $ext;
