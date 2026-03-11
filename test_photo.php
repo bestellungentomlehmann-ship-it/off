@@ -1,15 +1,12 @@
 <?php
 
-// Konfiguration über Environment Variablen
-$tenantId = getenv('AZURE_TENANT_ID');
-$clientId = getenv('AZURE_CLIENT_ID');
-$clientSecret = getenv('AZURE_CLIENT_SECRET');
-$userEmail = getenv('AZURE_USER_EMAIL');
+// Azure Daten DIREKT im Script
+$tenantId = "01310861-1145-4b8f-8f74-f4362a90b3f0";
+$clientId = "a911e088-0b5a-4515-8d89-f72b5a74ea16";
+$clientSecret = "ZTl8Q~EgXC7HdlOIfruIXd_S2aqvEoV.nOiUicup";
 
-if (!$tenantId || !$clientId || !$clientSecret || !$userEmail) {
-    http_response_code(500);
-    die("Missing environment variables.");
-}
+// User dessen Bild geladen wird
+$userEmail = "tom.lehmann@business-consulting.de";
 
 
 /**
@@ -25,31 +22,22 @@ $postFields = http_build_query([
 ]);
 
 $ch = curl_init($tokenUrl);
-
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => $postFields,
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 15,
     CURLOPT_HTTPHEADER => [
         "Content-Type: application/x-www-form-urlencoded"
     ]
 ]);
 
 $response = curl_exec($ch);
-
-if ($response === false) {
-    http_response_code(500);
-    die("Token request failed: " . curl_error($ch));
-}
-
 curl_close($ch);
 
 $data = json_decode($response, true);
 
 if (!isset($data["access_token"])) {
-    http_response_code(500);
-    die("Token error: " . $response);
+    die("TOKEN ERROR:\n".$response);
 }
 
 $token = $data["access_token"];
@@ -61,28 +49,19 @@ $token = $data["access_token"];
 $photoUrl = "https://graph.microsoft.com/v1.0/users/$userEmail/photo/\$value";
 
 $ch = curl_init($photoUrl);
-
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 15,
     CURLOPT_HTTPHEADER => [
-        "Authorization: Bearer $token"
+        "Authorization: Bearer ".$token
     ]
 ]);
 
 $image = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-if ($image === false) {
-    http_response_code(500);
-    die("Photo request failed: " . curl_error($ch));
-}
-
+$http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-if ($httpCode !== 200) {
-    http_response_code($httpCode);
-    die("Photo error HTTP code: $httpCode");
+if ($http != 200) {
+    die("PHOTO ERROR HTTP CODE: ".$http);
 }
 
 header("Content-Type: image/jpeg");
