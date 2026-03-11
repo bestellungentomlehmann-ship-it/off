@@ -63,14 +63,14 @@ ob_start();
     </div>
 
     <?php if ($canManage): ?>
-    <div class="flex items-center gap-3">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <button id="toggle-edit-mode"
-                class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-all text-sm">
+                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all text-sm shadow-sm w-full sm:w-auto">
             <i class="fas fa-pencil-alt"></i>
             Bearbeiten
         </button>
         <a href="edit.php"
-           class="inline-flex items-center gap-2 px-5 py-2.5 bg-ibc-green hover:bg-ibc-green-dark text-white rounded-xl font-semibold transition-all shadow-sm hover:shadow-md text-sm">
+           class="btn-primary w-full sm:w-auto justify-center">
             <i class="fas fa-plus"></i>
             Neuer Link
         </a>
@@ -191,8 +191,16 @@ if (toggleBtn) {
     toggleBtn.addEventListener('click', function() {
         const isActive = toggleBtn.classList.toggle('bg-ibc-green');
         toggleBtn.classList.toggle('text-white', isActive);
-        toggleBtn.classList.toggle('bg-gray-100', !isActive);
-        toggleBtn.classList.toggle('dark:bg-gray-700', !isActive);
+        toggleBtn.classList.toggle('border-ibc-green', isActive);
+        toggleBtn.classList.toggle('shadow-md', isActive);
+        toggleBtn.classList.toggle('hover:bg-gray-50', !isActive);
+        toggleBtn.classList.toggle('dark:hover:bg-gray-700', !isActive);
+        toggleBtn.classList.toggle('hover:border-gray-400', !isActive);
+        toggleBtn.classList.toggle('dark:hover:border-gray-500', !isActive);
+        toggleBtn.classList.toggle('bg-white', !isActive);
+        toggleBtn.classList.toggle('dark:bg-gray-800', !isActive);
+        toggleBtn.classList.toggle('border-gray-300', !isActive);
+        toggleBtn.classList.toggle('dark:border-gray-600', !isActive);
         toggleBtn.classList.toggle('text-gray-600', !isActive);
         toggleBtn.classList.toggle('dark:text-gray-300', !isActive);
         document.querySelectorAll('.link-actions').forEach(function(el) {
