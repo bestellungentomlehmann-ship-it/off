@@ -606,7 +606,6 @@ if (!isset($currentUser)) {
             $lastname = '';
             $email = '';
             $role = 'User';
-            $navProfileImageUrl = '';
             $displayRoles = [];
             
             // Only try to get profile if user is logged in
@@ -615,17 +614,9 @@ if (!isset($currentUser)) {
                 require_once __DIR__ . '/../models/Alumni.php';
                 $profile = Alumni::getProfileByUserId($currentUser['id']);
                 
-                // Resolve profile image for the desktop top navbar using avatar_path as single source of truth:
-                // If avatar_path is set AND the file physically exists → show image
-                // Otherwise → show initials (no image URL set)
-                $_defaultImg = defined('DEFAULT_PROFILE_IMAGE') ? DEFAULT_PROFILE_IMAGE : 'assets/img/default_profil.png';
-                require_once __DIR__ . '/../models/User.php';
-                // Pass $currentUser as $userData to avoid a redundant DB query (Auth::user() already
-                // fetched avatar_path via SELECT *).
-                $_resolved = User::getProfilePictureUrl($currentUser['id'], $currentUser);
-                if ($_resolved !== $_defaultImg) {
-                    $navProfileImageUrl = $_resolved;
-                }
+                // Entra photo path and custom avatar info are available directly from $currentUser
+                // (Auth::user() fetches these columns via SELECT *).
+                // No extra DB query needed here.
                 
                 // Profile data may be user-edited, so don't transform it
                 if ($profile && !empty($profile['first_name'])) {
@@ -712,23 +703,36 @@ if (!isset($currentUser)) {
             <!-- User Info -->
             <div class='flex items-start gap-2 mb-2'>
                 <?php
-                // Determine sidebar image source: prefer local avatar, fall back to Entra photo via email
-                $sidebarImageSrc = '';
-                if (!empty($navProfileImageUrl)) {
-                    $sidebarImageSrc = asset($navProfileImageUrl);
-                } elseif (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                // Determine sidebar image source.
+                // Priority: 1. Entra photo (live via fetch-profile-photo.php, only when a cached
+                //              entra_photo_path exists in the DB confirming the user has one)
+                //           2. Custom upload (when user has uploaded their own photo)
+                //           3. Default profile image
+                $_defaultImg       = defined('DEFAULT_PROFILE_IMAGE') ? DEFAULT_PROFILE_IMAGE : 'assets/img/default_profil.png';
+                $_entraPhotoPath   = $currentUser['entra_photo_path'] ?? '';
+                $_useCustomAvatar  = (int)($currentUser['use_custom_avatar'] ?? 0);
+                $_avatarPath       = $currentUser['avatar_path'] ?? '';
+
+                if (!empty($_entraPhotoPath) && resolveImagePath($_entraPhotoPath) !== null &&
+                    !empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    // Entra photo confirmed in DB and on disk – serve live via fetch-profile-photo.php
                     $sidebarImageSrc = asset('fetch-profile-photo.php') . '?email=' . urlencode($email);
+                } elseif ($_useCustomAvatar === 1 && !empty($_avatarPath) && resolveImagePath($_avatarPath) !== null) {
+                    // No Entra photo – fall back to the user's own upload
+                    $sidebarImageSrc = asset($_avatarPath);
+                } else {
+                    // Neither Entra nor custom upload available – use the default image
+                    $sidebarImageSrc = asset($_defaultImg);
                 }
                 ?>
                 <div class="relative w-9 h-9 shrink-0">
-                    <!-- Initials fallback (rendered behind the profile image) -->
+                    <!-- Initials fallback: always present behind the image; becomes visible via onerror if the image fails to load -->
                     <div class='absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow border border-white/20'>
                         <?php echo $initials; ?>
                     </div>
-                    <?php if (!empty($sidebarImageSrc)): ?>
-                    <!-- Profile image (renders on top of initials; hidden on error to reveal initials) -->
+                    <!-- Profile image: always rendered with a definite src (Entra → custom upload → default). -->
+                    <!-- onerror reveals the initials layer above as last-resort fallback. -->
                     <img src="<?php echo htmlspecialchars($sidebarImageSrc); ?>" alt="Profilbild" class="absolute inset-0 w-full h-full rounded-full object-cover shadow border border-white/20" onerror="this.style.display='none';">
-                    <?php endif; ?>
                 </div>
                 <div class='flex-1 min-w-0'>
                     <?php if (!empty($firstname) || !empty($lastname)): ?>
