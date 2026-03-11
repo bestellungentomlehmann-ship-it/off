@@ -744,7 +744,10 @@ class AuthHandler {
                         $hasUpload   = (int) ($avatarRow ? ($avatarRow['use_custom_avatar'] ?? 0) : 0) === 1;
 
                         if (!$hasUpload) {
-                            $photoData = $graphService->getUserPhoto($azureOid);
+                            // Use client-credentials flow (no user token) so the service uses the
+                            // app-level permissions from .env – identical to syncEntraData and the standalone test.
+                            $photoService = new MicrosoftGraphService();
+                            $photoData = $photoService->getUserPhoto($email);
                             if ($photoData !== null) {
                                 User::cacheEntraPhoto($userId, $photoData);
                             }
