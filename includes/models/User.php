@@ -451,7 +451,11 @@ class User {
         }
 
         try {
-            file_put_contents($tmpFile, $photoData);
+            $bytesWritten = file_put_contents($tmpFile, $photoData);
+            error_log('[cacheEntraPhoto] file_put_contents to temp file ' . $tmpFile . ': ' . ($bytesWritten !== false ? 'success (' . $bytesWritten . ' bytes)' : 'FAILED') . ' for user ' . $userId);
+            if ($bytesWritten === false) {
+                return null;
+            }
 
             $finfo    = finfo_open(FILEINFO_MIME_TYPE);
             $mimeType = finfo_file($finfo, $tmpFile);
@@ -485,21 +489,18 @@ class User {
             $filename   = 'entra_' . $userId . '.' . $ext;
             $uploadPath = $uploadDir . $filename;
 
-            if (!copy($tmpFile, $uploadPath)) {
-                error_log('[cacheEntraPhoto] Failed to copy temp file to ' . $uploadPath . ' for user ' . $userId);
+            error_log('[cacheEntraPhoto] Writing photo for user ' . $userId . ' to physical path: ' . $uploadPath);
+            $copyResult = copy($tmpFile, $uploadPath);
+            error_log('[cacheEntraPhoto] copy to ' . $uploadPath . ': ' . ($copyResult ? 'success' : 'FAILED') . ' for user ' . $userId);
+            if (!$copyResult) {
                 return null;
             }
             if (!chmod($uploadPath, 0644)) {
                 error_log('[cacheEntraPhoto] Failed to chmod ' . $uploadPath . ' for user ' . $userId);
             }
 
-            $projectRoot = realpath(dirname(__DIR__, 2));
-            $realPath    = realpath($uploadPath);
-            if ($projectRoot === false || $realPath === false) {
-                return null;
-            }
-
-            $relativePath = str_replace('\\', '/', substr($realPath, strlen($projectRoot) + 1));
+            $projectRoot  = dirname(__DIR__, 2);
+            $relativePath = str_replace('\\', '/', substr($uploadPath, strlen($projectRoot) + 1));
 
             // Persist the path in the users table.
             // Always update entra_photo_path. Also update avatar_path unless the user has
