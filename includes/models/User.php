@@ -434,6 +434,8 @@ class User {
      * @return string|null       Relative path stored in the database, or null on failure
      */
     public static function cacheEntraPhoto(int $userId, string $photoData): ?string {
+        error_log('[cacheEntraPhoto] Project root (dirname(__DIR__, 2)): ' . dirname(__DIR__, 2) . ' for user ' . $userId);
+
         if (empty($photoData)) {
             return null;
         }
@@ -492,15 +494,16 @@ class User {
             error_log('[cacheEntraPhoto] Writing photo for user ' . $userId . ' to physical path: ' . $uploadPath);
             $copyResult = copy($tmpFile, $uploadPath);
             error_log('[cacheEntraPhoto] copy to ' . $uploadPath . ': ' . ($copyResult ? 'success' : 'FAILED') . ' for user ' . $userId);
-            if (!$copyResult) {
-                return null;
-            }
             if (!chmod($uploadPath, 0644)) {
                 error_log('[cacheEntraPhoto] Failed to chmod ' . $uploadPath . ' for user ' . $userId);
+            }
+            if (!$copyResult) {
+                return null;
             }
 
             $projectRoot  = dirname(__DIR__, 2);
             $relativePath = str_replace('\\', '/', substr($uploadPath, strlen($projectRoot) + 1));
+            error_log('[cacheEntraPhoto] relativePath written to DB: ' . $relativePath . ' for user ' . $userId);
 
             // Persist the path in the users table.
             // Always update entra_photo_path. Also update avatar_path unless the user has
