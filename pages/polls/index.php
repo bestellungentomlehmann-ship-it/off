@@ -132,7 +132,7 @@ ob_start();
     <?php else: ?>
 
     <!-- Polls Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <?php foreach ($filteredPolls as $poll): ?>
         <?php
             $hasVoted   = (int)$poll['user_has_voted'] > 0;

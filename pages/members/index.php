@@ -132,7 +132,7 @@ ob_start();
             <?php endif; ?>
         </div>
     <?php else: ?>
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             <?php foreach ($members as $member): ?>
                 <?php
                 // Determine role badge color
@@ -192,7 +192,6 @@ ob_start();
                     }
                 }
                 ?>
-                <div class="col">
                 <div class="card directory-card directory-card--members d-flex flex-column h-100">
                     <!-- Card Header: gradient band with avatar -->
                     <div class="directory-card-header">
@@ -313,7 +312,6 @@ ob_start();
                             Profil ansehen
                         </a>
                     </div>
-                </div>
                 </div>
             <?php endforeach; ?>
         </div>

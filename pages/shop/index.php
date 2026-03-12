@@ -350,6 +350,10 @@ ob_start();
     <?php if (!empty($availableCategories)): ?>
     <style>
     .cat-tab { display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:14px; font-size:.875rem; font-weight:700; cursor:pointer; transition:all .3s cubic-bezier(0.4,0,0.2,1); white-space:nowrap; border:2px solid transparent; }
+    @media (max-width: 480px) {
+        .cat-tab { padding:7px 12px; font-size:.8125rem; gap:5px; }
+        .cat-count-badge { display:none; }
+    }
     .cat-tab-all { background:#2563eb; color:#fff; box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1); }
     .cat-tab-all.cat-tab-inactive { background:#f3f4f6; color:#374151; border-color:#e5e7eb; box-shadow:none; }
     .cat-tab-all.cat-tab-inactive:hover { background:#dbeafe; color:#1e40af; border-color:#93c5fd; transform:translateY(-2px); box-shadow:0 3px 10px rgba(0,0,0,.1); }

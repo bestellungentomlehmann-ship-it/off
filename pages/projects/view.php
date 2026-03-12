@@ -300,7 +300,7 @@ ob_start();
         </h1>
         
         <!-- Project Information with Modern Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
             <?php if (!empty($project['client_name'])): ?>
             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm" aria-label="Kundeninformation">
                 <div class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Kunde</div>
