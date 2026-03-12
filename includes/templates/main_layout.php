@@ -3,6 +3,7 @@ require_once __DIR__ . '/../helpers.php';
 require_once __DIR__ . '/../../src/Auth.php';
 require_once __DIR__ . '/../handlers/AuthHandler.php';
 require_once __DIR__ . '/../handlers/CSRFHandler.php';
+require_once __DIR__ . '/../models/User.php';
 
 // DEBUG: Uncomment to force role for testing
 // $_SESSION['user_role'] = 'vorstand_finanzen';
@@ -717,37 +718,8 @@ if (!isset($currentUser)) {
 
             <!-- User Info -->
             <div class='flex items-start gap-2 mb-2'>
-                <?php
-                // Determine sidebar image source.
-                // Priority: 1. Entra photo (live via fetch-profile-photo.php, only when a cached
-                //              entra_photo_path exists in the DB confirming the user has one)
-                //           2. Custom upload (when user has uploaded their own photo)
-                //           3. Default profile image
-                $_defaultImg       = defined('DEFAULT_PROFILE_IMAGE') ? DEFAULT_PROFILE_IMAGE : 'assets/img/default_profil.png';
-                $_entraPhotoPath   = $currentUser['entra_photo_path'] ?? '';
-                $_useCustomAvatar  = (int)($currentUser['use_custom_avatar'] ?? 0);
-                $_avatarPath       = $currentUser['avatar_path'] ?? '';
-
-                if (!empty($_entraPhotoPath) && resolveImagePath($_entraPhotoPath) !== null &&
-                    !empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    // Entra photo confirmed in DB and on disk – serve live via fetch-profile-photo.php
-                    $sidebarImageSrc = asset('fetch-profile-photo.php') . '?email=' . urlencode($email);
-                } elseif ($_useCustomAvatar === 1 && !empty($_avatarPath) && resolveImagePath($_avatarPath) !== null) {
-                    // No Entra photo – fall back to the user's own upload
-                    $sidebarImageSrc = asset($_avatarPath);
-                } else {
-                    // Neither Entra nor custom upload available – use the default image
-                    $sidebarImageSrc = asset($_defaultImg);
-                }
-                ?>
-                <div class="relative w-9 h-9 shrink-0">
-                    <!-- Initials fallback: always present behind the image; becomes visible via onerror if the image fails to load -->
-                    <div class='absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow border border-white/20'>
-                        <?php echo $initials; ?>
-                    </div>
-                    <!-- Profile image: always rendered with a definite src (Entra → custom upload → default). -->
-                    <!-- onerror reveals the initials layer above as last-resort fallback. -->
-                    <img src="<?php echo htmlspecialchars($sidebarImageSrc); ?>" alt="Profilbild" class="absolute inset-0 w-full h-full rounded-full object-cover shadow border border-white/20" onerror="this.style.display='none';">
+                <div class="w-9 h-9 shrink-0">
+                    <img src="<?php echo htmlspecialchars(asset(User::getProfilePictureUrl((int)$currentUser['id'], $currentUser))); ?>" alt="Profilbild" class="w-full h-full rounded-full object-cover">
                 </div>
                 <div class='flex-1 min-w-0'>
                     <?php if (!empty($firstname) || !empty($lastname)): ?>
