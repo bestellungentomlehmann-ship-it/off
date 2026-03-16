@@ -211,14 +211,14 @@ body {
     top: 0;
     z-index: 40;
     width: 16rem;
-    transform: translateX(-100%);
+    transform: translate3d(-100%, 0, 0);
     transition: transform 0.3s ease;
 }
 
 /* Sidebar visible on desktop (mirrors Tailwind: md:translate-x-0) */
 @media (min-width: 768px) {
     .sidebar {
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
@@ -465,11 +465,11 @@ body:not(.dark-mode) .sidebar .sidebar-logout:hover {
     border-color: rgba(255, 255, 255, 0.3);
     color: #fff;
     text-decoration: none !important;
-    transform: translateY(-1px);
+    transform: translate3d(0, -1px, 0);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 .sidebar-footer-btn:active {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
     box-shadow: none;
 }
 .sidebar-footer-btn.active-btn {
@@ -530,7 +530,7 @@ body.dark-mode .card {
 
 body.dark-mode .card:hover {
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.4) !important;
-    transform: translateY(-5px);
+    transform: translate3d(0, -5px, 0);
     border-color: rgba(51, 133, 196, 0.3) !important;
 }
 
@@ -647,7 +647,7 @@ select:hover:not(:disabled) {
         0 2px 4px rgba(0, 102, 179, 0.08),
         0 4px 8px rgba(0, 102, 179, 0.06),
         inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    transform: translateY(-1px);
+    transform: translate3d(0, -1px, 0);
 }
 
 /* Focus State with Enhanced Ring Effect */
@@ -659,12 +659,12 @@ select:focus {
         0 0 0 4px rgba(0, 102, 179, 0.12),
         0 2px 8px rgba(0, 102, 179, 0.15),
         inset 0 1px 2px rgba(0, 102, 179, 0.05);
-    transform: translateY(-1px);
+    transform: translate3d(0, -1px, 0);
 }
 
 /* Active/Pressed State - More Tactile Feedback */
 select:active:not(:disabled) {
-    transform: translateY(0) scale(0.998);
+    transform: translate3d(0, 0, 0) scale(0.998);
     border-color: var(--ibc-blue-dark);
     box-shadow: 
         0 1px 2px rgba(0, 102, 179, 0.15),
@@ -710,7 +710,7 @@ select:disabled {
         inset 0 1px 3px rgba(0, 0, 0, 0.3), 
         0 2px 8px rgba(51, 133, 196, 0.2),
         inset 0 -1px 0 rgba(255, 255, 255, 0.05);
-    transform: translateY(-1px);
+    transform: translate3d(0, -1px, 0);
 }
 
 .dark-mode select:focus {
@@ -725,12 +725,12 @@ select:disabled {
         inset 0 1px 3px rgba(0, 0, 0, 0.3), 
         0 0 0 4px rgba(51, 133, 196, 0.25),
         0 2px 12px rgba(51, 133, 196, 0.2) !important;
-    transform: translateY(-1px);
+    transform: translate3d(0, -1px, 0);
 }
 
 .dark-mode select:active:not(:disabled) {
     border-color: var(--ibc-blue) !important;
-    transform: translateY(0) scale(0.998);
+    transform: translate3d(0, 0, 0) scale(0.998);
     box-shadow: 
         inset 0 2px 4px rgba(0, 0, 0, 0.4),
         inset 0 1px 2px rgba(51, 133, 196, 0.15);
@@ -766,7 +766,7 @@ select[multiple] option {
 
 select[multiple] option:hover {
     background: rgba(0, 102, 179, 0.08);
-    transform: translateX(2px);
+    transform: translate3d(2px, 0, 0);
 }
 
 select[multiple] option:checked {
@@ -799,7 +799,7 @@ select[multiple] option:checked {
     position: absolute;
     left: 0.75rem;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translate3d(0, -50%, 0);
     pointer-events: none;
     z-index: 1;
 }
@@ -2315,7 +2315,7 @@ body:not(.dark-mode) .card::after {
 
 .card:hover {
     box-shadow: var(--shadow-card-hover);
-    transform: translateY(-5px);
+    transform: translate3d(0, -5px, 0);
     border-color: rgba(0, 102, 179, 0.12);
 }
 
@@ -2349,12 +2349,12 @@ body:not(.dark-mode) .card:hover::after {
     background: rgba(255, 255, 255, 0.08) !important;
     backdrop-filter: blur(4px);
     border-radius: 8px !important;
-    transform: translateX(4px);
+    transform: translate3d(4px, 0, 0);
 }
 
 .sidebar nav a:active {
     background: rgba(255, 255, 255, 0.15) !important;
-    transform: translateX(2px) scale(0.98);
+    transform: translate3d(2px, 0, 0) scale(0.98);
     transition: transform 0.1s ease, background 0.1s ease;
 }
 
@@ -2473,7 +2473,7 @@ body:not(.dark-mode) .btn-primary::after {
     height: 0;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.5);
-    transform: translate(-50%, -50%);
+    transform: translate3d(-50%, -50%, 0);
     transition: width 0.6s, height 0.6s;
 }
 
@@ -2485,14 +2485,14 @@ body:not(.dark-mode) .btn-primary:active::after {
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
+    transform: translate3d(0, -2px, 0);
     box-shadow: 0 8px 25px rgba(0, 102, 179, 0.45);
     background-size: 200% 200%;
     filter: brightness(1.05);
 }
 
 .btn-primary:active {
-    transform: translateY(0) scale(0.97);
+    transform: translate3d(0, 0, 0) scale(0.97);
     filter: brightness(0.9);
     box-shadow: 0 2px 8px rgba(0, 102, 179, 0.3);
     transition: transform 0.1s ease, filter 0.1s ease, box-shadow 0.1s ease;
@@ -2527,13 +2527,13 @@ body:not(.dark-mode) .btn-primary:active::after {
 }
 
 .btn-secondary:hover {
-    transform: translateY(-2px);
+    transform: translate3d(0, -2px, 0);
     box-shadow: 0 8px 20px rgba(75, 85, 99, 0.45);
     filter: brightness(1.08);
 }
 
 .btn-secondary:active {
-    transform: translateY(0) scale(0.97);
+    transform: translate3d(0, 0, 0) scale(0.97);
     filter: brightness(0.9);
     box-shadow: 0 2px 6px rgba(75, 85, 99, 0.25);
     transition: transform 0.1s ease, filter 0.1s ease, box-shadow 0.1s ease;
@@ -2549,7 +2549,7 @@ body:not(.dark-mode) .btn-secondary::after {
     height: 0;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.4);
-    transform: translate(-50%, -50%);
+    transform: translate3d(-50%, -50%, 0);
     transition: width 0.6s, height 0.6s;
 }
 
@@ -2567,7 +2567,7 @@ body.dark-mode .btn-secondary {
 
 body.dark-mode .btn-secondary:hover {
     box-shadow: 0 8px 24px rgba(75, 85, 99, 0.55);
-    transform: translateY(-2px);
+    transform: translate3d(0, -2px, 0);
 }
 
 /* Dark Mode ripple for btn-secondary */
@@ -2580,7 +2580,7 @@ body.dark-mode .btn-secondary::after {
     height: 0;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.2);
-    transform: translate(-50%, -50%);
+    transform: translate3d(-50%, -50%, 0);
     transition: width 0.6s, height 0.6s;
 }
 
@@ -2614,12 +2614,12 @@ body.dark-mode .btn-secondary:active::after {
 .btn-cancel:hover {
     background: rgba(107, 114, 128, 0.10);
     border-color: #9ca3af;
-    transform: translateY(-1px);
+    transform: translate3d(0, -1px, 0);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
 .btn-cancel:active {
-    transform: translateY(0) scale(0.97);
+    transform: translate3d(0, 0, 0) scale(0.97);
     background: rgba(107, 114, 128, 0.18);
     transition: transform 0.1s ease, background 0.1s ease;
 }
@@ -2720,7 +2720,7 @@ body.dark-mode .btn-cancel:active {
 .microsoft-btn:hover {
     background-color: #1a1a1a !important;
     border-color: rgba(255, 255, 255, 0.15) !important;
-    transform: translateY(-2px) !important;
+    transform: translate3d(0, -2px, 0) !important;
     box-shadow: 
         0 6px 16px rgba(0, 0, 0, 0.45),
         0 12px 32px rgba(0, 0, 0, 0.35),
@@ -2728,7 +2728,7 @@ body.dark-mode .btn-cancel:active {
 }
 
 .microsoft-btn:active {
-    transform: translateY(0) !important;
+    transform: translate3d(0, 0, 0) !important;
     box-shadow: 
         0 2px 8px rgba(0, 0, 0, 0.4),
         0 4px 16px rgba(0, 0, 0, 0.3),
@@ -2864,10 +2864,10 @@ a.microsoft-btn {
 /* Floating animation for logo */
 @keyframes float {
     0%, 100% {
-        transform: translateY(0px);
+        transform: translate3d(0, 0, 0);
     }
     50% {
-        transform: translateY(-10px);
+        transform: translate3d(0, -10px, 0);
     }
 }
 
@@ -2929,7 +2929,7 @@ body:not(.dark-mode) textarea:focus {
     border-color: var(--ibc-blue);
     box-shadow: 0 0 0 4px rgba(0, 102, 179, 0.1), 0 4px 12px rgba(0, 102, 179, 0.08);
     outline: none;
-    transform: translateY(-1px);
+    transform: translate3d(0, -1px, 0);
 }
 
 input:not([type="checkbox"]):not([type="radio"]):focus,
@@ -2970,11 +2970,11 @@ main > .card {
 @keyframes fadeSlideUp {
     from {
         opacity: 0;
-        transform: translateY(12px);
+        transform: translate3d(0, 12px, 0);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
@@ -3310,7 +3310,7 @@ body.dark-mode .sidebar {
     }
     
     .card:hover {
-        transform: translateY(-2px); /* Less movement on mobile */
+        transform: translate3d(0, -2px, 0); /* Less movement on mobile */
     }
     
     /* Button Optimizations - Larger touch targets */
@@ -3583,18 +3583,68 @@ body.dark-mode .sidebar {
     }
 }
 
-/* Touch Device Optimizations */
+/* Touch Device Optimizations
+   Prevents "sticky hover" states on phones/tablets that have no real hover capability.
+   Only devices matching (hover: none) and (pointer: coarse) are affected;
+   hybrid devices (iPad + trackpad, Surface) still get the full desktop hover experience. */
 @media (hover: none) and (pointer: coarse) {
     /* Larger touch targets for touch devices */
     a, button, input, select, textarea {
         min-height: 44px;
     }
-    
-    /* Remove hover effects on touch devices */
-    .card:hover {
+
+    /* ── Remove layout-lifting hover transforms to prevent sticky hover ── */
+    .card:hover,
+    body:not(.dark-mode) .card:hover,
+    body.dark-mode .card:hover {
+        transform: translate3d(0, 0, 0);
+        box-shadow: var(--shadow-card);
+        border-color: var(--border-color, rgba(0, 0, 0, 0.05));
+    }
+
+    .btn-primary:hover,
+    .btn-secondary:hover,
+    .btn-cancel:hover,
+    .btn:hover,
+    body.dark-mode .btn-secondary:hover {
+        transform: translate3d(0, 0, 0);
+    }
+
+    .btn-login-premium:hover,
+    .btn-login-premium:focus {
         transform: none;
     }
-    
+
+    .microsoft-btn:hover {
+        transform: translate3d(0, 0, 0) !important;
+    }
+
+    .sidebar nav a:hover,
+    .sidebar .nav-link:hover {
+        transform: translate3d(0, 0, 0) !important;
+    }
+
+    .sidebar-footer-btn:hover {
+        transform: translate3d(0, 0, 0);
+    }
+
+    select:hover:not(:disabled),
+    .dark-mode select:hover:not(:disabled) {
+        transform: translate3d(0, 0, 0);
+    }
+
+    .directory-card:hover {
+        transform: translate3d(0, 0, 0);
+    }
+
+    .stat-card:hover {
+        transform: translate3d(0, 0, 0);
+    }
+
+    .pagination .page-link:hover {
+        transform: translate3d(0, 0, 0) !important;
+    }
+
     /* Better tap feedback for all interactive elements */
     a:active, button:active, .btn:active {
         opacity: 0.7;
@@ -3858,33 +3908,33 @@ body.dark-mode .sidebar {
 @keyframes slideInFromLeft {
     from {
         opacity: 0;
-        transform: translateX(-30px);
+        transform: translate3d(-30px, 0, 0);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
 @keyframes slideInFromRight {
     from {
         opacity: 0;
-        transform: translateX(30px);
+        transform: translate3d(30px, 0, 0);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
 @keyframes slideInFromBottom {
     from {
         opacity: 0;
-        transform: translateY(30px);
+        transform: translate3d(0, 30px, 0);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
@@ -3945,13 +3995,13 @@ body.dark-mode .sidebar {
 /* Smooth reveal on scroll */
 .reveal-on-scroll {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translate3d(0, 20px, 0);
     transition: opacity 0.6s ease-out, transform 0.6s ease-out;
 }
 
 .reveal-on-scroll.revealed {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
 }
 
 /* Glass morphism effect */
@@ -4146,7 +4196,7 @@ a.disabled {
     position: absolute;
     bottom: 100%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
     padding: 0.5rem 0.75rem;
     background: var(--ibc-gray-900);
     color: white;
@@ -4205,7 +4255,7 @@ body.dark-mode .btn-primary {
 
 body.dark-mode .btn-primary:hover {
     box-shadow: 0 8px 32px rgba(0, 102, 179, 0.55), 0 4px 16px rgba(0, 102, 179, 0.4);
-    transform: translateY(-2px);
+    transform: translate3d(0, -2px, 0);
 }
 
 /* Dark Mode: Button ripple effect on click */
@@ -4218,7 +4268,7 @@ body.dark-mode .btn-primary::after {
     height: 0;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.3);
-    transform: translate(-50%, -50%);
+    transform: translate3d(-50%, -50%, 0);
     transition: width 0.6s, height 0.6s;
 }
 
@@ -4802,7 +4852,7 @@ body.dark-mode {
         width: 85%;
         max-width: 320px;
         z-index: 1050 !important; /* Must be above overlay (1040); !important overrides Tailwind z-40 */
-        transform: translateX(-100%); /* Standardmäßig versteckt */
+        transform: translate3d(-100%, 0, 0); /* Standardmäßig versteckt */
         transition: transform 0.3s ease-in-out;
         display: flex;
         flex-direction: column;
@@ -4813,7 +4863,7 @@ body.dark-mode {
         touch-action: pan-y;
     }
     .sidebar.open {
-        transform: translateX(0) !important; /* Zeigen wenn Klasse 'open' */
+        transform: translate3d(0, 0, 0) !important; /* Zeigen wenn Klasse 'open' */
     }
     .sidebar nav,
     .sidebar .sidebar-scroll {
@@ -5300,7 +5350,7 @@ body:not(.dark-mode) .card:hover {
         0 16px 40px rgba(0, 0, 0, 0.1),
         inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
     border-color: rgba(0, 102, 179, 0.1) !important;
-    transform: translateY(-5px);
+    transform: translate3d(0, -5px, 0);
 }
 
 /* ============================================================
@@ -5511,7 +5561,7 @@ img:not([loading]) {
     position: absolute;
     left: 1rem;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translate3d(0, -50%, 0);
     pointer-events: none;
     z-index: 2;
     color: #6b7280;
@@ -5598,7 +5648,7 @@ img:not([loading]) {
 }
 
 .directory-card:hover {
-    transform: translateY(-5px);
+    transform: translate3d(0, -5px, 0);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
@@ -5783,7 +5833,7 @@ img:not([loading]) {
     position: absolute;
     bottom: -48px; /* half of 96px alumni avatar */
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
     z-index: 2;
 }
 
@@ -6176,13 +6226,13 @@ select {
        overflow:hidden + transform flicker bug on Chrome/Safari */
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    transform: translateZ(0);
+    transform: translate3d(0, 0, 0);
     will-change: auto;
 }
 
 .inventory-item-card:hover {
     /* Soft upward lift + diffused shadow – no abrupt jump */
-    transform: translateY(-6px) translateZ(0);
+    transform: translate3d(0, -6px, 0);
     box-shadow:
         0 4px 8px rgba(0, 0, 0, 0.04),
         0 12px 28px rgba(0, 0, 0, 0.10),
@@ -6210,7 +6260,7 @@ body.dark-mode .inventory-item-card:hover {
    support @media (hover: hover) and will receive the full hover effect. */
 @media (hover: none) and (pointer: coarse) {
     .inventory-item-card:hover {
-        transform: translateZ(0);
+        transform: translate3d(0, 0, 0);
         box-shadow:
             0 2px 8px rgba(0, 0, 0, 0.08),
             0 4px 16px rgba(0, 0, 0, 0.06);
@@ -6281,7 +6331,7 @@ body.dark-mode .sidebar {
 .sidebar nav a:hover {
     background: rgba(255, 255, 255, 0.12) !important;
     border-radius: 10px !important;
-    transform: translateX(2px);
+    transform: translate3d(2px, 0, 0);
     transition: all 0.2s ease !important;
 }
 
@@ -6319,7 +6369,7 @@ body:not(.dark-mode) .card:hover {
         0 4px 8px rgba(0, 0, 0, 0.06),
         0 12px 40px rgba(0, 0, 0, 0.10),
         0 0 0 1px rgba(0, 102, 179, 0.05) !important;
-    transform: translateY(-3px) !important;
+    transform: translate3d(0, -3px, 0) !important;
 }
 
 body.dark-mode .card {
@@ -6340,11 +6390,11 @@ body.dark-mode .card {
 }
 
 .btn:hover {
-    transform: translateY(-1px) !important;
+    transform: translate3d(0, -1px, 0) !important;
 }
 
 .btn:active {
-    transform: translateY(0) scale(0.98) !important;
+    transform: translate3d(0, 0, 0) scale(0.98) !important;
 }
 
 /* Override Bootstrap btn-primary to use IBC blue gradient */
@@ -6692,7 +6742,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
 .pagination .page-link:hover {
     background: rgba(0, 102, 179, 0.08) !important;
     border-color: var(--ibc-blue) !important;
-    transform: translateY(-1px) !important;
+    transform: translate3d(0, -1px, 0) !important;
 }
 
 /* ── Modal dialog polish ────────────────────────────────── */
@@ -6803,11 +6853,11 @@ main {
 @keyframes pageIn {
     from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translate3d(0, 8px, 0);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
@@ -6890,7 +6940,7 @@ body:not(.dark-mode) .card {
 
 body:not(.dark-mode) .card:hover {
     box-shadow: 0 8px 24px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.07);
-    transform: translateY(-3px);
+    transform: translate3d(0, -3px, 0);
     border-color: rgba(0,102,179,0.18);
 }
 
@@ -7026,11 +7076,11 @@ body.dark-mode .alert-info    { background: rgba(59,130,246,0.15) !important; }
 }
 
 .btn:hover {
-    transform: translateY(-1px);
+    transform: translate3d(0, -1px, 0);
 }
 
 .btn:active {
-    transform: translateY(0) scale(0.98);
+    transform: translate3d(0, 0, 0) scale(0.98);
 }
 
 .btn-primary {
@@ -7284,7 +7334,7 @@ body.dark-mode .list-group-item:hover {
     background-color: var(--ibc-blue) !important;
     border-color: var(--ibc-blue) !important;
     color: #ffffff !important;
-    transform: translateY(-1px);
+    transform: translate3d(0, -1px, 0);
 }
 
 .pagination .page-item.active .page-link {
@@ -7431,7 +7481,7 @@ td, th {
 
 .stat-card:hover {
     box-shadow: 0 8px 24px rgba(0,0,0,0.09);
-    transform: translateY(-3px);
+    transform: translate3d(0, -3px, 0);
 }
 
 .stat-card:hover::after {
@@ -7559,7 +7609,7 @@ body:not(.dark-mode) .card:hover {
         0 4px 12px rgba(0, 0, 0, 0.07),
         0 16px 48px rgba(0, 0, 0, 0.09),
         0 0 0 1px rgba(0, 102, 179, 0.06) inset !important;
-    transform: translateY(-3px) !important;
+    transform: translate3d(0, -3px, 0) !important;
     border-color: rgba(0, 102, 179, 0.12) !important;
 }
 
@@ -7801,4 +7851,78 @@ body:not(.dark-mode) a:not(.btn):not(.no-hover):not(.sidebar a):not([class~="tex
 
 /* ============================================================
    END ENHANCED LIGHT MODE DESIGN SYSTEM 2026
+   ============================================================ */
+
+/* ============================================================
+   MOBILE PERFORMANCE OPTIMIZATIONS
+   Disable heavy infinite animations on touch/mobile devices
+   to conserve battery and improve rendering performance.
+   ============================================================ */
+
+/* Disable CPU-intensive infinite gradient animations on mobile.
+   Uses (hover: none) to target phones/tablets without true hover
+   AND a max-width fallback for any edge cases. */
+@media (hover: none) and (pointer: coarse) {
+    /* Disable the infinite gradient-shift on the primary button */
+    .btn-primary {
+        animation: none;
+        background-size: 100% 100%;
+    }
+
+    /* Disable the infinite gradient-shift on the login page wrapper */
+    .login-page-wrapper {
+        animation: none;
+        background-position: center, center, 0% 50%;
+    }
+
+    /* Disable skeleton shimmer animation (replace with static color) */
+    .skeleton {
+        animation: none;
+        background: var(--ibc-gray-200);
+    }
+
+    body.dark-mode .skeleton {
+        animation: none;
+        background: #1a1f2e;
+    }
+}
+
+/* Additional max-width safety net for devices that may report
+   (hover: hover) despite being primarily touch-based */
+@media (max-width: 768px) {
+    /* Disable the infinite gradient on the primary button on small screens */
+    .btn-primary {
+        animation: none;
+        background-size: 100% 100%;
+    }
+
+    /* Disable the 20-second login background gradient on mobile */
+    .login-page-wrapper {
+        animation: none;
+    }
+}
+
+/* ============================================================
+   DESKTOP-ONLY HOVER STYLES
+   Additional visual-only hover effects that must only activate on
+   devices with a real pointer (mouse/trackpad). These effects use
+   opacity or secondary transforms that are NOT covered by the base
+   hover rules above, preventing sticky pseudo-element states on touch.
+   ============================================================ */
+@media (hover: hover) and (pointer: fine) {
+    /* Card: reveal top gradient border and inner-glow on hover */
+    .card:hover::before {
+        opacity: 1;
+    }
+    body:not(.dark-mode) .card:hover::after {
+        opacity: 1;
+    }
+
+    /* Stat card icon: playful rotate on hover */
+    .card:hover .stat-icon {
+        transform: scale(1.1) rotate(-5deg);
+    }
+}
+/* ============================================================
+   END MOBILE PERFORMANCE OPTIMIZATIONS
    ============================================================ */
