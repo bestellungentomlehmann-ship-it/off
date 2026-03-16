@@ -2286,6 +2286,7 @@ body.dark-mode .text-green-500 {
     transition: transform var(--transition-slow), box-shadow var(--transition-slow), border-color var(--transition-slow);
     position: relative;
     overflow: hidden;
+    word-break: break-word;
 }
 
 .card::before {
@@ -7211,9 +7212,9 @@ body.dark-mode .input-group-text {
     h2 { font-size: clamp(1.25rem, 4vw, 1.75rem) !important; }
     h3 { font-size: clamp(1.125rem, 3.5vw, 1.5rem) !important; }
 
-    .text-4xl { font-size: 1.875rem !important; }
-    .text-3xl { font-size: 1.625rem !important; }
-    .text-5xl { font-size: 2.25rem !important; }
+    .text-3xl { font-size: clamp(1.25rem, 3.5vw, 1.875rem) !important; }
+    .text-4xl { font-size: clamp(1.5rem, 4vw, 2.25rem) !important; }
+    .text-5xl { font-size: clamp(1.75rem, 5vw, 3rem) !important; }
 }
 
 /* ── Better mobile card padding ─────────────────────────────── */
@@ -7925,4 +7926,67 @@ body:not(.dark-mode) a:not(.btn):not(.no-hover):not(.sidebar a):not([class~="tex
 }
 /* ============================================================
    END MOBILE PERFORMANCE OPTIMIZATIONS
+   ============================================================ */
+
+/* ============================================================
+   MOBILE TABLE → CARD LAYOUT
+   Converts all HTML tables on small screens (≤ 767 px) to a
+   stacked card layout so they remain readable on phones.
+   Each <td> should carry a data-label attribute matching its
+   column header for the ::before label to appear. Cells without
+   data-label will render with an empty label (no visible prefix).
+   Note: ::before pseudo-element content is purely visual; ensure
+   table data is structured semantically for screen-reader users.
+   ============================================================ */
+@media (max-width: 767px) {
+    /* Make every table and its structural children block-level */
+    table,
+    thead,
+    tbody,
+    tfoot,
+    tr,
+    th,
+    td {
+        display: block;
+        width: 100%;
+    }
+
+    /* Hide the header row – labels come from data-label instead */
+    thead {
+        display: none;
+    }
+
+    /* Each row becomes a visually distinct card */
+    tbody tr {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-card);
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        word-break: break-word;
+    }
+
+    /* Cell layout: label on top, value below */
+    td {
+        border: none;
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+        position: relative;
+    }
+
+    /* Inject the column label via the data-label attribute */
+    td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+    }
+}
+/* ============================================================
+   END MOBILE TABLE → CARD LAYOUT
    ============================================================ */
