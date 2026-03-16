@@ -842,9 +842,9 @@ function dismissProfileReviewPrompt() {
 <?php endif; ?>
 
 <!-- Hero Section with Personalized Greeting -->
-<div class="dash-wrap mb-10">
-    <div class="hero-gradient relative overflow-hidden rounded-2xl text-white shadow-xl"
-         style="background: linear-gradient(135deg, #003d6e 0%, #0066b3 30%, #00845f 65%, #00a651 100%); padding: 2.75rem 2.25rem 2.25rem; min-height: 13rem;">
+<div class="dash-wrap mb-6 md:mb-10">
+    <div class="hero-gradient relative overflow-hidden rounded-2xl text-white shadow-xl p-6 md:p-9 lg:p-11"
+         style="background: linear-gradient(135deg, #003d6e 0%, #0066b3 30%, #00845f 65%, #00a651 100%); min-height: 13rem;">
         <!-- Decorative grid pattern -->
         <svg class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg" style="opacity:0.05">
             <defs>
@@ -910,7 +910,7 @@ function dismissProfileReviewPrompt() {
 </div>
 
 <!-- Quick Stats Widgets -->
-<div class="dash-wrap mb-10">
+<div class="dash-wrap mb-6 md:mb-10">
     <div class="dash-section-hdr">
         <div class="dash-section-hdr-left">
             <div class="dash-section-icon" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; box-shadow: 0 4px 14px rgba(124,58,237,0.35);">
@@ -922,7 +922,7 @@ function dismissProfileReviewPrompt() {
             </div>
         </div>
     </div>
-    <div class="grid grid-cols-1 <?php echo $canAccessInvoices ? 'sm:grid-cols-3' : 'sm:grid-cols-2'; ?> gap-5">
+    <div class="grid grid-cols-1 <?php echo $canAccessInvoices ? 'sm:grid-cols-3' : 'sm:grid-cols-2'; ?> gap-4 md:gap-6">
 
         <!-- Rentals Stat Card -->
         <a href="/pages/inventory/my_rentals.php"
@@ -1002,7 +1002,7 @@ function dismissProfileReviewPrompt() {
 
 <?php if (in_array($userRole, $rolesRequiringProfile) && $profileCompletenessPercent < 100): ?>
 <!-- Profile Completeness Widget -->
-<div class="dash-wrap mb-10">
+<div class="dash-wrap mb-6 md:mb-10">
     <?php
         // SVG ring values: r=34 → circumference ≈ 213.6
         $circumference = 213.628;
@@ -1011,7 +1011,7 @@ function dismissProfileReviewPrompt() {
     <div class="card rounded-2xl overflow-hidden" style="background-color: var(--bg-card); border: 1.5px solid var(--border-color); box-shadow: var(--shadow-card);">
         <!-- Accent top strip -->
         <div style="height: 3px; background: linear-gradient(90deg, #a855f7, #ec4899);"></div>
-        <div class="p-6">
+        <div class="p-4 md:p-6">
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
                 <!-- Circular progress ring -->
                 <div class="profile-ring">
@@ -1060,7 +1060,7 @@ function dismissProfileReviewPrompt() {
 
 <!-- Meine nächsten Events Section -->
 <?php if (!empty($events)): ?>
-<div class="dash-wrap mb-10">
+<div class="dash-wrap mb-6 md:mb-10">
     <div class="dash-section-hdr">
         <div class="dash-section-hdr-left">
             <div class="dash-section-icon" style="background: linear-gradient(135deg, #3b82f6, #4f46e5); color: #fff">
@@ -1080,7 +1080,7 @@ function dismissProfileReviewPrompt() {
             'closed'  => ['label' => 'Anmeldung geschlossen', 'color' => 'text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300'],
         ];
     ?>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <?php foreach ($events as $event): ?>
         <?php
             $ts = strtotime($event['start_time']);
@@ -1100,7 +1100,7 @@ function dismissProfileReviewPrompt() {
             <!-- Status accent strip -->
             <div class="dash-event-card-accent"></div>
             <!-- Card header: gradient background with date chip -->
-            <div class="relative flex items-start gap-4 p-5 pb-4">
+            <div class="relative flex items-start gap-4 p-4 md:p-5 md:pb-4">
                 <!-- Date chip -->
                 <div class="dash-event-date-chip">
                     <span class="dash-event-date-month"><?php echo $monthAbbr; ?></span>
@@ -1126,7 +1126,7 @@ function dismissProfileReviewPrompt() {
                 </div>
             </div>
             <!-- Footer: status badge + countdown -->
-            <div class="px-5 pb-4 flex items-center justify-between gap-2" style="border-top: 1px solid var(--border-color)">
+            <div class="px-4 md:px-5 pb-4 flex items-center justify-between gap-2" style="border-top: 1px solid var(--border-color)">
                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold <?php echo $statusInfo['color']; ?>">
                     <?php echo $statusInfo['label']; ?>
                 </span>
@@ -1148,7 +1148,7 @@ function dismissProfileReviewPrompt() {
 
 <!-- Offene Rechnungen Section -->
 <?php if ($canAccessInvoices && !empty($recentOpenInvoices)): ?>
-<div class="dash-wrap mb-10">
+<div class="dash-wrap mb-6 md:mb-10">
     <div class="dash-section-hdr">
         <div class="dash-section-hdr-left">
             <div class="dash-section-icon" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff">
@@ -1173,7 +1173,7 @@ function dismissProfileReviewPrompt() {
                 $invStatus = $inv['status'];
                 $badgeLbl  = $invStatusLabels[$invStatus] ?? ucfirst($invStatus);
             ?>
-            <a href="/pages/invoices/index.php" class="flex items-center gap-4 px-5 py-4 dash-hover-card" style="color: inherit; text-decoration: none;">
+            <a href="/pages/invoices/index.php" class="flex items-center gap-4 px-4 py-3 md:px-5 md:py-4 dash-hover-card" style="color: inherit; text-decoration: none;">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                     <i class="fas fa-receipt text-white text-xs"></i>
                 </div>
@@ -1203,7 +1203,7 @@ function dismissProfileReviewPrompt() {
 <?php endif; ?>
 
 <!-- Wir suchen Helfer Section -->
-<div class="dash-wrap mb-10">
+<div class="dash-wrap mb-6 md:mb-10">
     <div class="dash-section-hdr">
         <div class="dash-section-hdr-left">
             <div class="dash-section-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff">
@@ -1217,7 +1217,7 @@ function dismissProfileReviewPrompt() {
     </div>
 
     <?php if (!empty($helperEvents)): ?>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <?php foreach ($helperEvents as $event): ?>
         <div class="dash-helper-card">
             <h3 class="text-base font-bold leading-snug break-words hyphens-auto" style="color: var(--text-main)">
@@ -1263,7 +1263,7 @@ function dismissProfileReviewPrompt() {
 
 <!-- Neuigkeiten aus dem Blog Section -->
 <?php if (!empty($recentBlogPosts)): ?>
-<div class="dash-wrap mb-10">
+<div class="dash-wrap mb-6 md:mb-10">
     <div class="dash-section-hdr">
         <div class="dash-section-hdr-left">
             <div class="dash-section-icon" style="background: linear-gradient(135deg, #6366f1, #7c3aed); color: #fff">
@@ -1286,7 +1286,7 @@ function dismissProfileReviewPrompt() {
             'Vorstand'           => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300',
         ];
     ?>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <?php foreach ($recentBlogPosts as $post): ?>
         <?php
             $catColor = $blogCategoryColors[$post['category'] ?? ''] ?? $blogCategoryColors['Allgemein'];
@@ -1338,7 +1338,7 @@ function dismissProfileReviewPrompt() {
 <?php endif; ?>
 
 <!-- Polls Widget Section -->
-<div class="dash-wrap mb-12">
+<div class="dash-wrap mb-8 md:mb-12">
     <div class="dash-section-hdr">
         <div class="dash-section-hdr-left">
             <div class="dash-section-icon" style="background: linear-gradient(135deg, #f97316, #dc2626); color: #fff">
@@ -1376,7 +1376,7 @@ function dismissProfileReviewPrompt() {
         <?php foreach ($visiblePolls as $poll): ?>
         <div class="dash-poll-card">
             <div class="dash-poll-accent"></div>
-            <div class="p-5 flex flex-col sm:flex-row items-start gap-4">
+            <div class="p-4 md:p-5 flex flex-col sm:flex-row items-start gap-4">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
                      style="background: rgba(249,115,22,0.12); color: #f97316; font-size: 1.1rem">
                     <i class="fas fa-poll-h"></i>
