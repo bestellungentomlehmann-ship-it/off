@@ -103,7 +103,7 @@ if (!isset($currentUser)) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css">
     <style>
-        /* Mobile topbar and menu button */
+        /* Mobile menu button accessibility */
         #mobile-menu-btn {
             border: none;
             outline: none;
@@ -130,15 +130,6 @@ if (!isset($currentUser)) {
                 word-wrap: break-word;
                 overflow-wrap: break-word;
                 hyphens: auto;
-            }
-
-            /* Better spacing on mobile - add top padding for floating menu button */
-            main {
-                padding-left: 1rem !important;
-                padding-right: 1rem !important;
-                padding-bottom: 1rem !important;
-                padding-top: 4.5rem !important;
-                margin-left: 0 !important;
             }
 
             /* Prevent horizontal overflow on tables */
@@ -204,8 +195,6 @@ if (!isset($currentUser)) {
 
         /* Tablet view improvements */
         @media (min-width: 768px) and (max-width: 1024px) {
-            main { padding: 1.5rem !important; }
-
             /* 2-column grid on tablets */
             .grid:not(.grid-no-stack):not(.grid-cols-1) {
                 grid-template-columns: repeat(2, 1fr) !important;
@@ -217,13 +206,11 @@ if (!isset($currentUser)) {
 
         /* Desktop and larger */
         @media (min-width: 1025px) {
-            main { padding: 2rem !important; }
             .container { max-width: 1400px; margin: 0 auto; }
         }
 
         /* Extra large screens */
         @media (min-width: 1536px) {
-            main { padding: 2.5rem !important; }
             .container { max-width: 1600px; }
         }
 
@@ -231,7 +218,6 @@ if (!isset($currentUser)) {
         @media (max-height: 500px) and (orientation: landscape) and (max-width: 767px) {
             .sidebar { width: 14rem !important; }
             .sidebar nav a { padding: 0.5rem 1rem !important; font-size: 0.875rem !important; }
-            main { padding-top: 4rem !important; }
         }
 
         /* High DPI displays */
@@ -299,14 +285,18 @@ if (!isset($currentUser)) {
     <!-- Mobile Menu Overlay -->
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-    <!-- Mobile Floating Menu Button (replaces the full topbar on small screens) -->
-    <button id="mobile-menu-btn" class="md:hidden fixed top-4 left-4 z-[1061] flex items-center justify-center w-11 h-11 rounded-full shadow-lg transition-all duration-200 active:scale-95" style="background: var(--ibc-blue); border: 1px solid rgba(255,255,255,0.2);" aria-label="Menü öffnen" aria-expanded="false" aria-controls="sidebar">
-        <svg class="w-5 h-5 text-white" id="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path id="menu-icon-top" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16" class="transition-all duration-300"></path>
-            <path id="menu-icon-middle" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 12h16" class="transition-all duration-300"></path>
-            <path id="menu-icon-bottom" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 18h16" class="transition-all duration-300"></path>
-        </svg>
-    </button>
+    <!-- Mobile Header Bar (visible on small screens only) -->
+    <header id="mobile-header" class="mobile-topbar md:hidden flex items-center px-3" aria-label="Mobile-Navigation">
+        <button id="mobile-menu-btn" class="flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 active:scale-95 shrink-0" style="background: rgba(255,255,255,0.12);" aria-label="Menü öffnen" aria-expanded="false" aria-controls="sidebar">
+            <svg class="w-5 h-5 text-white" id="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path id="menu-icon-top" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16" class="transition-all duration-300"></path>
+                <path id="menu-icon-middle" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 12h16" class="transition-all duration-300"></path>
+                <path id="menu-icon-bottom" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 18h16" class="transition-all duration-300"></path>
+            </svg>
+        </button>
+        <span class="flex-1 text-center text-white font-semibold text-sm tracking-wide select-none">IBC Intranet</span>
+        <div class="w-10 shrink-0" aria-hidden="true"></div>
+    </header>
 
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar fixed left-0 top-0 h-screen w-64 md:w-72 transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40 text-white shadow-2xl flex flex-col" aria-label="Seitenleiste">
@@ -782,7 +772,7 @@ if (!isset($currentUser)) {
 
 
     <!-- Main Content -->
-    <main id="main-content" role="main" class="md:ml-64 lg:ml-72 min-h-screen p-4 pt-16 md:p-6 lg:p-10" style="padding-bottom: max(1rem, env(safe-area-inset-bottom, 0))">
+    <main id="main-content" role="main" class="md:ml-64 lg:ml-72 min-h-screen px-4 pb-4 pt-[var(--topbar-height)] md:p-6 lg:p-8 2xl:p-10" style="padding-bottom: max(1rem, env(safe-area-inset-bottom, 0))">
         <?php if (isset($_SESSION['show_2fa_nudge']) && $_SESSION['show_2fa_nudge']): ?>
         <div id="tfa-nudge-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1070] p-4" role="dialog" aria-modal="true" aria-labelledby="tfa-nudge-title">
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden transform transition-all">
