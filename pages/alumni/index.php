@@ -158,8 +158,14 @@ ob_start();
                         // Generate initials for fallback
                         $initials = getMemberInitials($profile['first_name'], $profile['last_name']);
                         $avatarColor = getAvatarColor($profile['first_name'] . ' ' . $profile['last_name']);
-                        // Resolve profile image using avatar_path as the single source of truth
-                        $imagePath = asset(getProfileImageUrl($profile['avatar_path'] ?? null));
+                        // Prefer Entra ID photo via fetch-profile-photo.php when an e-mail address is
+                        // available; fall back to the locally stored avatar / default image otherwise.
+                        $alumniEmail = $profile['email'] ?? '';
+                        if (!empty($alumniEmail)) {
+                            $imagePath = asset('fetch-profile-photo.php') . '?email=' . urlencode($alumniEmail);
+                        } else {
+                            $imagePath = asset(getProfileImageUrl($profile['avatar_path'] ?? null));
+                        }
                         ?>
                         <div class="directory-card-avatar-wrap">
                             <div class="directory-avatar rounded-circle overflow-hidden border border-3 border-white shadow"
@@ -172,7 +178,7 @@ ob_start();
                                     alt="<?php echo htmlspecialchars($profile['first_name'] . ' ' . $profile['last_name']); ?>"
                                     loading="lazy"
                                     style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
-                                    onerror="this.style.display='none';"
+                                    onerror="this.onerror=null; this.style.display='none';"
                                 >
                             </div>
                         </div>
@@ -203,42 +209,73 @@ ob_start();
                         
                         <!-- Social Icons & Contact -->
                         <div class="d-flex justify-content-center gap-3 mb-3">
-                            <?php if (!empty($profile['linkedin_url'])): ?>
+                            <!-- Mail Icon -->
+                            <?php if (!empty($profile['email']) && ($canViewPrivate || empty($profile['privacy_hide_email']))): ?>
                                 <a 
-                                    href="<?php echo htmlspecialchars($profile['linkedin_url']); ?>" 
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    href="mailto:<?php echo htmlspecialchars($profile['email']); ?>"
                                     class="directory-contact-icon"
-                                    title="LinkedIn Profile"
+                                    title="E-Mail senden"
                                 >
-                                    <i class="fab fa-linkedin-in"></i>
+                                    <i class="fas fa-envelope"></i>
                                 </a>
                             <?php endif; ?>
                             
-                            <?php if (!empty($profile['xing_url'])): ?>
+                            <?php if (!empty($profile['linkedin_url'])): ?>
+                                <?php
+                                $linkedinUrl = $profile['linkedin_url'];
+                                $isValidLinkedIn = (
+                                    strpos($linkedinUrl, 'https://linkedin.com') === 0 ||
+                                    strpos($linkedinUrl, 'https://www.linkedin.com') === 0 ||
+                                    strpos($linkedinUrl, 'http://linkedin.com') === 0 ||
+                                    strpos($linkedinUrl, 'http://www.linkedin.com') === 0
+                                );
+                                ?>
+                                <?php if ($isValidLinkedIn): ?>
                                 <a 
-                                    href="<?php echo htmlspecialchars($profile['xing_url']); ?>" 
+                                    href="<?php echo htmlspecialchars($linkedinUrl); ?>" 
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     class="directory-contact-icon"
-                                    title="Xing Profile"
+                                    title="LinkedIn Profil"
+                                >
+                                    <i class="fab fa-linkedin-in"></i>
+                                </a>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <?php if (!empty($profile['xing_url'])): ?>
+                                <?php
+                                $xingUrl = $profile['xing_url'];
+                                $isValidXing = (
+                                    strpos($xingUrl, 'https://xing.com') === 0 ||
+                                    strpos($xingUrl, 'https://www.xing.com') === 0 ||
+                                    strpos($xingUrl, 'http://xing.com') === 0 ||
+                                    strpos($xingUrl, 'http://www.xing.com') === 0
+                                );
+                                ?>
+                                <?php if ($isValidXing): ?>
+                                <a 
+                                    href="<?php echo htmlspecialchars($xingUrl); ?>" 
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="directory-contact-icon"
+                                    title="Xing Profil"
                                 >
                                     <i class="fab fa-xing"></i>
                                 </a>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                         
-                        <!-- Contact Button -->
-                        <?php if (!empty($profile['email']) && ($canViewPrivate || empty($profile['privacy_hide_email']))): ?>
+                        <!-- Action: 'Profil ansehen' Button -->
                         <a 
-                            href="mailto:<?php echo htmlspecialchars($profile['email']); ?>"
+                            href="view.php?id=<?php echo $profile['id']; ?>"
                             class="btn w-100 fw-semibold shadow-sm text-white"
                             style="background:linear-gradient(135deg,#7c3aed,#6d28d9);"
                         >
-                            <i class="fas fa-envelope me-2"></i>
-                            Kontakt
+                            <i class="fas fa-user me-2"></i>
+                            Profil ansehen
                         </a>
-                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>

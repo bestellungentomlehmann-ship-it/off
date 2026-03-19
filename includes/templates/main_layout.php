@@ -708,8 +708,19 @@ if (!isset($currentUser)) {
 
             <!-- User Info -->
             <div class='flex items-start gap-2 mb-2'>
-                <div class="w-9 h-9 shrink-0">
-                    <img src="<?php echo htmlspecialchars(asset(User::getProfilePictureUrl((int)$currentUser['id'], $currentUser))); ?>" alt="Profilbild" class="w-full h-full rounded-full object-cover">
+                <?php
+                // Use fetch-profile-photo.php when email is available to serve the live Entra ID
+                // photo (cached 24 h). Fall back to the locally stored avatar when no email is set.
+                if (!empty($email)) {
+                    $sidebarImgSrc = asset('fetch-profile-photo.php') . '?email=' . urlencode($email);
+                } else {
+                    $sidebarImgSrc = asset(User::getProfilePictureUrl((int)$currentUser['id'], $currentUser));
+                }
+                $sidebarAvatarColor = getAvatarColor($firstname . ' ' . $lastname);
+                ?>
+                <div class="w-9 h-9 shrink-0 rounded-full overflow-hidden relative flex-shrink-0" style="background-color:<?php echo htmlspecialchars($sidebarAvatarColor); ?>">
+                    <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white select-none" aria-hidden="true"><?php echo htmlspecialchars($initials); ?></span>
+                    <img src="<?php echo htmlspecialchars($sidebarImgSrc); ?>" alt="Profilbild" class="absolute inset-0 w-full h-full object-cover" onerror="this.onerror=null; this.style.display='none';">
                 </div>
                 <div class='flex-1 min-w-0'>
                     <?php if (!empty($firstname) || !empty($lastname)): ?>
