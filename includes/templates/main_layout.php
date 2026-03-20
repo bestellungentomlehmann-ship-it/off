@@ -150,21 +150,8 @@ if (!isset($currentUser)) {
                 border-radius: 10px !important;
             }
 
-            /* Improve heading sizes on mobile */
-            main h1 { font-size: 1.75rem !important; line-height: 1.2; margin-bottom: 1rem; }
-            main h2 { font-size: 1.5rem !important; line-height: 1.3; margin-bottom: 0.875rem; }
-            main h3 { font-size: 1.25rem !important; line-height: 1.4; margin-bottom: 0.75rem; }
-
-            /* Responsive large text elements that aren't headings */
-            main .text-4xl { font-size: 1.75rem !important; }
-            main .text-5xl { font-size: 2rem !important; }
-            main .text-6xl, main .text-7xl, main .text-8xl, main .text-9xl { font-size: 2.25rem !important; }
-
             /* Better image scaling on mobile */
             img:not([class*="w-"]) { max-width: 100%; height: auto; }
-
-            /* Ensure grids stack on mobile - use .grid-no-stack to opt out */
-            /* Note: applied below 640px only so Tailwind sm: breakpoints take effect at 640px+ */
 
             /* Improved stat cards on mobile */
             .stat-icon { width: 48px !important; height: 48px !important; font-size: 1.25rem !important; }
@@ -199,9 +186,6 @@ if (!isset($currentUser)) {
             .grid:not(.grid-no-stack):not(.grid-cols-1) {
                 grid-template-columns: repeat(2, 1fr) !important;
             }
-
-            main h1 { font-size: 2rem !important; }
-            main h2 { font-size: 1.625rem !important; }
         }
 
         /* Desktop and larger */
@@ -230,11 +214,10 @@ if (!isset($currentUser)) {
         @media (hover: none) and (pointer: coarse) {
             a, button, input[type="submit"], input[type="button"] { min-height: 44px; min-width: 44px; }
             a:active, button:active { opacity: 0.7; transform: scale(0.98); transition: all 0.1s ease; }
-            .card:hover { transform: translateY(-2px); }
         }
 
         /* Ensure long text doesn't overflow */
-        .text-sm, .text-xs, .text-base, p, span, li, h1, h2, h3 { overflow-wrap: break-word; word-break: break-word; }
+        p, span, li, h1, h2, h3 { overflow-wrap: break-word; word-break: break-word; }
 
         /* Skip link accessibility */
         .skip-link {
@@ -287,15 +270,20 @@ if (!isset($currentUser)) {
 
     <!-- Mobile Header Bar (visible on small screens only) -->
     <header id="mobile-header" class="mobile-topbar md:hidden flex items-center px-3" aria-label="Mobile-Navigation">
-        <button id="mobile-menu-btn" class="flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 active:scale-95 shrink-0" style="background: rgba(255,255,255,0.12);" aria-label="Menü öffnen" aria-expanded="false" aria-controls="sidebar">
+        <button id="mobile-menu-btn" class="mobile-topbar-btn shrink-0" aria-label="Menü öffnen" aria-expanded="false" aria-controls="sidebar">
             <svg class="w-5 h-5 text-white" id="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path id="menu-icon-top" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16" class="transition-all duration-300"></path>
                 <path id="menu-icon-middle" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 12h16" class="transition-all duration-300"></path>
                 <path id="menu-icon-bottom" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 18h16" class="transition-all duration-300"></path>
             </svg>
         </button>
-        <span class="flex-1 text-center text-white font-semibold text-sm tracking-wide select-none">IBC Intranet</span>
-        <div class="w-10 shrink-0" aria-hidden="true"></div>
+        <div class="flex-1 flex flex-col items-center justify-center select-none">
+            <span class="text-white font-bold text-sm tracking-wide leading-tight">IBC Intranet</span>
+            <span class="text-white/60 text-[11px] font-medium leading-tight"><?php echo htmlspecialchars($title ?? 'Dashboard'); ?></span>
+        </div>
+        <button id="mobile-theme-toggle" class="mobile-topbar-btn shrink-0" aria-label="Zwischen hellem und dunklem Modus wechseln">
+            <i id="mobile-theme-icon" class="fas fa-moon text-white text-base" aria-hidden="true"></i>
+        </button>
     </header>
 
     <!-- Sidebar -->
@@ -899,6 +887,39 @@ if (!isset($currentUser)) {
         <?php echo $content ?? ''; ?>
     </main>
 
+    <!-- Mobile Bottom Navigation Bar (visible on small screens only) -->
+    <nav id="mobile-bottom-nav" class="mobile-bottom-nav md:hidden" role="navigation" aria-label="Schnellnavigation">
+        <a href="<?php echo asset('pages/dashboard/index.php'); ?>"
+           class="mobile-bottom-nav-item <?php echo is_nav_active('/dashboard/') ? 'active' : ''; ?>"
+           aria-label="Dashboard"
+           <?php echo is_nav_active('/dashboard/') ? 'aria-current="page"' : ''; ?>>
+            <i class="fas fa-home" aria-hidden="true"></i>
+            <span>Home</span>
+        </a>
+        <a href="<?php echo asset('pages/events/index.php'); ?>"
+           class="mobile-bottom-nav-item <?php echo (is_nav_active('/events/') && !is_nav_active('/events/helpers.php')) ? 'active' : ''; ?>"
+           aria-label="Events"
+           <?php echo (is_nav_active('/events/') && !is_nav_active('/events/helpers.php')) ? 'aria-current="page"' : ''; ?>>
+            <i class="fas fa-calendar" aria-hidden="true"></i>
+            <span>Events</span>
+        </a>
+        <a href="<?php echo asset('pages/alumni/index.php'); ?>"
+           class="mobile-bottom-nav-item <?php echo is_nav_active('/alumni/') ? 'active' : ''; ?>"
+           aria-label="Alumni-Datenbank"
+           <?php echo is_nav_active('/alumni/') ? 'aria-current="page"' : ''; ?>>
+            <i class="fas fa-user-graduate" aria-hidden="true"></i>
+            <span>Alumni</span>
+        </a>
+        <button id="bottom-nav-more-btn"
+                class="mobile-bottom-nav-item"
+                aria-label="Menü öffnen"
+                aria-expanded="false"
+                aria-controls="sidebar">
+            <i class="fas fa-th" aria-hidden="true"></i>
+            <span>Mehr</span>
+        </button>
+    </nav>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const btn = document.getElementById('mobile-menu-btn');
@@ -961,8 +982,35 @@ if (!isset($currentUser)) {
                 });
             }
 
+            // Bottom nav "More" button toggles sidebar
+            const bottomNavMoreBtn = document.getElementById('bottom-nav-more-btn');
+            if (bottomNavMoreBtn && sidebar) {
+                bottomNavMoreBtn.addEventListener('click', function() {
+                    if (sidebar.classList.contains('open')) {
+                        closeSidebar();
+                        bottomNavMoreBtn.setAttribute('aria-expanded', 'false');
+                        bottomNavMoreBtn.classList.remove('open');
+                    } else {
+                        openSidebar();
+                        bottomNavMoreBtn.setAttribute('aria-expanded', 'true');
+                        bottomNavMoreBtn.classList.add('open');
+                    }
+                });
+            }
+
+            // Sync bottom nav "More" button when sidebar closes via overlay/swipe
+            function syncBottomNavMoreBtn() {
+                if (bottomNavMoreBtn) {
+                    bottomNavMoreBtn.classList.remove('open');
+                    bottomNavMoreBtn.setAttribute('aria-expanded', 'false');
+                }
+            }
+
             if (overlay && sidebar) {
-                overlay.addEventListener('click', closeSidebar);
+                overlay.addEventListener('click', function() {
+                    closeSidebar();
+                    syncBottomNavMoreBtn();
+                });
             }
 
             // Close sidebar when clicking on main content (mobile)
@@ -971,6 +1019,7 @@ if (!isset($currentUser)) {
                 mainContent.addEventListener('click', function() {
                     if (sidebar.classList.contains('open')) {
                         closeSidebar();
+                        syncBottomNavMoreBtn();
                     }
                 });
             }
@@ -979,6 +1028,7 @@ if (!isset($currentUser)) {
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && sidebar?.classList.contains('open')) {
                     closeSidebar();
+                    syncBottomNavMoreBtn();
                     btn?.focus();
                 }
             });
@@ -1008,6 +1058,7 @@ if (!isset($currentUser)) {
                 } else if (deltaX < -SWIPE_THRESHOLD && sidebar?.classList.contains('open')) {
                     // Left swipe – close sidebar
                     closeSidebar();
+                    syncBottomNavMoreBtn();
                 }
             }, { passive: true });
         });
@@ -1135,17 +1186,22 @@ if (!isset($currentUser)) {
             }
         });
 
-        // Table overflow indicator for responsive tables
-        document.querySelectorAll('.table-scroll-wrapper').forEach(wrapper => {
+        // Table overflow indicator for responsive tables + scroll-end detection
+        document.querySelectorAll('.table-scroll-wrapper, .table-responsive').forEach(wrapper => {
             const checkOverflow = () => {
                 if (wrapper.scrollWidth > wrapper.clientWidth) {
                     wrapper.classList.add('has-overflow');
                 } else {
                     wrapper.classList.remove('has-overflow');
                 }
+                // Detect if scrolled to the end (hide right fade); 4px tolerance for sub-pixel rounding
+                const SCROLL_END_TOLERANCE = 4;
+                const atEnd = wrapper.scrollLeft + wrapper.clientWidth >= wrapper.scrollWidth - SCROLL_END_TOLERANCE;
+                wrapper.classList.toggle('scrolled-end', atEnd);
             };
             checkOverflow();
-            window.addEventListener('resize', checkOverflow);
+            wrapper.addEventListener('scroll', checkOverflow, { passive: true });
+            window.addEventListener('resize', checkOverflow, { passive: true });
         });
 
         // iOS viewport height fix

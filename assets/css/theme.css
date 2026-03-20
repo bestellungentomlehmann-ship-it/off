@@ -93,6 +93,16 @@
     --topbar-height: 60px;
     --sidebar-width-md: 16rem;
     --sidebar-width-lg: 18rem;
+
+    /* Z-index stack (documented hierarchy)
+       Overlay:          1040
+       Bottom nav:       1045  ← sits above content & overlay; sidebar slides over it
+       Sidebar:          1050
+       Mobile topbar:    1060  ← always on top */
+    --z-overlay: 1040;
+    --z-bottom-nav: 1045;
+    --z-sidebar: 1050;
+    --z-topbar: 1060;
     
     /* SVG Icons for Select Dropdowns - Enhanced with better colors */
     --select-arrow-light: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%230066b3' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
@@ -7990,3 +8000,473 @@ body:not(.dark-mode) a:not(.btn):not(.no-hover):not(.sidebar a):not([class~="tex
 /* ============================================================
    END MOBILE TABLE → CARD LAYOUT
    ============================================================ */
+
+/* ============================================================
+   MOBILE REDESIGN — Complete overhaul (2026)
+   ============================================================ */
+
+/* ── 1. FLUID RESPONSIVE TYPOGRAPHY ───────────────────────────
+   Uses CSS clamp() for smooth, continuous scaling between
+   mobile and desktop without hard breakpoint jumps.
+   Formula: clamp(min, preferred, max)
+   ──────────────────────────────────────────────────────────── */
+
+/* Page/section headings */
+h1, .page-title {
+    font-size: clamp(1.5rem, 3.5vw + 0.75rem, 2.5rem);
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+h2 {
+    font-size: clamp(1.25rem, 2.5vw + 0.625rem, 2rem);
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+h3 {
+    font-size: clamp(1.1rem, 2vw + 0.5rem, 1.625rem);
+    line-height: 1.4;
+    font-weight: 600;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+h4 {
+    font-size: clamp(1rem, 1.5vw + 0.4rem, 1.375rem);
+    line-height: 1.4;
+    font-weight: 600;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+h5 {
+    font-size: clamp(0.9375rem, 1vw + 0.4rem, 1.125rem);
+    font-weight: 600;
+    overflow-wrap: break-word;
+}
+
+h6 {
+    font-size: clamp(0.875rem, 0.8vw + 0.35rem, 1rem);
+    font-weight: 600;
+    overflow-wrap: break-word;
+}
+
+/* Body text — slight increase on larger screens */
+body {
+    font-size: clamp(0.875rem, 0.6vw + 0.75rem, 1rem);
+    line-height: 1.6;
+}
+
+/* Small / muted text */
+.text-sm, small {
+    font-size: clamp(0.75rem, 0.4vw + 0.65rem, 0.875rem);
+}
+
+.text-xs {
+    font-size: clamp(0.6875rem, 0.3vw + 0.6rem, 0.75rem);
+}
+
+/* Large display numbers (stats, KPIs) */
+.text-3xl {
+    font-size: clamp(1.5rem, 3vw + 0.5rem, 1.875rem) !important;
+}
+.text-4xl {
+    font-size: clamp(1.75rem, 3.5vw + 0.5rem, 2.25rem) !important;
+}
+.text-5xl {
+    font-size: clamp(2rem, 4vw + 0.5rem, 3rem) !important;
+}
+
+/* ── 2. IMPROVED MOBILE TOPBAR ────────────────────────────────
+   Cleaner, more modern app bar with safe-area support.
+   ──────────────────────────────────────────────────────────── */
+
+/* Topbar button (hamburger + theme toggle) */
+.mobile-topbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+}
+
+.mobile-topbar-btn:active {
+    background: rgba(255, 255, 255, 0.22);
+    transform: scale(0.93);
+}
+
+.mobile-topbar-btn:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+}
+
+/* Larger hit area without changing visual size */
+#mobile-menu-btn {
+    border: none;
+    outline: none;
+}
+
+/* Scrolled state styling */
+#mobile-menu-btn.scrolled {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    background: var(--ibc-blue-dark) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    transform: scale(1.05);
+}
+
+/* ── 3. MOBILE BOTTOM NAVIGATION BAR ─────────────────────────
+   A persistent bottom tab bar for the 4 most-used sections.
+   Visible only on mobile (< 768px). Uses modern safe-area
+   insets so it sits above the iPhone home indicator.
+   ──────────────────────────────────────────────────────────── */
+
+.mobile-bottom-nav {
+    display: none; /* Hidden by default; enabled via @media below */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-bottom-nav); /* See --z-bottom-nav in :root */
+    grid-template-columns: repeat(4, 1fr);
+    align-items: stretch;
+
+    /* Frosted glass look */
+    background: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(16px) saturate(1.8);
+    backdrop-filter: blur(16px) saturate(1.8);
+    border-top: 1px solid rgba(0, 0, 0, 0.07);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08), 0 -1px 0 rgba(0, 0, 0, 0.05);
+
+    /* Safe area for iPhone home indicator */
+    padding-bottom: env(safe-area-inset-bottom, 0);
+
+    /* Total bar height — tab icons + labels + safe area */
+    min-height: calc(60px + env(safe-area-inset-bottom, 0));
+}
+
+@media (max-width: 767px) {
+    .mobile-bottom-nav {
+        display: grid;
+    }
+}
+
+/* Dark mode bottom nav */
+.dark-mode .mobile-bottom-nav {
+    background: rgba(26, 31, 46, 0.96);
+    border-top-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.45), 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Individual tab item */
+.mobile-bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 4px 10px;
+    text-decoration: none !important;
+    color: var(--ibc-gray-400);
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    position: relative;
+    font-family: var(--ibc-font-family);
+    min-height: 60px;
+    -webkit-tap-highlight-color: transparent;
+
+    /* Reset button defaults */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    line-height: 1;
+}
+
+.dark-mode .mobile-bottom-nav-item {
+    color: var(--ibc-gray-500);
+}
+
+/* Icon */
+.mobile-bottom-nav-item i {
+    font-size: 1.25rem; /* 20px */
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
+    display: block;
+}
+
+/* Label */
+.mobile-bottom-nav-item span {
+    font-size: 0.6875rem; /* 11px */
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+
+/* Active indicator pill at the top of the tab */
+.mobile-bottom-nav-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 28px;
+    height: 3px;
+    background: var(--ibc-blue);
+    border-radius: 0 0 3px 3px;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Active state */
+.mobile-bottom-nav-item.active {
+    color: var(--ibc-blue);
+}
+
+.dark-mode .mobile-bottom-nav-item.active {
+    color: var(--ibc-blue-light);
+}
+
+.mobile-bottom-nav-item.active::before {
+    transform: translateX(-50%) scaleX(1);
+}
+
+.dark-mode .mobile-bottom-nav-item.active::before {
+    background: var(--ibc-blue-light);
+}
+
+.mobile-bottom-nav-item.active i {
+    transform: translateY(-2px) scale(1.08);
+}
+
+/* "Open" state for More button when sidebar is shown */
+.mobile-bottom-nav-item.open {
+    color: var(--ibc-green);
+}
+
+.dark-mode .mobile-bottom-nav-item.open {
+    color: var(--ibc-green-light);
+}
+
+.mobile-bottom-nav-item.open::before {
+    background: var(--ibc-green);
+    transform: translateX(-50%) scaleX(1);
+}
+
+/* Touch tap feedback */
+.mobile-bottom-nav-item:active {
+    transform: scale(0.92);
+    opacity: 0.8;
+}
+
+/* ── 4. MAIN CONTENT PADDING FOR BOTTOM NAV ──────────────────
+   Adds extra bottom padding so content is never hidden behind
+   the bottom navigation bar on mobile.
+   ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+    main {
+        padding-bottom: calc(60px + env(safe-area-inset-bottom, 0) + 1.5rem) !important;
+    }
+}
+
+/* ── 5. IMPROVED MOBILE CONTENT SPACING ──────────────────────
+   Better padding and typography for small screens.
+   ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+    /* Better horizontal padding for cards and content */
+    .card {
+        padding: 1rem !important;
+        margin-bottom: 0.875rem;
+    }
+
+    /* Section headings with better mobile sizing */
+    .page-header,
+    .section-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.75rem !important;
+    }
+
+    /* Ensure all text in cards wraps correctly */
+    .card *,
+    .card-body * {
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+
+    /* Badge stacking on mobile */
+    .badge-group {
+        flex-wrap: wrap;
+        gap: 0.375rem;
+    }
+
+    /* Better modal positioning on mobile */
+    .modal-dialog {
+        margin: 0.5rem !important;
+        max-width: calc(100vw - 1rem) !important;
+        max-height: calc(100dvh - 1rem);
+    }
+
+    /* Slide modals up from bottom on mobile for better UX */
+    .modal.show .modal-dialog {
+        margin-bottom: max(0.5rem, env(safe-area-inset-bottom, 0)) !important;
+    }
+
+    /* Grid utility: force single column where needed */
+    .grid-responsive {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Pagination: touch-friendly */
+    .pagination .page-link {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* ── 6. IMPROVED TABLE SCROLL UX ─────────────────────────────
+   Adds a fade hint at the right edge of scrollable tables so
+   users know more content is available.
+   ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+    /* Table wrapper with scroll hint */
+    .table-responsive,
+    .table-scroll-wrapper {
+        position: relative;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        border-radius: var(--radius-md);
+    }
+
+    /* Right-edge fade gradient hint */
+    .table-responsive::after,
+    .table-scroll-wrapper::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 32px;
+        background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.9));
+        pointer-events: none;
+        border-radius: 0 var(--radius-md) var(--radius-md) 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .dark-mode .table-responsive::after,
+    .dark-mode .table-scroll-wrapper::after {
+        background: linear-gradient(to right, transparent, rgba(26, 31, 46, 0.9));
+    }
+
+    /* Hide hint when scrolled to the end */
+    .table-responsive.scrolled-end::after,
+    .table-scroll-wrapper.scrolled-end::after {
+        opacity: 0;
+    }
+}
+
+/* ── 7. RESPONSIVE FORM IMPROVEMENTS ─────────────────────────
+   Better form layout and touch targets on mobile.
+   ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+    /* Prevent iOS Safari zoom on input focus (requires 16px minimum) */
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+
+    /* Stack form rows on mobile */
+    .form-row {
+        flex-direction: column !important;
+        gap: 0.875rem !important;
+    }
+
+    .form-row > * {
+        width: 100% !important;
+        flex: none !important;
+    }
+
+    /* Inline form groups (e.g. submit + cancel) stay side by side if narrow */
+    .form-inline-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .form-inline-actions .btn {
+        flex: 1;
+        min-width: 120px;
+    }
+}
+
+/* ── 8. MOBILE-ONLY VISIBILITY HELPERS ───────────────────────
+   Utility classes for showing/hiding content per breakpoint.
+   ──────────────────────────────────────────────────────────── */
+
+/* Hide on mobile, show on tablet and up */
+@media (max-width: 767px) {
+    .hide-mobile { display: none !important; }
+}
+
+/* Show on mobile only */
+.show-mobile { display: none !important; }
+@media (max-width: 767px) {
+    .show-mobile { display: block !important; }
+    .show-mobile-flex { display: flex !important; }
+    .show-mobile-inline { display: inline !important; }
+}
+
+/* ── 9. STAT CARDS MOBILE LAYOUT ─────────────────────────────
+   Stat cards use a 2-column grid on small phones and
+   a single row on larger phones.
+   ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 479px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem !important;
+    }
+
+    .stat-card .stat-icon {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 1rem !important;
+    }
+
+    .stat-card .stat-number {
+        font-size: clamp(1.25rem, 5vw, 1.75rem) !important;
+    }
+}
+
+/* ── 10. PRINT: HIDE BOTTOM NAV ──────────────────────────────
+   Ensure the bottom nav is never printed.
+   ──────────────────────────────────────────────────────────── */
+
+@media print {
+    .mobile-bottom-nav {
+        display: none !important;
+    }
+}
