@@ -66,27 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-    } else if (isset($_POST['toggle_lock_user'])) {
-        $userId = intval($_POST['user_id'] ?? 0);
-        if ($userId == $_SESSION['user_id']) {
-            $error = 'Du kannst Dich nicht selbst sperren';
-        } else {
-            $db = Database::getUserDB();
-            $stmt = $db->prepare("SELECT is_locked_permanently FROM users WHERE id = ?");
-            $stmt->execute([$userId]);
-            $lockRow = $stmt->fetch();
-            if ($lockRow !== false) {
-                $newLockState = empty($lockRow['is_locked_permanently']) ? 1 : 0;
-                $updateStmt = $db->prepare("UPDATE users SET is_locked_permanently = ? WHERE id = ?");
-                if ($updateStmt->execute([$newLockState, $userId])) {
-                    $message = $newLockState ? 'Benutzer wurde gesperrt.' : 'Benutzer wurde entsperrt.';
-                } else {
-                    $error = 'Fehler beim Ändern des Sperrstatus.';
-                }
-            } else {
-                $error = 'Benutzer nicht gefunden.';
-            }
-        }
     } else if (isset($_POST['import_entra_user'])) {
         $entraId      = trim($_POST['entra_id'] ?? '');
         $displayName  = trim($_POST['display_name'] ?? '');
@@ -147,7 +126,6 @@ $users = User::getAll();
 // Get current user data
 $currentUser = Auth::user();
 $currentUserRole = $currentUser['role'] ?? '';
-$canViewLastLogin = in_array($currentUserRole, ['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern']);
 
 $title = 'Benutzerverwaltung - IBC Intranet';
 ob_start();
@@ -326,8 +304,6 @@ ob_start();
                         >
                             <option value="email">E-Mail (A-Z)</option>
                             <option value="email-desc">E-Mail (Z-A)</option>
-                            <option value="login">Letzter Login (neu)</option>
-                            <option value="login-old">Letzter Login (alt)</option>
                             <option value="id">ID (aufsteigend)</option>
                             <option value="id-desc">ID (absteigend)</option>
                         </select>
@@ -364,9 +340,6 @@ ob_start();
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider whitespace-nowrap">Entra-Status</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider whitespace-nowrap">Intranet-Rolle</th>
                         <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider whitespace-nowrap">Status</th>
-                        <?php if ($canViewLastLogin): ?>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider whitespace-nowrap">Letzter Login</th>
-                        <?php endif; ?>
                         <th class="px-6 py-4 text-center text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider whitespace-nowrap">Aktionen</th>
                     </tr>
                 </thead>
@@ -378,8 +351,7 @@ ob_start();
                 <tr class="user-row hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 dark:hover:from-purple-900/20 dark:hover:to-indigo-900/20 transition-all duration-200" 
                     data-email="<?php echo htmlspecialchars(strtolower($user['email'])); ?>"
                     data-role="<?php echo htmlspecialchars($user['role']); ?>"
-                    data-id="<?php echo $user['id']; ?>"
-                    data-login="<?php echo $user['last_login'] ? strtotime($user['last_login']) : 0; ?>">
+                    data-id="<?php echo $user['id']; ?>">
                     <td class="px-6 py-4 whitespace-nowrap" data-label="Profil">
                         <?php
                         $defaultImg = defined('DEFAULT_PROFILE_IMAGE') ? DEFAULT_PROFILE_IMAGE : 'assets/img/default_profil.png';
@@ -479,16 +451,6 @@ ob_start();
                                 <i class="fas fa-envelope mr-1.5"></i>Eingeladen
                             </span>
                             <?php endif; ?>
-                            <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                            <?php $confirmMsg = $isLocked ? 'Benutzer wirklich entsperren?' : 'Benutzer wirklich sperren?'; ?>
-                            <form method="POST" class="inline mt-1" onsubmit="return confirm('<?php echo htmlspecialchars($confirmMsg, ENT_QUOTES, 'UTF-8'); ?>');">
-                                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                <button type="submit" name="toggle_lock_user" class="inline-flex items-center px-2.5 py-2 min-h-[44px] text-xs <?php echo $isLocked ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'; ?> rounded-lg font-semibold shadow-sm hover:shadow-md transition-all">
-                                    <i class="fas <?php echo $isLocked ? 'fa-unlock' : 'fa-lock'; ?> mr-1.5"></i>
-                                    <?php echo $isLocked ? 'Entsperren' : 'Sperren'; ?>
-                                </button>
-                            </form>
-                            <?php endif; ?>
                             <?php if ($user['tfa_enabled']): ?>
                             <span class="inline-flex items-center px-2.5 py-1 text-xs bg-blue-600 text-white rounded-lg font-semibold shadow-sm">
                                 <i class="fas fa-shield-alt mr-1.5"></i>2FA Aktiv
@@ -515,23 +477,6 @@ ob_start();
                             <?php endif; ?>
                         </div>
                     </td>
-                    <?php if ($canViewLastLogin): ?>
-                    <td class="px-6 py-4 whitespace-nowrap" data-label="Letzter Login">
-                        <div class="text-sm">
-                            <?php if ($user['last_login']): ?>
-                            <div class="flex items-center text-gray-700 dark:text-gray-300 font-medium">
-                                <i class="fas fa-clock mr-2 text-purple-500"></i>
-                                <?php echo date('d.m.Y H:i', strtotime($user['last_login'])); ?>
-                            </div>
-                            <?php else: ?>
-                            <div class="flex items-center text-gray-400 dark:text-gray-500">
-                                <i class="fas fa-minus-circle mr-2"></i>
-                                Nie
-                            </div>
-                            <?php endif; ?>
-                        </div>
-                    </td>
-                    <?php endif; ?>
                     <td class="px-6 py-4 whitespace-nowrap text-center" data-label="Aktionen">
                         <?php if ($user['id'] != $_SESSION['user_id']): ?>
                         <div class="flex flex-col items-center gap-2">
@@ -727,10 +672,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return a.getAttribute('data-email').localeCompare(b.getAttribute('data-email'));
                 case 'email-desc':
                     return b.getAttribute('data-email').localeCompare(a.getAttribute('data-email'));
-                case 'login':
-                    return parseInt(b.getAttribute('data-login')) - parseInt(a.getAttribute('data-login'));
-                case 'login-old':
-                    return parseInt(a.getAttribute('data-login')) - parseInt(b.getAttribute('data-login'));
                 case 'id':
                     return parseInt(a.getAttribute('data-id')) - parseInt(b.getAttribute('data-id'));
                 case 'id-desc':
@@ -773,7 +714,7 @@ document.addEventListener('DOMContentLoaded', function() {
     exportBtn.addEventListener('click', function() {
         const visibleRows = Array.from(userRows).filter(row => row.style.display !== 'none');
         
-        let csv = 'ID,E-Mail,Rolle,2FA Aktiviert,Alumni Verifiziert,Letzter Login\n';
+        let csv = 'ID,E-Mail,Rolle,2FA Aktiviert,Alumni Verifiziert\n';
         
         visibleRows.forEach(row => {
             const id = row.getAttribute('data-id');
@@ -782,15 +723,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Get additional info from row cells
             const cells = row.querySelectorAll('td');
-            const tfaBadge = cells[5].querySelector('.fa-shield-alt');
+            const tfaBadge = cells[4].querySelector('.fa-shield-alt');
             const tfa = tfaBadge ? 'Ja' : 'Nein';
             
-            const verifBadge = cells[5].querySelector('.fa-check-circle');
-            const verif = verifBadge ? 'Ja' : (cells[5].querySelector('.fa-clock') ? 'Nein' : 'N/A');
+            const verifBadge = cells[4].querySelector('.fa-check-circle');
+            const verif = verifBadge ? 'Ja' : (cells[4].querySelector('.fa-clock') ? 'Nein' : 'N/A');
             
-            const login = cells[6].textContent.trim();
-            
-            csv += `${sanitizeCsvValue(id)},"${sanitizeCsvValue(email)}","${sanitizeCsvValue(role)}","${sanitizeCsvValue(tfa)}","${sanitizeCsvValue(verif)}","${sanitizeCsvValue(login)}"\n`;
+            csv += `${sanitizeCsvValue(id)},"${sanitizeCsvValue(email)}","${sanitizeCsvValue(role)}","${sanitizeCsvValue(tfa)}","${sanitizeCsvValue(verif)}"\n`;
         });
         
         // Create download link
