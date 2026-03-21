@@ -1618,8 +1618,8 @@ try {
 
         <?php if (isset($_GET['logout']) && $_GET['logout'] == 1): ?>
         <div class="alert-message alert-success">
-            <span class="alert-icon">✓</span>
-            <span>Erfolgreich abgemeldet.</span>
+            <span class="alert-icon text-white">✓</span>
+            <span class="text-white">Erfolgreich abgemeldet.</span>
         </div>
         <?php endif; ?>
 
