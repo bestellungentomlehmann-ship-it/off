@@ -144,8 +144,10 @@ define('EASYVEREIN_API_TOKEN', _env('EASYVEREIN_API_TOKEN', ''));
 // Cron scripts allow access either via CLI or when this token is supplied via ?token=…
 define('CRON_TOKEN', _env('CRON_TOKEN', ''));
 
-// Google reCAPTCHA v3
-define('RECAPTCHA_SITE_KEY',   _env('RECAPTCHA_SITE_KEY',   ''));
+// Google reCAPTCHA v2
+// RECAPTCHA_SITE_KEY is the public key embedded in HTML – safe to ship as default.
+// RECAPTCHA_SECRET_KEY is sensitive and must be set via .env on each deployment.
+define('RECAPTCHA_SITE_KEY',   _env('RECAPTCHA_SITE_KEY',   '6LfvX4ssAAAAAJDjL5xtcpXkjbRww5FRtHC1DYqX'));
 define('RECAPTCHA_SECRET_KEY', _env('RECAPTCHA_SECRET_KEY', ''));
 
 // Trusted reverse-proxy IP addresses (comma-separated in .env).
