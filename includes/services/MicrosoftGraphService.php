@@ -733,43 +733,42 @@ class MicrosoftGraphService {
      *
      * @param string $userId  Object ID of the user to add
      * @param string $groupId Object ID of the target group
-     * @return bool True if the user was added (201) or was already a member (400 with "already exists" error)
-     * @throws Exception If the API call fails for any other reason
+     * @return bool True if the user was added (204) or was already a member (400 with "already exists" error)
+     * @throws Exception If the API call returns any other status code
      */
     public function addUserToGroup(string $userId, string $groupId): bool {
         $membersUrl = "https://graph.microsoft.com/v1.0/groups/{$groupId}/members/\$ref";
 
-        try {
-            $response = $this->httpClient->post($membersUrl, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->accessToken,
-                    'Content-Type'  => 'application/json',
-                ],
-                'json' => [
-                    '@odata.id' => "https://graph.microsoft.com/v1.0/directoryObjects/{$userId}",
-                ],
-            ]);
+        $response = $this->httpClient->post($membersUrl, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $this->accessToken,
+                'Content-Type'  => 'application/json',
+            ],
+            'json' => [
+                '@odata.id' => "https://graph.microsoft.com/v1.0/directoryObjects/{$userId}",
+            ],
+            'http_errors' => false,
+        ]);
 
-            return $response->getStatusCode() === 204;
+        $statusCode = $response->getStatusCode();
 
-        } catch (GuzzleException $e) {
-            // Microsoft Graph returns 400 with error code "Request_BadRequest" and a
-            // message containing "already exists" when the user is already a member.
-            // Treat this as an idempotent success so the caller can continue safely.
-            if ($e->hasResponse()) {
-                $statusCode = $e->getResponse()->getStatusCode();
-                if ($statusCode === 400) {
-                    $errorBody = json_decode($e->getResponse()->getBody()->getContents(), true);
-                    $errorCode = $errorBody['error']['code'] ?? '';
-                    $errorMsg  = $errorBody['error']['message'] ?? '';
-                    if ($errorCode === 'Request_BadRequest' && stripos($errorMsg, 'already exists') !== false) {
-                        return true; // Already a member – idempotent success
-                    }
-                }
-            }
-
-            throw new Exception('Failed to add user to group: ' . $e->getMessage());
+        if ($statusCode === 204) {
+            return true;
         }
+
+        $responseBody = (string) $response->getBody();
+
+        if ($statusCode === 400) {
+            $errorBody = json_decode($responseBody, true);
+            $errorMsg  = is_array($errorBody) ? ($errorBody['error']['message'] ?? '') : '';
+            if (stripos($errorMsg, 'already exists') !== false) {
+                return true; // Already a member – idempotent success
+            }
+        }
+
+        throw new Exception(
+            "Failed to add user to group: HTTP {$statusCode} – {$responseBody}"
+        );
     }
 
     /**
