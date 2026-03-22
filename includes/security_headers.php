@@ -136,17 +136,24 @@ if (!headers_sent()) {
     //   script-src                  – trusted CDNs; 'unsafe-inline' kept for
     //                                 backwards compatibility (inline event
     //                                 handlers / script blocks in templates).
+    //                                 google.com + gstatic.com required for
+    //                                 reCAPTCHA v2 widget script.
     //                                 NOTE: migrate templates to nonce-based
     //                                 scripts and remove 'unsafe-inline' once
     //                                 all <script> tags carry the nonce
     //                                 attribute (use csp_nonce() helper).
     //   style-src                   – trusted CDNs + inline styles required
-    //                                 by Tailwind utility classes
+    //                                 by Tailwind utility classes;
+    //                                 gstatic.com required for reCAPTCHA styles
     //   img-src                     – self + data: (SVG / base64) + blob:
+    //                                 + gstatic.com for reCAPTCHA images
     //   font-src                    – Google Fonts CDN + Flaticon
     //   connect-src 'self'          – XHR/fetch only to same origin;
     //                                 cdn.jsdelivr.net allowed for source
     //                                 map fetches by browser DevTools
+    //   frame-src 'self'            – explicit allowlist for iframes;
+    //                                 google.com required for reCAPTCHA
+    //                                 challenge iframe
     //   form-action 'self'          – form submissions only to same origin
     //   base-uri 'self'             – prevents <base> tag hijacking
     //   object-src 'none'           – blocks Flash / plugins entirely
@@ -157,11 +164,12 @@ if (!headers_sent()) {
     if (!header_sent_check('Content-Security-Policy')) {
         $csp_directives = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn-uicons.flaticon.com https://cdn.jsdelivr.net",
-            "img-src 'self' data: blob:",
+            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn-uicons.flaticon.com https://cdn.jsdelivr.net https://www.gstatic.com",
+            "img-src 'self' data: blob: https://www.gstatic.com",
             "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn-uicons.flaticon.com",
             "connect-src 'self' https://cdn.jsdelivr.net",
+            "frame-src 'self' https://www.google.com",
             "form-action 'self'",
             "base-uri 'self'",
             "object-src 'none'",
