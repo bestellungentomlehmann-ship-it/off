@@ -694,7 +694,7 @@ ob_start();
             </div>
             <div class="flex-1 min-w-0">
                 <h2 id="modal-title" class="text-lg font-bold text-white leading-tight break-words hyphens-auto">Neues Produkt anlegen</h2>
-                <p class="text-blue-100 text-xs mt-0.5">Pflichtfelder sind mit <span class="text-red-300 font-semibold">*</span> markiert</p>
+                <p class="text-white text-xs mt-0.5">Pflichtfelder sind mit <span class="text-red-300 font-semibold">*</span> markiert</p>
             </div>
             <button type="button" onclick="closeProductModal()"
                     class="text-white/70 hover:text-white transition-colors p-1.5 shrink-0">
