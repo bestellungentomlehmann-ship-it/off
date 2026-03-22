@@ -425,7 +425,11 @@ ob_start();
     flex-shrink: 0;
 }
 
-/* reCAPTCHA note */
+/* reCAPTCHA widget + note */
+#recaptcha-neue-alumni {
+    display: flex;
+    justify-content: center;
+}
 .alumni-recaptcha-note {
     font-size: 0.875rem;
     text-align: center;
