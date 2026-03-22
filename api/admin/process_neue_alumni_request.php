@@ -109,9 +109,9 @@ if ($action === 'reject') {
 }
 
 // ── Alumni distribution-list group ID ─────────────────────────────────────────
-if (!defined('ALUMNI_DISTRIBUTION_GROUP_ID')) {
-    define('ALUMNI_DISTRIBUTION_GROUP_ID', '9e927fce-9029-4564-b2b6-e52c9f1588dd');
-}
+// The Object ID of the "Verteiler Alumni" group in Microsoft Entra.
+// This value is fixed and must not be changed or overridden.
+$alumniGroupId = '9e927fce-9029-4564-b2b6-e52c9f1588dd';
 
 $firstName          = $request['first_name'];
 $lastName           = $request['last_name'];
@@ -148,9 +148,11 @@ try {
 // Add the account to the alumni distribution list ────────────────────────
 // If the Graph API call fails, notify IT via email and continue the process
 // so the user already gets intranet access while IT adds them manually.
+$groupAssignmentFailed = false;
 try {
-    $graphService->addUserToGroup($entraUserId, ALUMNI_DISTRIBUTION_GROUP_ID);
+    $graphService->addUserToGroup($entraUserId, $alumniGroupId);
 } catch (Exception $groupEx) {
+    $groupAssignmentFailed = true;
     error_log(
         'process_neue_alumni_request(admin): addUserToGroup failed for request #'
         . $requestId . ': ' . $groupEx->getMessage()
@@ -159,7 +161,7 @@ try {
         MailService::sendITManualTaskRequest(
             $firstName . ' ' . $lastName,
             $newEmail,
-            'Manuelle Aufnahme in den Alumni-Verteiler (Gruppen-ID: ' . ALUMNI_DISTRIBUTION_GROUP_ID . ')'
+            'Manuelle Aufnahme in den Alumni-Verteiler (Gruppen-ID: ' . $alumniGroupId . ')'
         );
     } catch (Exception $mailEx) {
         error_log(
@@ -262,4 +264,9 @@ if (!empty($oldEmail)) {
     }
 }
 
-echo json_encode(['success' => true, 'message' => 'Anfrage akzeptiert und Alumni-Zugang eingerichtet']);
+$itMail       = defined('MAIL_IT_RESSORT') ? MAIL_IT_RESSORT : 'it@business-consulting.de';
+$successMsg   = $groupAssignmentFailed
+    ? 'Gast-Account wurde erstellt. Die automatische Gruppenaufnahme schlug fehl, ein Ticket an die IT-Abteilung (' . $itMail . ') wurde automatisch erstellt'
+    : 'Anfrage akzeptiert und Alumni-Zugang eingerichtet';
+
+echo json_encode(['success' => true, 'message' => $successMsg]);
