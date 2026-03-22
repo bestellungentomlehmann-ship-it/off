@@ -6,9 +6,10 @@
  *  1. Checks whether the new e-mail already has an Entra account
  *     – YES → reuse the existing account and ensure it is in the alumni distribution list
  *     – NO  → create a B2B Guest invitation and add the new account to the list
- *  2. Sets the DB status to 'approved'
- *  3. Sends a confirmation e-mail to the applicant via MailService
- *  4. If old_email is set: sends a deactivation request e-mail to the IT department
+ *  2. Assigns the 'alumni' role in the intranet (local DB + Entra app role)
+ *  3. Sets the DB status to 'approved'
+ *  4. Sends a confirmation e-mail to the applicant via MailService
+ *  5. If old_email is set: sends a deactivation request e-mail to the IT department
  *     (instead of disabling the old account directly)
  *
  * Required permissions: alumni_finanz, alumni_vorstand, vorstand_finanzen,
@@ -23,6 +24,7 @@ require_once __DIR__ . '/../../src/Database.php';
 require_once __DIR__ . '/../../src/MailService.php';
 require_once __DIR__ . '/../../includes/handlers/CSRFHandler.php';
 require_once __DIR__ . '/../../includes/models/AlumniAccessRequest.php';
+require_once __DIR__ . '/../../includes/models/User.php';
 require_once __DIR__ . '/../../includes/services/MicrosoftGraphService.php';
 require_once __DIR__ . '/../../config/config.php';
 
@@ -160,7 +162,25 @@ try {
     exit;
 }
 
-// Step 4 – Update DB status ───────────────────────────────────────────────────
+// Step 2 – Assign 'alumni' role in the intranet ──────────────────────────────
+// Update the role in Microsoft Entra (app role) and in the local users table
+// if the user already has an account. If the user has no local account yet the
+// role will be set correctly on their first login via the Entra role claim.
+try {
+    $graphService->updateUserRole($entraUserId, Auth::ROLE_ALUMNI);
+} catch (Exception $roleEx) {
+    error_log(
+        'process_alumni_request(admin): could not update Entra app role to alumni'
+        . ' for request #' . $requestId . ': ' . $roleEx->getMessage()
+    );
+}
+
+$localUser = User::getByEmail($newEmail);
+if ($localUser) {
+    User::update($localUser['id'], ['role' => Auth::ROLE_ALUMNI, 'is_alumni_validated' => 1]);
+}
+
+// Step 3 – Update DB status ───────────────────────────────────────────────────
 $ok = AlumniAccessRequest::updateStatus($requestId, 'approved', $processedBy);
 if (!$ok) {
     http_response_code(500);
@@ -168,7 +188,7 @@ if (!$ok) {
     exit;
 }
 
-// Step 5 – Send confirmation e-mail to the applicant ─────────────────────────
+// Step 4 – Send confirmation e-mail to the applicant ─────────────────────────
 try {
     $subject = 'Willkommen im IBC Alumni-Verteiler';
 
@@ -200,7 +220,7 @@ try {
     );
 }
 
-// Step 6 – Send deactivation request to IT if old account exists ──────────────
+// Step 5 – Send deactivation request to IT if old account exists ──────────────
 // We deliberately do NOT disable the old account automatically via Graph API.
 // Instead, we send an email to the IT department requesting manual deactivation.
 if (!empty($oldEmail)) {
