@@ -1749,4 +1749,45 @@ class MailService {
 
         return self::sendEmail($itEmail, $subject, $htmlBody);
     }
+
+    /**
+     * Send a manual task request to the IT department.
+     *
+     * Use this method whenever the IT team needs to carry out a manual step
+     * (e.g. adding a user to an Alumni distribution list) that cannot be
+     * performed automatically by the application.
+     *
+     * @param string $userName     Full name of the affected user
+     * @param string $userEmail    New e-mail address of the affected user
+     * @param string $task         Short description of the task to be carried out
+     *                             (e.g. 'Manuelle Aufnahme in den Alumni-Verteiler 9e927fce-9029-4564-b2b6-e52c9f1588dd')
+     * @return bool  true on success, false on failure
+     */
+    public static function sendITManualTaskRequest(
+        string $userName,
+        string $userEmail,
+        string $task
+    ): bool {
+        $itEmail = defined('MAIL_IT_RESSORT') ? MAIL_IT_RESSORT : 'it@business-consulting.de';
+        $subject = '[IBC Intranet] Manuelle Aufgabe erforderlich';
+
+        $bodyContent =
+            '<p class="email-text">Hallo IT-Ressort,</p>' .
+            '<p class="email-text">im Rahmen eines automatisierten Prozesses ist eine manuelle Aufgabe angefallen, ' .
+            'die bitte zeitnah erledigt werden sollte:</p>' .
+            '<table class="info-table">' .
+            '<tr><td style="padding:10px 15px;font-weight:bold;width:40%">Vollständiger Name</td>' .
+            '<td style="padding:10px 15px">' . htmlspecialchars($userName, ENT_QUOTES, 'UTF-8') . '</td></tr>' .
+            '<tr><td style="padding:10px 15px;font-weight:bold">Neue E-Mail-Adresse</td>' .
+            '<td style="padding:10px 15px">' . htmlspecialchars($userEmail, ENT_QUOTES, 'UTF-8') . '</td></tr>' .
+            '<tr><td style="padding:10px 15px;font-weight:bold">Aufgabe</td>' .
+            '<td style="padding:10px 15px">' . htmlspecialchars($task, ENT_QUOTES, 'UTF-8') . '</td></tr>' .
+            '</table>' .
+            '<p class="email-text">Diese Anfrage wurde automatisch durch das IBC Intranet generiert.</p>' .
+            '<p class="email-text">Bitte bestätige die Erledigung nach Abschluss.</p>';
+
+        $htmlBody = self::getTemplate('Manuelle Aufgabe erforderlich', $bodyContent);
+
+        return self::sendEmail($itEmail, $subject, $htmlBody);
+    }
 }
