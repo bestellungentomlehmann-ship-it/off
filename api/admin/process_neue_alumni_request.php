@@ -132,10 +132,6 @@ try {
         // No account yet – create a B2B Guest invitation
         $entraUserId = $graphService->inviteGuestUser($newEmail, $firstName, $lastName);
     }
-
-    // Step 2 – Add the account to the alumni distribution list ───────────────
-    $graphService->addUserToGroup($entraUserId, ALUMNI_DISTRIBUTION_GROUP_ID);
-
 } catch (Exception $e) {
     error_log(
         'process_neue_alumni_request(admin): Entra operation failed for request #'
@@ -147,6 +143,30 @@ try {
         'message' => 'Fehler bei der Entra-Verarbeitung. Bitte prüfe die Logs.',
     ]);
     exit;
+}
+
+// Add the account to the alumni distribution list ────────────────────────
+// If the Graph API call fails, notify IT via email and continue the process
+// so the user already gets intranet access while IT adds them manually.
+try {
+    $graphService->addUserToGroup($entraUserId, ALUMNI_DISTRIBUTION_GROUP_ID);
+} catch (Exception $groupEx) {
+    error_log(
+        'process_neue_alumni_request(admin): addUserToGroup failed for request #'
+        . $requestId . ': ' . $groupEx->getMessage()
+    );
+    try {
+        MailService::sendITManualTaskRequest(
+            $firstName . ' ' . $lastName,
+            $newEmail,
+            'Manuelle Aufnahme in den Alumni-Verteiler (Gruppen-ID: ' . ALUMNI_DISTRIBUTION_GROUP_ID . ')'
+        );
+    } catch (Exception $mailEx) {
+        error_log(
+            'process_neue_alumni_request(admin): sendITManualTaskRequest failed for request #'
+            . $requestId . ': ' . $mailEx->getMessage()
+        );
+    }
 }
 
 // Step 2 – Assign 'alumni' role in the intranet ──────────────────────────────
