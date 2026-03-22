@@ -6,12 +6,13 @@
  *  1. Checks whether the new e-mail already has an Entra account
  *     – YES → reuse the existing account and ensure it is in the alumni distribution list
  *     – NO  → create a B2B Guest invitation and add the new account to the list
- *  2. Sets the DB status to 'approved'
- *  3a. If has_alumni_contract = 0: sends a welcome email with intranet login info
+ *  2. Assigns the 'alumni' role in the intranet (local DB + Entra app role)
+ *  3. Sets the DB status to 'approved'
+ *  4a. If has_alumni_contract = 0: sends a welcome email with intranet login info
  *      AND the Alumni Vertrag (DOCX + PDF) attached, requesting the signed copy
  *      be sent to the Vorstand email.
- *  3b. If has_alumni_contract = 1: sends a standard welcome email (no attachment).
- *  4.  If old_email is set: sends a deactivation request to the IT department
+ *  4b. If has_alumni_contract = 1: sends a standard welcome email (no attachment).
+ *  5.  If old_email is set: sends a deactivation request to the IT department
  *      instead of disabling the old account directly.
  *
  * Required permissions: alumni_finanz, alumni_vorstand, vorstand_finanzen,
@@ -26,6 +27,7 @@ require_once __DIR__ . '/../../src/Database.php';
 require_once __DIR__ . '/../../src/MailService.php';
 require_once __DIR__ . '/../../includes/handlers/CSRFHandler.php';
 require_once __DIR__ . '/../../includes/models/NewAlumniRequest.php';
+require_once __DIR__ . '/../../includes/models/User.php';
 require_once __DIR__ . '/../../includes/services/MicrosoftGraphService.php';
 require_once __DIR__ . '/../../config/config.php';
 
@@ -156,6 +158,24 @@ try {
         'message' => 'Fehler bei der Entra-Verarbeitung. Bitte prüfe die Logs.',
     ]);
     exit;
+}
+
+// Step 2 – Assign 'alumni' role in the intranet ──────────────────────────────
+// Update the role in Microsoft Entra (app role) and in the local users table
+// if the user already has an account. If the user has no local account yet the
+// role will be set correctly on their first login via the Entra role claim.
+try {
+    $graphService->updateUserRole($entraUserId, Auth::ROLE_ALUMNI);
+} catch (Exception $roleEx) {
+    error_log(
+        'process_neue_alumni_request(admin): could not update Entra app role to alumni'
+        . ' for request #' . $requestId . ': ' . $roleEx->getMessage()
+    );
+}
+
+$localUser = User::getByEmail($newEmail);
+if ($localUser) {
+    User::update($localUser['id'], ['role' => Auth::ROLE_ALUMNI, 'is_alumni_validated' => 1]);
 }
 
 // Step 3 – Update DB status ───────────────────────────────────────────────────
