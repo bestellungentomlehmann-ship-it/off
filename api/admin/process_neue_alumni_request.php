@@ -118,7 +118,6 @@ $lastName           = $request['last_name'];
 $newEmail           = $request['new_email'];
 $oldEmail           = $request['old_email'] ?? null;
 $hasAlumniContract  = (bool) ($request['has_alumni_contract'] ?? false);
-$groupWarning       = null;
 
 try {
     $graphService = new MicrosoftGraphService();
@@ -135,17 +134,7 @@ try {
     }
 
     // Step 2 – Add the account to the alumni distribution list ───────────────
-    try {
-        $graphService->addUserToGroup($entraUserId, ALUMNI_DISTRIBUTION_GROUP_ID);
-    } catch (Exception $groupEx) {
-        error_log(
-            'process_neue_alumni_request(admin): could not add user to distribution list'
-            . ' for request #' . $requestId . ': ' . $groupEx->getMessage()
-        );
-        $groupWarning = 'Gast-Account wurde erstellt, aber der User konnte nicht automatisch'
-            . ' dem Verteiler hinzugefügt werden'
-            . ' (ggf. manuell im Exchange/M365 Admin Center nachtragen)';
-    }
+    $graphService->addUserToGroup($entraUserId, ALUMNI_DISTRIBUTION_GROUP_ID);
 
 } catch (Exception $e) {
     error_log(
@@ -253,8 +242,4 @@ if (!empty($oldEmail)) {
     }
 }
 
-$responseMessage = $groupWarning !== null
-    ? $groupWarning
-    : 'Anfrage akzeptiert und Alumni-Zugang eingerichtet';
-
-echo json_encode(['success' => true, 'message' => $responseMessage]);
+echo json_encode(['success' => true, 'message' => 'Anfrage akzeptiert und Alumni-Zugang eingerichtet']);
