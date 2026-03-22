@@ -798,8 +798,7 @@ a:focus-visible {
 
                 <?php if (RECAPTCHA_SITE_KEY !== ''): ?>
                 <div
-                    class="g-recaptcha"
-                    data-sitekey="<?php echo htmlspecialchars(RECAPTCHA_SITE_KEY, ENT_QUOTES, 'UTF-8'); ?>"
+                    id="recaptcha-neue-alumni"
                     data-theme="dark"
                 ></div>
                 <?php endif; ?>
@@ -843,8 +842,8 @@ a:focus-visible {
 </div><!-- /alumni-page-wrap -->
 
 <?php if (RECAPTCHA_SITE_KEY !== ''): ?>
-<!-- Google reCAPTCHA v2 -->
-<script src="https://www.google.com/recaptcha/api.js"></script>
+<!-- Google reCAPTCHA v2 – explicit rendering to handle hidden step-2 container -->
+<script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script>
 <?php endif; ?>
 
 <script>
@@ -857,6 +856,8 @@ a:focus-visible {
     'use strict';
 
     var SITE_KEY = <?php echo json_encode(RECAPTCHA_SITE_KEY ?: ''); ?>;
+
+    var recaptchaWidgetId = null;
 
     var form      = document.getElementById('alumniRegistrationForm');
     var step1     = document.getElementById('alumniStep1');
@@ -969,6 +970,19 @@ a:focus-visible {
                 step1.style.display = 'none';
                 transitionIn(step2, true);
                 setDot(1, true);
+                /* Render reCAPTCHA widget explicitly once step 2 is visible */
+                if (SITE_KEY && recaptchaWidgetId === null) {
+                    if (typeof grecaptcha !== 'undefined' && typeof grecaptcha.ready === 'function') {
+                        grecaptcha.ready(function () {
+                            if (recaptchaWidgetId === null) {
+                                recaptchaWidgetId = grecaptcha.render('recaptcha-neue-alumni', {
+                                    sitekey: SITE_KEY,
+                                    theme:   'dark'
+                                });
+                            }
+                        });
+                    }
+                }
             }, 300);
         });
     }
@@ -1023,7 +1037,7 @@ a:focus-visible {
             return;
         }
 
-        var token = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
+        var token = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse(recaptchaWidgetId) : '';
 
         if (SITE_KEY && token === '') {
             showError('Bitte bestätige, dass du kein Roboter bist.');
@@ -1068,13 +1082,13 @@ a:focus-visible {
             if (result.success) {
                 showSuccess();
             } else {
-                if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
+                if (typeof grecaptcha !== 'undefined') grecaptcha.reset(recaptchaWidgetId);
                 showError(result.message || 'Ein unbekannter Fehler ist aufgetreten. Bitte erneut versuchen.');
             }
         })
         .catch(function () {
             setLoading(false);
-            if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
+            if (typeof grecaptcha !== 'undefined') grecaptcha.reset(recaptchaWidgetId);
             showError('Netzwerkfehler. Bitte Verbindung prüfen und erneut versuchen.');
         });
     });
