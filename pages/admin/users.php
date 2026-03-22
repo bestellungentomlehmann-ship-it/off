@@ -151,27 +151,7 @@ ob_start();
                     </div>
                 </div>
             </div>
-            <div class="flex items-center">
-                <div class="bg-white bg-opacity-20 backdrop-blur-md px-5 py-3 rounded-xl border border-white border-opacity-30 shadow-lg">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center shrink-0">
-                            <i class="fas fa-chart-line text-white text-lg md:text-xl"></i>
-                        </div>
-                        <div>
-                            <div class="text-2xl font-bold text-white"><?php 
-                                $activeToday = 0;
-                                foreach ($users as $u) {
-                                    if ($u['last_login'] && strtotime($u['last_login']) > strtotime('-24 hours')) {
-                                        $activeToday++;
-                                    }
-                                }
-                                echo $activeToday;
-                            ?></div>
-                            <div class="text-xs text-purple-100 font-medium">Aktiv heute</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
         </div>
     </div>
 </div>

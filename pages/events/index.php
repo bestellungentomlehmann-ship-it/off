@@ -272,7 +272,7 @@ ob_start();
                             <span class="text-sm font-semibold event-cta-link group-hover:text-ibc-blue-dark transition-colors">
                                 Details ansehen
                             </span>
-                            <span class="w-8 h-8 rounded-full bg-ibc-blue/10 flex items-center justify-center group-hover:bg-ibc-blue transition-all">
+                            <span class="w-8 h-8 rounded-full bg-ibc-blue/10 flex items-center justify-center group-hover:bg-ibc-blue transition-all event-arrow-btn">
                                 <i class="fas fa-arrow-right text-xs event-cta-link group-hover:text-white transition-colors"></i>
                             </span>
                         </div>
@@ -312,13 +312,13 @@ ob_start();
 
     /* ── Event Card ─────────────────────────────────── */
     .event-card {
-        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        transition: transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
         color: inherit;
         border: 1.5px solid var(--border-color) !important;
     }
     .event-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--shadow-card-hover);
+        transform: translateY(-7px) scale(1.01);
+        box-shadow: 0 20px 40px rgba(0, 102, 179, 0.18), 0 8px 16px rgba(0, 0, 0, 0.12);
         border-color: var(--ibc-blue) !important;
     }
 
@@ -412,6 +412,16 @@ ob_start();
     }
     .event-cta-link {
         color: var(--ibc-blue);
+        transition: color 0.25s ease;
+    }
+
+    /* Arrow button transition enhancement */
+    .event-arrow-btn {
+        transition: background-color 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+    }
+    .event-card:hover .event-arrow-btn {
+        transform: scale(1.15);
+        box-shadow: 0 4px 12px rgba(0, 102, 179, 0.35);
     }
 </style>
 
