@@ -85,7 +85,7 @@ ob_start();
 <div class="max-w-4xl mx-auto">
     <!-- Back Button -->
     <div class="mb-6">
-        <a href="index.php" class="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors font-medium">
+        <a href="index.php" class="inline-flex items-center text-green-600 hover:text-green-800 transition-colors font-medium">
             <i class="fas fa-arrow-left mr-2"></i>
             Zurück zum Mitgliederverzeichnis
         </a>
@@ -111,7 +111,7 @@ ob_start();
                     $imagePath = $hasActualImage ? asset($_pictureUrl) : '';
                 }
                 ?>
-                <div class="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-4xl font-bold overflow-hidden shadow-lg">
+                <div class="w-32 h-32 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-4xl font-bold overflow-hidden shadow-lg">
                     <?php if ($hasActualImage): ?>
                         <img 
                             src="<?php echo htmlspecialchars($imagePath, ENT_QUOTES, 'UTF-8'); ?>" 
@@ -140,7 +140,7 @@ ob_start();
                     'vorstand_finanzen'   => 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-700',
                     'vorstand_intern'     => 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-700',
                     'vorstand_extern'     => 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-700',
-                    'ressortleiter'       => 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-teal-900 dark:text-teal-200 dark:border-teal-700',
+                    'ressortleiter'       => 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900 dark:text-teal-200 dark:border-teal-700',
                     'mitglied'            => 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-200 dark:border-green-700',
                     'anwaerter'           => 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-700',
                     'alumni'              => 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-700',
@@ -197,7 +197,7 @@ ob_start();
     <?php if (!empty($profileUser['about_me'])): ?>
     <div class="card p-6 mb-6">
         <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
-            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600">
                 <i class="fas fa-quote-left text-sm"></i>
             </span>
             Über mich
@@ -210,7 +210,7 @@ ob_start();
         <!-- Kontaktinformationen -->
         <div class="card p-6">
             <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600">
+                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600">
                     <i class="fas fa-address-card text-sm"></i>
                 </span>
                 Kontakt
@@ -219,7 +219,7 @@ ob_start();
                 <!-- E-Mail -->
                 <?php if (!empty($profile['email'])): ?>
                 <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-                    <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+                    <div class="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0">
                         <i class="fas fa-envelope text-sm"></i>
                     </div>
                     <div class="min-w-0">

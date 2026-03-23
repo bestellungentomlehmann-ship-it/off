@@ -53,7 +53,7 @@ ob_start();
     <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
             <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">
-                <i class="fas fa-users mr-3 text-blue-600 dark:text-blue-400"></i>
+                <i class="fas fa-users mr-3 text-green-600 dark:text-green-400"></i>
                 Mitgliederverzeichnis
             </h1>
             <p class="text-gray-600 dark:text-gray-300">Entdecken und vernetzen Sie sich mit unseren aktiven Mitgliedern</p>
@@ -61,7 +61,7 @@ ob_start();
         
         <!-- Edit My Profile Button - Only for Vorstand (all types), Resortleiter, Mitglied, Anwärter -->
         <?php if (Auth::isBoard() || Auth::hasRole(['ressortleiter', 'mitglied', 'anwaerter'])): ?>
-        <a href="../auth/profile.php" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl">
+        <a href="../auth/profile.php" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl">
             <i class="fas fa-user-edit mr-2"></i>
             Profil bearbeiten
         </a>
@@ -97,7 +97,7 @@ ob_start();
                 </select>
             </div>
             <div class="directory-toolbar-actions">
-                <button type="submit" class="btn btn-primary fw-semibold" style="padding:0.6rem 1.25rem;">
+                <button type="submit" class="btn fw-semibold text-white" style="background:linear-gradient(135deg,var(--ibc-green-dark),var(--ibc-green));padding:0.6rem 1.25rem;">
                     <i class="fas fa-search me-2"></i>Suchen
                 </button>
                 <?php if (!empty($searchKeyword) || !empty($roleFilter)): ?>
@@ -140,7 +140,7 @@ ob_start();
                     'vorstand_finanzen'   => 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-700',
                     'vorstand_intern'     => 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-700',
                     'vorstand_extern'     => 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-700',
-                    'ressortleiter'       => 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-teal-900 dark:text-teal-200 dark:border-teal-700',
+                    'ressortleiter'       => 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900 dark:text-teal-200 dark:border-teal-700',
                     'mitglied'            => 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-200 dark:border-green-700',
                     'anwaerter'           => 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-700',
                     'alumni'              => 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600',
@@ -306,7 +306,8 @@ ob_start();
                         <!-- Action: 'Profil ansehen' Button -->
                         <a 
                             href="view.php?id=<?php echo $member['profile_id']; ?>"
-                            class="btn btn-primary w-100 fw-semibold shadow-sm"
+                            class="btn w-100 fw-semibold shadow-sm text-white"
+                            style="background:linear-gradient(135deg,var(--ibc-green-dark),var(--ibc-green));"
                         >
                             <i class="fas fa-user me-2"></i>
                             Profil ansehen

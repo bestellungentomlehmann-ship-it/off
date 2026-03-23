@@ -5595,8 +5595,8 @@ img:not([loading]) {
 }
 
 .directory-search-wrapper input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    border-color: var(--ibc-green);
+    box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.15);
     outline: none;
 }
 
@@ -5609,8 +5609,8 @@ img:not([loading]) {
 }
 
 .dark-mode .directory-search-wrapper input:focus {
-    border-color: #3385c4;
-    box-shadow: 0 0 0 3px rgba(51, 133, 196, 0.2);
+    border-color: var(--ibc-green);
+    box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.2);
 }
 
 /* Directory avatar circle */
@@ -5683,9 +5683,16 @@ img:not([loading]) {
     text-overflow: ellipsis;
 }
 
-/* Role badge - rounded corners */
+/* Role badge - rounded pill with improved typography */
 .directory-role-badge {
     border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+    white-space: nowrap;
+    line-height: 1.4;
 }
 
 /* Contact icons - subtle gray with IBC-blue on hover */
@@ -5705,9 +5712,9 @@ img:not([loading]) {
 
 .directory-contact-icon:hover,
 .directory-card:hover .directory-contact-icon {
-    color: var(--ibc-blue);
-    background-color: #eff6ff;
-    border-color: #bfdbfe;
+    color: var(--ibc-green);
+    background-color: #f0fdf4;
+    border-color: #bbf7d0;
 }
 
 /* Dark mode: directory contact icons */
@@ -5719,9 +5726,9 @@ img:not([loading]) {
 
 .dark-mode .directory-contact-icon:hover,
 .dark-mode .directory-card:hover .directory-contact-icon {
-    color: var(--ibc-blue-light);
-    background-color: rgba(51, 133, 196, 0.2);
-    border-color: rgba(51, 133, 196, 0.5);
+    color: var(--ibc-green-light);
+    background-color: rgba(0, 166, 81, 0.15);
+    border-color: rgba(0, 166, 81, 0.4);
 }
 
 /* Mobile Optimization for Member Directory */
@@ -5840,7 +5847,7 @@ img:not([loading]) {
 }
 
 .directory-card--members .directory-card-header {
-    background: linear-gradient(135deg, var(--ibc-blue), var(--ibc-blue-light));
+    background: linear-gradient(135deg, var(--ibc-green-dark), var(--ibc-green-light));
 }
 
 /* Avatar centered at base of header, floating into card body */
@@ -5880,7 +5887,7 @@ img:not([loading]) {
 }
 
 .dark-mode .directory-card--members .directory-card-header {
-    background: linear-gradient(135deg, var(--ibc-blue-dark), var(--ibc-blue));
+    background: linear-gradient(135deg, var(--ibc-green-dark), var(--ibc-green));
 }
 
 /* Browser Date/Time Picker Styling */
