@@ -307,6 +307,14 @@ if (!isset($currentUser)) {
                     <span>Dashboard</span>
                 </a>
 
+                <!-- Newsletter (All authenticated users) -->
+                <a href="<?php echo asset('pages/newsletter/index.php'); ?>"
+                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/newsletter/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   <?php echo is_nav_active('/newsletter/') ? 'aria-current="page"' : ''; ?>>
+                    <i class="fas fa-envelope-open-text w-5 mr-3" aria-hidden="true"></i>
+                    <span>Newsletter</span>
+                </a>
+
                 <!-- Alumni (All) -->
                 <a href="<?php echo asset('pages/alumni/index.php'); ?>" 
                    class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/alumni/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
@@ -438,14 +446,6 @@ if (!isset($currentUser)) {
                         <?php echo $sidebarCartCount > 99 ? '99+' : $sidebarCartCount; ?>
                     </span>
                     <?php endif; ?>
-                </a>
-
-                <!-- Newsletter (All authenticated users) -->
-                <a href="<?php echo asset('pages/newsletter/index.php'); ?>"
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/newsletter/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
-                   <?php echo is_nav_active('/newsletter/') ? 'aria-current="page"' : ''; ?>>
-                    <i class="fas fa-envelope-open-text w-5 mr-3" aria-hidden="true"></i>
-                    <span>Newsletter</span>
                 </a>
 
                 <!-- Umfragen (Polls - All authenticated users) -->
