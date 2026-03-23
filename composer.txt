@@ -25,6 +25,10 @@ Die folgenden Dienste benötigen die installierten Abhängigkeiten:
   • download_invoice.php (PDF-Rechnungserstellung)
     → dompdf/dompdf
 
+  • NewsletterService / download_newsletter.php (Newsletter-Parsing, .eml/.msg)
+    → zbateson/mail-mime-parser
+    Installationsbefehl: composer require zbateson/mail-mime-parser
+
 Voraussetzungen:
   - PHP >= 8.0 mit den Erweiterungen: curl, mbstring, openssl, pdo
   - Composer >= 2.x (https://getcomposer.org)

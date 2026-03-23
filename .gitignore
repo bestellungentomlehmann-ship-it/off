@@ -1,6 +1,10 @@
 node_modules/
 vendor/
-uploads/
+# Ignore uploaded user files but track directory structure and .htaccess files
+uploads/**
+!uploads/
+!uploads/**/
+!uploads/**/.htaccess
 .env
 logs/*.log
 # Profile photo cache – generated at runtime; keep only the .htaccess

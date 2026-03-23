@@ -53,7 +53,7 @@ if ($newslettersDir === false) {
 }
 
 // Strip any directory components from the stored filename to prevent path traversal
-$safeBasename = basename($newsletter['filename'] ?? '');
+$safeBasename = basename($newsletter['file_path'] ?? '');
 if ($safeBasename === '') {
     http_response_code(404);
     header('Content-Type: application/json');
@@ -95,8 +95,8 @@ $mimeMap = [
 ];
 $mimeType = $mimeMap[$ext] ?? 'application/octet-stream';
 
-// Build a safe download filename from the stored original name
-$originalFilename = basename($newsletter['original_filename'] ?? ('newsletter_' . $newsletterId . '.' . $ext));
+// Build a safe download filename from the stored title
+$originalFilename = basename($newsletter['title'] ?? ('newsletter_' . $newsletterId)) . '.' . $ext;
 
 // ── 6. Stream the file ────────────────────────────────────────────────────────
 header('Content-Type: ' . $mimeType);

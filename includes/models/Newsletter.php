@@ -15,7 +15,7 @@ class Newsletter {
     /**
      * Retrieve all newsletters, newest first, with optional keyword search.
      *
-     * @param string $search Optional search term (title / description).
+     * @param string $search Optional search term (title / month_year).
      * @return array
      */
     public static function getAll(string $search = ''): array {
@@ -27,8 +27,8 @@ class Newsletter {
                 "SELECT n.*, u.first_name, u.last_name
                  FROM newsletters n
                  LEFT JOIN users u ON u.id = n.uploaded_by
-                 WHERE n.title LIKE ? OR n.description LIKE ?
-                 ORDER BY n.sent_date DESC, n.created_at DESC"
+                 WHERE n.title LIKE ? OR n.month_year LIKE ?
+                 ORDER BY n.created_at DESC"
             );
             $stmt->execute([$like, $like]);
         } else {
@@ -36,7 +36,7 @@ class Newsletter {
                 "SELECT n.*, u.first_name, u.last_name
                  FROM newsletters n
                  LEFT JOIN users u ON u.id = n.uploaded_by
-                 ORDER BY n.sent_date DESC, n.created_at DESC"
+                 ORDER BY n.created_at DESC"
             );
         }
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -63,23 +63,20 @@ class Newsletter {
     /**
      * Persist a new newsletter record.
      *
-     * @param array $data {title, description, filename, original_filename, file_size, sent_date, uploaded_by}
+     * @param array $data {title, month_year, file_path, uploaded_by}
      * @return int  New record ID.
      */
     public static function create(array $data): int {
         $db   = Database::getContentDB();
         $stmt = $db->prepare(
             "INSERT INTO newsletters
-                 (title, description, filename, original_filename, file_size, sent_date, uploaded_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
+                 (title, month_year, file_path, uploaded_by)
+             VALUES (?, ?, ?, ?)"
         );
         $stmt->execute([
             $data['title'],
-            $data['description'] ?? null,
-            $data['filename'],
-            $data['original_filename'],
-            (int) $data['file_size'],
-            $data['sent_date'] ?? null,
+            $data['month_year'] ?? null,
+            $data['file_path'],
             (int) $data['uploaded_by'],
         ]);
         return (int) $db->lastInsertId();
@@ -99,7 +96,7 @@ class Newsletter {
 
         // Delete the file from disk first
         $uploadDir = __DIR__ . '/../../uploads/newsletters/';
-        $filePath  = realpath($uploadDir . basename($newsletter['filename']));
+        $filePath  = realpath($uploadDir . basename($newsletter['file_path']));
         if ($filePath !== false && str_starts_with($filePath, realpath($uploadDir))) {
             @unlink($filePath);
         }
@@ -154,6 +151,6 @@ class Newsletter {
             return ['success' => false, 'error' => 'Die Datei konnte nicht gespeichert werden.'];
         }
 
-        return ['success' => true, 'filename' => $secureFilename, 'original_filename' => $originalName];
+        return ['success' => true, 'file_path' => $secureFilename, 'original_filename' => $originalName];
     }
 }

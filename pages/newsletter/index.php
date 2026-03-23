@@ -111,11 +111,10 @@ ob_start();
 <?php else: ?>
 <div class="flex flex-col gap-3">
     <?php foreach ($newsletters as $nl):
-        $ext       = strtolower(pathinfo($nl['original_filename'] ?? '', PATHINFO_EXTENSION));
-        $iconClass = $ext === 'msg' ? 'fas fa-envelope text-purple-500' : 'fas fa-envelope-open-text text-ibc-blue';
-        $sentDate  = $nl['sent_date'] ? date('d.m.Y', strtotime($nl['sent_date'])) : null;
+        $ext        = strtolower(pathinfo($nl['file_path'] ?? '', PATHINFO_EXTENSION));
+        $iconClass  = $ext === 'msg' ? 'fas fa-envelope text-purple-500' : 'fas fa-envelope-open-text text-ibc-blue';
+        $monthYear  = $nl['month_year'] ?? null;
         $uploadedBy = trim(($nl['first_name'] ?? '') . ' ' . ($nl['last_name'] ?? '')) ?: 'Unbekannt';
-        $fileSizeKb = round(($nl['file_size'] ?? 0) / 1024, 1);
         $nlId = (int) ($nl['id'] ?? 0);
     ?>
     <div class="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md hover:border-ibc-blue/30 dark:hover:border-ibc-blue/30 transition-all duration-200">
@@ -127,21 +126,16 @@ ob_start();
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-snug break-words hyphens-auto">
                     <?php echo htmlspecialchars($nl['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
                 </h3>
-                <?php if (!empty($nl['description'])): ?>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed break-words hyphens-auto">
-                    <?php echo htmlspecialchars($nl['description'], ENT_QUOTES, 'UTF-8'); ?>
-                </p>
-                <?php endif; ?>
                 <div class="flex flex-wrap gap-3 mt-2">
-                    <?php if ($sentDate): ?>
+                    <?php if ($monthYear): ?>
                     <span class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                         <i class="fas fa-calendar-alt"></i>
-                        <?php echo htmlspecialchars($sentDate); ?>
+                        <?php echo htmlspecialchars($monthYear, ENT_QUOTES, 'UTF-8'); ?>
                     </span>
                     <?php endif; ?>
                     <span class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                         <i class="fas fa-file"></i>
-                        <?php echo strtoupper(htmlspecialchars($ext, ENT_QUOTES, 'UTF-8')); ?> &middot; <?php echo $fileSizeKb; ?> KB
+                        <?php echo strtoupper(htmlspecialchars($ext, ENT_QUOTES, 'UTF-8')); ?>
                     </span>
                     <span class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                         <i class="fas fa-user"></i>
@@ -152,7 +146,7 @@ ob_start();
             <div class="flex items-center gap-2 flex-shrink-0">
                 <a href="<?php echo asset('api/download_newsletter.php'); ?>?id=<?php echo $nlId; ?>"
                    class="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] text-xs bg-ibc-blue text-white rounded-lg hover:bg-ibc-blue-dark transition font-medium"
-                   title="<?php echo htmlspecialchars($nl['original_filename'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                   title="<?php echo htmlspecialchars($nl['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                     <i class="fas fa-download"></i>
                     <span class="hidden sm:inline">Herunterladen</span>
                 </a>

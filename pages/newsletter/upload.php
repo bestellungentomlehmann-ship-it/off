@@ -22,9 +22,8 @@ $success = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     CSRFHandler::verifyToken($_POST['csrf_token'] ?? '');
 
-    $title       = trim($_POST['title'] ?? '');
-    $description = trim($_POST['description'] ?? '');
-    $sentDate    = trim($_POST['sent_date'] ?? '');
+    $title      = trim($_POST['title'] ?? '');
+    $monthYear  = trim($_POST['month_year'] ?? '');
 
     if ($title === '') {
         $error = 'Bitte geben Sie einen Titel an.';
@@ -38,13 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 Newsletter::create([
-                    'title'             => $title,
-                    'description'       => $description !== '' ? $description : null,
-                    'filename'          => $uploadResult['filename'],
-                    'original_filename' => $uploadResult['original_filename'],
-                    'file_size'         => $_FILES['newsletter_file']['size'],
-                    'sent_date'         => $sentDate !== '' ? $sentDate : null,
-                    'uploaded_by'       => $currentUser['id'],
+                    'title'       => $title,
+                    'month_year'  => $monthYear !== '' ? $monthYear : null,
+                    'file_path'   => $uploadResult['file_path'],
+                    'uploaded_by' => $currentUser['id'],
                 ]);
                 $_SESSION['success_message'] = 'Newsletter erfolgreich hochgeladen.';
                 header('Location: index.php');
@@ -52,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (Exception $e) {
                 // Clean up the orphaned file if the DB insert failed
                 $uploadDir = __DIR__ . '/../../uploads/newsletters/';
-                $filePath  = realpath($uploadDir . basename($uploadResult['filename']));
+                $filePath  = realpath($uploadDir . basename($uploadResult['file_path']));
                 if ($filePath !== false && str_starts_with($filePath, realpath($uploadDir))) {
                     @unlink($filePath);
                 }
@@ -100,23 +96,14 @@ ob_start();
                    class="w-full rounded-xl border-gray-300 dark:border-gray-700 shadow-sm focus:ring-ibc-green focus:border-ibc-green py-2.5 px-4 text-sm">
         </div>
 
-        <!-- Description -->
+        <!-- Month / Year -->
         <div>
-            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Beschreibung <span class="text-gray-400 font-normal">(optional)</span>
+            <label for="month_year" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Monat / Jahr <span class="text-gray-400 font-normal">(optional)</span>
             </label>
-            <textarea id="description" name="description" rows="3"
-                      placeholder="Kurze Inhaltsbeschreibung des Newsletters..."
-                      class="w-full rounded-xl border-gray-300 dark:border-gray-700 shadow-sm focus:ring-ibc-green focus:border-ibc-green py-2.5 px-4 text-sm resize-none"><?php echo htmlspecialchars($_POST['description'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
-        </div>
-
-        <!-- Sent Date -->
-        <div>
-            <label for="sent_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Versanddatum <span class="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <input type="date" id="sent_date" name="sent_date"
-                   value="<?php echo htmlspecialchars($_POST['sent_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+            <input type="text" id="month_year" name="month_year"
+                   value="<?php echo htmlspecialchars($_POST['month_year'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                   placeholder="z. B. März 2025"
                    class="w-full rounded-xl border-gray-300 dark:border-gray-700 shadow-sm focus:ring-ibc-green focus:border-ibc-green py-2.5 px-4 text-sm">
         </div>
 
