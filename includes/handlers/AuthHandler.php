@@ -305,6 +305,18 @@ class AuthHandler {
     }
 
     /**
+     * Require a logged-in user
+     * Redirects to login if not authenticated
+     */
+    public static function requireLogin() {
+        if (!self::isAuthenticated()) {
+            $loginUrl = (defined('BASE_URL') && BASE_URL) ? BASE_URL . '/pages/auth/login.php' : '/pages/auth/login.php';
+            header('Location: ' . $loginUrl);
+            exit;
+        }
+    }
+
+    /**
      * Require admin privileges (any board role)
      * Redirects to login if not authorized
      */
