@@ -1553,6 +1553,9 @@ body.dark-mode .flatpickr-time input:focus {
 body:not(.dark-mode) h1:not(.sidebar *),
 body:not(.dark-mode) h2:not(.sidebar *),
 body:not(.dark-mode) h3:not(.sidebar *),
+body:not(.dark-mode) h4:not(.sidebar *),
+body:not(.dark-mode) h5:not(.sidebar *),
+body:not(.dark-mode) h6:not(.sidebar *),
 body:not(.dark-mode) p:not(.sidebar *),
 body:not(.dark-mode) li:not(.sidebar *),
 body:not(.dark-mode) label:not(.sidebar *),
@@ -1565,8 +1568,9 @@ body:not(.dark-mode) td:not(.sidebar *) {
 
 /* LIGHT MODE: Span text color - dark for unstyled spans, but allow colored utility classes.
    Exclusions for Tailwind color prefixes prevent status badges, error indicators, and other
-   semantic color-coded elements from having their colors overridden to near-black. */
-body:not(.dark-mode) span:not(.badge):not(.btn-primary):not(.text-white):not(.sidebar *):not([class*="text-red"]):not([class*="text-green"]):not([class*="text-orange"]):not([class*="text-yellow"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-teal"]):not([class*="text-indigo"]):not([class*="text-cyan"]):not([class*="text-emerald"]):not([class*="text-amber"]):not([class*="text-rose"]):not([class*="text-sky"]):not([class*="text-violet"]):not([class*="text-fuchsia"]):not([class*="text-lime"]):not([class*="text-ibc"]) {
+   semantic color-coded elements from having their colors overridden to near-black.
+   Also excludes mobile bottom nav label spans so their active/inactive state colors work. */
+body:not(.dark-mode) span:not(.badge):not(.btn-primary):not(.text-white):not(.sidebar *):not(.mobile-bottom-nav-item *):not([class*="text-red"]):not([class*="text-green"]):not([class*="text-orange"]):not([class*="text-yellow"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-teal"]):not([class*="text-indigo"]):not([class*="text-cyan"]):not([class*="text-emerald"]):not([class*="text-amber"]):not([class*="text-rose"]):not([class*="text-sky"]):not([class*="text-violet"]):not([class*="text-fuchsia"]):not([class*="text-lime"]):not([class*="text-ibc"]):not([class*="text-blue"]):not([class*="text-gray"]):not([class*="text-slate"]):not([class*="text-zinc"]):not([class*="text-neutral"]):not([class*="text-stone"]) {
     color: #0f172a !important; /* slate-900 - Almost black for max readability */
 }
 
@@ -8470,3 +8474,339 @@ body {
         display: none !important;
     }
 }
+
+/* ============================================================
+   FINAL LIGHT MODE DESIGN IMPROVEMENTS (2026)
+   – Typography consistency, visual polish, and text-size fixes
+   ============================================================ */
+
+/* ── 1. FLUID TYPOGRAPHY FOR MISSING TAILWIND TEXT SIZES ────
+   Adds clamp() scaling for text-lg, text-xl, text-2xl so they
+   scale smoothly alongside the already-clamped text-3xl+.
+   ──────────────────────────────────────────────────────────── */
+
+.text-base {
+    font-size: clamp(0.9375rem, 0.5vw + 0.8rem, 1rem) !important;
+}
+
+.text-lg {
+    font-size: clamp(1rem, 0.6vw + 0.875rem, 1.125rem) !important;
+}
+
+.text-xl {
+    font-size: clamp(1.125rem, 0.8vw + 0.95rem, 1.25rem) !important;
+}
+
+.text-2xl {
+    font-size: clamp(1.25rem, 1.5vw + 0.9rem, 1.5rem) !important;
+}
+
+/* ── 2. LIGHT MODE: MOBILE BOTTOM NAV POLISH ───────────────
+   Ensure nav item labels and icons have correct colours in
+   light mode (the global span rule would otherwise override).
+   ──────────────────────────────────────────────────────────── */
+
+/* Inactive tab: medium-gray icon + label */
+body:not(.dark-mode) .mobile-bottom-nav-item,
+body:not(.dark-mode) .mobile-bottom-nav-item i,
+body:not(.dark-mode) .mobile-bottom-nav-item span {
+    color: #6b7280 !important; /* gray-500 – readable but clearly inactive */
+}
+
+/* Active tab: IBC blue */
+body:not(.dark-mode) .mobile-bottom-nav-item.active,
+body:not(.dark-mode) .mobile-bottom-nav-item.active i,
+body:not(.dark-mode) .mobile-bottom-nav-item.active span {
+    color: var(--ibc-blue) !important;
+}
+
+/* "More" / open state: IBC green */
+body:not(.dark-mode) .mobile-bottom-nav-item.open,
+body:not(.dark-mode) .mobile-bottom-nav-item.open i,
+body:not(.dark-mode) .mobile-bottom-nav-item.open span {
+    color: var(--ibc-green) !important;
+}
+
+/* ── 3. LIGHT MODE: HEADING COLOR HIERARCHY ────────────────
+   Ensures h4–h6 use the same readable dark colour as h1–h3
+   and that heading weights establish a clear visual hierarchy.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) h1:not(.sidebar *) { color: #0c1a2e !important; font-weight: 800; }
+body:not(.dark-mode) h2:not(.sidebar *) { color: #0f2040 !important; font-weight: 700; }
+body:not(.dark-mode) h3:not(.sidebar *) { color: #1a2f4a !important; font-weight: 700; }
+body:not(.dark-mode) h4:not(.sidebar *) { color: #1e3a5f !important; font-weight: 600; }
+body:not(.dark-mode) h5:not(.sidebar *) { color: #243d5c !important; font-weight: 600; }
+body:not(.dark-mode) h6:not(.sidebar *) { color: #2d4a6b !important; font-weight: 600; }
+
+/* ── 4. LIGHT MODE: MUTED / SECONDARY TEXT ─────────────────
+   Refine --text-muted so secondary labels are clearly readable
+   without competing with primary content.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) .text-muted,
+body:not(.dark-mode) [class*="text-muted"],
+body:not(.dark-mode) .text-gray-500 {
+    color: #4b5563 !important; /* gray-600 – noticeably lighter than headings */
+}
+
+body:not(.dark-mode) .text-gray-400 {
+    color: #6b7280 !important; /* gray-500 – subtle supporting text */
+}
+
+/* ── 5. LIGHT MODE: CORRECT TEXT SIZES FOR STAT/KPI VALUES ─
+   Stat cards and KPI widgets must show large, bold numbers.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) .stat-card .stat-value,
+body:not(.dark-mode) .dash-stat-value,
+body:not(.dark-mode) .kpi-value {
+    font-size: clamp(1.75rem, 3vw + 0.75rem, 2.25rem) !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+    color: #0c1a2e !important;
+}
+
+body:not(.dark-mode) .stat-card .stat-label,
+body:not(.dark-mode) .dash-stat-label,
+body:not(.dark-mode) .kpi-label {
+    font-size: clamp(0.75rem, 0.4vw + 0.65rem, 0.875rem) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    color: #4b5563 !important;
+}
+
+/* ── 6. LIGHT MODE: LINK COLOUR CONSISTENCY ────────────────
+   Interactive text links in paragraphs and lists should use
+   IBC blue so they are clearly distinguishable from body text.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) p > a:not(.btn):not(.btn-primary):not(.text-white):not(.no-hover),
+body:not(.dark-mode) li > a:not(.btn):not(.btn-primary):not(.text-white):not(.no-hover),
+body:not(.dark-mode) td > a:not(.btn):not(.btn-primary):not(.text-white):not(.no-hover) {
+    color: var(--ibc-blue) !important;
+    font-weight: 500;
+}
+
+body:not(.dark-mode) p > a:not(.btn):not(.btn-primary):not(.text-white):not(.no-hover):hover,
+body:not(.dark-mode) li > a:not(.btn):not(.btn-primary):not(.text-white):not(.no-hover):hover,
+body:not(.dark-mode) td > a:not(.btn):not(.btn-primary):not(.text-white):not(.no-hover):hover {
+    color: var(--ibc-blue-dark) !important;
+    text-decoration: underline !important;
+}
+
+/* ── 7. LIGHT MODE: BADGE / STATUS CHIP IMPROVEMENTS ───────
+   Keep semantic badge colours visible; add subtle shadow for
+   depth perception on white card backgrounds.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) .badge,
+body:not(.dark-mode) [class*="badge-"] {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Ensure success / danger / warning / info badge text colours
+   are not overridden to near-black by the span force rule */
+body:not(.dark-mode) .badge.bg-success,
+body:not(.dark-mode) .badge.text-success { color: #ffffff !important; }
+body:not(.dark-mode) .badge.bg-danger,
+body:not(.dark-mode) .badge.text-danger  { color: #ffffff !important; }
+body:not(.dark-mode) .badge.bg-warning { color: #1a1a1a !important; }
+body:not(.dark-mode) .badge.bg-info,
+body:not(.dark-mode) .badge.text-info   { color: #ffffff !important; }
+
+/* ── 8. LIGHT MODE: TABLE CELL DATA LABELS (CARD-TABLE) ────
+   On mobile the card-table layout injects a data-label ::before.
+   These should use a slightly lighter colour so the value stands out.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) .card-table td[data-label]::before {
+    color: #6b7280 !important; /* gray-500 */
+}
+
+body:not(.dark-mode) tbody tr:nth-child(even) td {
+    background-color: rgba(248, 250, 252, 0.6) !important; /* very subtle alternating row */
+}
+
+/* ── 9. LIGHT MODE: FORM LABEL IMPROVEMENTS ────────────────
+   Labels must be clearly visible and slightly bolder than
+   plain body text so they work as scannable form guides.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) label:not(.sidebar *) {
+    color: #1e3a5f !important;
+    font-weight: 600 !important;
+    font-size: clamp(0.8125rem, 0.4vw + 0.7rem, 0.9375rem) !important;
+}
+
+/* ── 10. LIGHT MODE: PAGE TITLE GRADIENT TEXT ──────────────
+   .page-title uses gradient fill. Ensure -webkit-text-fill-color
+   is applied consistently so non-gradient fallback is visible.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) .page-title {
+    background: linear-gradient(135deg, #0c1a2e 0%, #0066b3 55%, #00a651 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    /* Fallback for browsers that don't support background-clip: text */
+    color: #0c1a2e;
+}
+
+/* Override gradient text back to plain dark text inside .page-header
+   so page headers with subtitles look clean and readable */
+body:not(.dark-mode) .page-header .page-title,
+body:not(.dark-mode) .page-header h1 {
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    color: #0c1a2e !important;
+    font-weight: 800;
+}
+
+/* ── 11. LIGHT MODE: BODY BACKGROUND REFINEMENT ────────────
+   Slightly warmer cool-blue gradient for a premium, airy feel
+   without visual noise. Fixed attachment for parallax depth.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) {
+    background:
+        radial-gradient(ellipse at 0% 0%, rgba(0, 102, 179, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 100% 100%, rgba(0, 166, 81, 0.04) 0%, transparent 50%),
+        linear-gradient(160deg, #f0f4f8 0%, #edf2f7 50%, #e8edf4 100%) !important;
+    background-attachment: fixed !important;
+}
+
+/* ── 12. LIGHT MODE: CARD DEPTH AND VISIBILITY ─────────────
+   Stronger shadows and more visible borders so cards clearly
+   stand out from the light-gray body background.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) .card {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.09) !important;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.06),
+        0 4px 16px rgba(0, 0, 0, 0.08),
+        0 8px 32px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 16px !important;
+}
+
+body:not(.dark-mode) .card:hover {
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.09),
+        0 16px 48px rgba(0, 0, 0, 0.11),
+        0 24px 64px rgba(0, 0, 0, 0.06) !important;
+    transform: translate3d(0, -3px, 0) !important;
+    border-color: rgba(0, 102, 179, 0.18) !important;
+}
+
+/* ── 13. LIGHT MODE: SECTION DIVIDERS ──────────────────────
+   Stronger visual separation between content sections using
+   a gradient bottom-border on horizontal rules.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) hr {
+    border: none !important;
+    height: 2px !important;
+    background: linear-gradient(90deg, var(--ibc-blue) 0%, var(--ibc-green) 60%, transparent 100%) !important;
+    opacity: 0.18 !important;
+    border-radius: 99px !important;
+    margin: 1.5rem 0 !important;
+}
+
+/* ── 14. LIGHT MODE: LIGHT SCROLLBAR ───────────────────────
+   Keep the scrollbar thin and brand-coloured in light mode.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode)::-webkit-scrollbar { width: 7px; height: 7px; }
+body:not(.dark-mode)::-webkit-scrollbar-track {
+    background: #edf2f7;
+    border-radius: 99px;
+}
+body:not(.dark-mode)::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #b8cce4 0%, #99b4d1 100%);
+    border-radius: 99px;
+    border: 2px solid #edf2f7;
+    background-clip: padding-box;
+}
+body:not(.dark-mode)::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #99b4d1 0%, #7a9abf 100%);
+    background-clip: padding-box;
+}
+
+/* ── 15. LIGHT MODE: IMPROVE INPUT PLACEHOLDER CONTRAST ───
+   Placeholder text should be lighter than real input content
+   but still clearly readable.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) input::placeholder,
+body:not(.dark-mode) textarea::placeholder {
+    color: #9ca3af !important; /* gray-400 */
+    opacity: 1;
+}
+
+/* ── 16. LIGHT MODE: TEXT COLOUR CORRECTIONS ───────────────
+   Restore semantic Tailwind colours that were turned to dark text
+   so they are clearly visible against white card backgrounds.
+   ──────────────────────────────────────────────────────────── */
+
+/* Allow text-blue to show actual blue in light mode for non-body text */
+body:not(.dark-mode) .text-blue-500 { color: #3b82f6 !important; }
+body:not(.dark-mode) .text-blue-600 { color: #2563eb !important; }
+body:not(.dark-mode) .text-blue-700 { color: #1d4ed8 !important; }
+
+/* Allow gray shades to stay at their intended values.
+   These use a :where() wrapper to lower specificity below the per-element
+   forced-dark rule (p, h1, li…), so that e.g. the p rule still wins on
+   paragraphs, but standalone div/span with a text-gray-* class get the
+   correct shade.  The !important on the p/h1 rule is maintained;
+   these gray rules only provide fallback for elements not covered there. */
+body:not(.dark-mode) :where(.text-gray-900) { color: #111827 !important; }
+body:not(.dark-mode) :where(.text-gray-800) { color: #1f2937 !important; }
+body:not(.dark-mode) :where(.text-gray-700) { color: #374151 !important; }
+body:not(.dark-mode) :where(.text-gray-600) { color: #4b5563 !important; }
+body:not(.dark-mode) :where(.text-gray-500) { color: #6b7280 !important; }
+body:not(.dark-mode) :where(.text-gray-400) { color: #9ca3af !important; }
+body:not(.dark-mode) :where(.text-gray-300) { color: #d1d5db !important; }
+
+/* For muted text (e.g. subtitles, descriptions) explicitly classed with
+   text-muted / text-gray-500 in paragraphs, allow the intended lighter shade */
+body:not(.dark-mode) p.text-muted,
+body:not(.dark-mode) p.text-gray-500,
+body:not(.dark-mode) p.text-gray-400,
+body:not(.dark-mode) p[class*="text-slate"],
+body:not(.dark-mode) p.text-secondary {
+    color: #6b7280 !important; /* gray-500 – clear muted text */
+}
+
+/* ── 17. MOBILE: CARD LABEL AND VALUE SIZING ───────────────
+   Mobile card-table data-label values need correct font size.
+   ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+    body:not(.dark-mode) .card-table td {
+        font-size: 0.9375rem !important;
+    }
+    body:not(.dark-mode) .card-table td[data-label]::before {
+        font-size: 0.75rem !important;
+    }
+}
+
+/* ── 18. LIGHT MODE: TEXT OVERFLOW PREVENTION ──────────────
+   Ensure text inside cards wraps correctly and is not clipped.
+   Note: overflow:hidden is preserved on the card to keep the
+   animated ::before top-border and border-radius clipping intact.
+   Only word-break and overflow-wrap are set here.
+   ──────────────────────────────────────────────────────────── */
+
+body:not(.dark-mode) .card *,
+body:not(.dark-mode) .stat-card *,
+body:not(.dark-mode) .dash-stat-card * {
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* ============================================================
+   END FINAL LIGHT MODE DESIGN IMPROVEMENTS (2026)
+   ============================================================ */
