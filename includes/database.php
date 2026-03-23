@@ -135,6 +135,38 @@ class Database {
                 error_log("Content schema migration skipped for column '$column': " . $e->getMessage());
             }
         }
+
+        // Create the newsletters table if it does not exist yet
+        try {
+            $stmt = $db->prepare(
+                "SELECT TABLE_NAME
+                 FROM INFORMATION_SCHEMA.TABLES
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME   = 'newsletters'"
+            );
+            $stmt->execute();
+            if (!$stmt->fetch()) {
+                $db->exec(
+                    "CREATE TABLE newsletters (
+                        id               INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        title            VARCHAR(255) NOT NULL,
+                        description      TEXT         DEFAULT NULL,
+                        filename         VARCHAR(255) NOT NULL COMMENT 'Secure storage filename',
+                        original_filename VARCHAR(255) NOT NULL COMMENT 'Original uploaded filename',
+                        file_size        INT          NOT NULL DEFAULT 0,
+                        sent_date        DATE         DEFAULT NULL COMMENT 'Date the newsletter was originally sent',
+                        uploaded_by      INT          NOT NULL,
+                        created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        INDEX idx_sent_date (sent_date),
+                        INDEX idx_uploaded_by (uploaded_by)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+                );
+                error_log("Content schema migration applied: created table 'newsletters'");
+            }
+        } catch (PDOException $e) {
+            error_log("Content schema migration skipped for table 'newsletters': " . $e->getMessage());
+        }
     }
 
     /**
