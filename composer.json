@@ -6,7 +6,7 @@
         "ralouphie/getallheaders": "^3.0",
         "guzzlehttp/guzzle": "^7.10",
         "dompdf/dompdf": "^3.1",
-        "zbateson/mail-mime-parser": "^3.0"
+        "zbateson/mail-mime-parser": "^4.0"
     },
     "config": {
         "github-protocols": ["https", "git"]
