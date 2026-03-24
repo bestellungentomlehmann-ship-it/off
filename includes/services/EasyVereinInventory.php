@@ -104,41 +104,58 @@ class EasyVereinInventory {
     private function request(string $method, string $endpoint, ?array $body = null, bool $skipTokenRefresh = false): array {
         $token = $this->getApiToken();
 
-        $responseHeaders = [];
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $endpoint);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $token,
-            'Content-Type: application/json',
-            'Accept: application/json',
-        ]);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-        // Collect response headers for token-refresh detection
-        curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($ch, $header) use (&$responseHeaders) {
-            $len   = strlen($header);
-            $parts = explode(':', $header, 2);
-            if (count($parts) === 2) {
-                $responseHeaders[strtolower(trim($parts[0]))] = trim($parts[1]);
+        $doRequest = function (string $url) use ($method, $token, $body): array {
+            $responseHeaders = [];
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Authorization: Bearer ' . $token,
+                'Content-Type: application/json',
+                'Accept: application/json',
+            ]);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+            // Collect response headers for token-refresh detection
+            curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($ch, $header) use (&$responseHeaders) {
+                $len   = strlen($header);
+                $parts = explode(':', $header, 2);
+                if (count($parts) === 2) {
+                    $responseHeaders[strtolower(trim($parts[0]))] = trim($parts[1]);
+                }
+                return $len;
+            });
+
+            if ($body !== null) {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
             }
-            return $len;
-        });
 
-        if ($body !== null) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
-        }
+            $response  = curl_exec($ch);
+            $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
 
-        $response  = curl_exec($ch);
-        $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
+            return [$response, $httpCode, $curlError, $responseHeaders];
+        };
+
+        // First attempt: primary endpoint (v3.0)
+        [$response, $httpCode, $curlError, $responseHeaders] = $doRequest($endpoint);
 
         if ($response === false) {
             throw new Exception('cURL error: ' . $curlError);
+        }
+
+        // On 404, retry with v2.0 fallback endpoint
+        if ($httpCode === 404 && strpos($endpoint, '/api/v3.0/') !== false) {
+            $fallbackEndpoint = str_replace('/api/v3.0/', '/api/v2.0/', $endpoint);
+            [$response, $httpCode, $curlError, $responseHeaders] = $doRequest($fallbackEndpoint);
+
+            if ($response === false) {
+                throw new Exception('cURL error: ' . $curlError);
+            }
         }
 
         if ($httpCode < 200 || $httpCode >= 300) {

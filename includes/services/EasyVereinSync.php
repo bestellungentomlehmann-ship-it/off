@@ -59,38 +59,51 @@ class EasyVereinSync {
      * @throws Exception If API call fails
      */
     public function fetchDataFromEasyVerein() {
-        $apiUrl = 'https://easyverein.com/api/v3.0/inventory-object?limit=100';
+        $primaryUrl  = 'https://easyverein.com/api/v3.0/inventory-object?limit=100';
+        $fallbackUrl = 'https://easyverein.com/api/v2.0/inventory-object?limit=100';
 
         $apiToken = $this->getApiToken();
-        
+
         try {
-            // Initialize cURL
-            $ch = curl_init();
-            
-            // Set cURL options
-            curl_setopt($ch, CURLOPT_URL, $apiUrl);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            $headers = [
                 'Authorization: Bearer ' . $apiToken,
                 'Content-Type: application/json',
                 'Accept: application/json',
-            ]);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-            
-            // Execute the request
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($ch);
-            curl_close($ch);
-            
-            // Check for cURL errors
+            ];
+
+            // Helper closure to execute a single GET request
+            $doRequest = function (string $url) use ($headers): array {
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+                $response  = curl_exec($ch);
+                $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curlError = curl_error($ch);
+                curl_close($ch);
+                return [$response, $httpCode, $curlError];
+            };
+
+            // First attempt: primary URL (v3.0)
+            [$response, $httpCode, $curlError] = $doRequest($primaryUrl);
+
             if ($response === false) {
                 throw new Exception('Netzwerkfehler: ' . $curlError);
             }
-            
+
+            // On 404, try fallback URL (v2.0)
+            if ($httpCode === 404) {
+                [$response, $httpCode, $curlError] = $doRequest($fallbackUrl);
+
+                if ($response === false) {
+                    throw new Exception('Netzwerkfehler: ' . $curlError);
+                }
+            }
+
             // Check HTTP status code with detailed German error messages
             if ($httpCode !== 200) {
                 $errorMsg = "EasyVerein API: HTTP {$httpCode}";
@@ -103,7 +116,7 @@ class EasyVereinSync {
                 } elseif ($httpCode === 404) {
                     $errorMsg .= ' – Endpunkt nicht gefunden. Der API-Endpunkt /inventory-object existiert nicht. '
                         . 'Mögliche Ursachen: (1) Das Inventar-Modul ist im easyVerein-Account nicht freigeschaltet. '
-                        . '(2) Die API-Version v3.0 wird von diesem Account nicht unterstützt. '
+                        . '(2) Die API-Versionen v3.0 und v2.0 werden von diesem Account nicht unterstützt. '
                         . 'Bitte im easyVerein-Adminbereich unter Einstellungen → API prüfen.';
                 } elseif ($httpCode === 429) {
                     $errorMsg .= ' – Zu viele Anfragen (Rate Limit). Bitte etwas warten und es erneut versuchen.';
