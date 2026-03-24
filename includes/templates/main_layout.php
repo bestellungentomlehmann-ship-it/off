@@ -172,9 +172,9 @@ if (!isset($currentUser)) {
             }
         }
 
-        /* Extra small screens (below Tailwind sm: breakpoint): stack all grids to single column */
+        /* Extra small screens (below Tailwind sm: breakpoint): stack 3+ column grids to single column */
         @media (max-width: 639px) {
-            .grid:not(.grid-no-stack):not(.grid-cols-1) {
+            .grid:not(.grid-no-stack):not(.grid-cols-1):not(.grid-cols-2) {
                 grid-template-columns: 1fr !important;
                 gap: 1rem !important;
             }
