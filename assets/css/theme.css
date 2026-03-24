@@ -3712,7 +3712,6 @@ body.dark-mode .sidebar {
     .sidebar-overlay,
     #sidebar-overlay,
     #mobile-menu-btn,
-    .skip-link,
     button,
     nav,
     /* Invoice page: filter tabs, export button, open-invoices banner,
@@ -10149,8 +10148,7 @@ a:focus-visible,
     #mobile-menu-btn,
     #bottom-nav-more-btn,
     .back-to-top,
-    .hero-quick-action,
-    .skip-link {
+    .hero-quick-action {
         display: none !important;
     }
 

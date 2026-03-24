@@ -219,21 +219,6 @@ if (!isset($currentUser)) {
         /* Ensure long text doesn't overflow */
         p, span, li, h1, h2, h3 { overflow-wrap: break-word; word-break: break-word; }
 
-        /* Skip link accessibility */
-        .skip-link {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            background: #00a651;
-            color: white;
-            padding: 8px 16px;
-            text-decoration: none;
-            z-index: 100;
-            border-radius: 0 0 4px 0;
-            font-weight: 600;
-        }
-        .skip-link:focus { top: 0; }
-
         /* ── DVH SUPPORT ────────────────────────────────────────── */
         @supports (height: 100dvh) {
             .sidebar {
@@ -346,9 +331,6 @@ if (!isset($currentUser)) {
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 overflow-x-hidden" data-user-theme="<?php echo htmlspecialchars($currentUser['theme_preference'] ?? 'auto'); ?>">
-    <!-- Skip to main content link for accessibility -->
-    <a href="#main-content" class="skip-link">Zum Hauptinhalt springen</a>
-    
     <script>
         // Apply theme immediately to prevent flash of unstyled content (FOUC)
         (function() {
@@ -821,7 +803,7 @@ if (!isset($currentUser)) {
                 'alumni_finanz'     => ['bg' => '#2563eb', 'text' => '#fff', 'icon' => 'fa-user-tie'],
                 'alumni'            => ['bg' => '#0891b2', 'text' => '#fff', 'icon' => 'fa-user-graduate'],
                 'ressortleiter'     => ['bg' => '#7c3aed', 'text' => '#fff', 'icon' => 'fa-briefcase'],
-                'mitglied'          => ['bg' => '#059669', 'text' => '#fff', 'icon' => 'fa-user'],
+                'mitglied'          => ['bg' => '#4f46e5', 'text' => '#fff', 'icon' => 'fa-user'],
                 'anwaerter'         => ['bg' => '#ea580c', 'text' => '#fff', 'icon' => 'fa-user-clock'],
                 'ehrenmitglied'     => ['bg' => '#be185d', 'text' => '#fff', 'icon' => 'fa-star'],
             ];
