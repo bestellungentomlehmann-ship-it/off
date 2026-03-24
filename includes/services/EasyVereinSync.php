@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../src/MailService.php';
 class EasyVereinSync {
 
     /**
-     * Resolve the EasyVerein API token.
+     * Resolve the EasyVerein API token from DB or constant.
      *
      * Priority order:
      *   1. system_settings DB table (key: easyverein_api_token) – updated by token refresh
@@ -20,7 +20,7 @@ class EasyVereinSync {
      *
      * @throws Exception If no API token can be found.
      */
-    private function getApiToken(): string {
+    private static function resolveApiToken(): string {
         // 1. Check DB system_settings for a previously refreshed or manually saved token
         try {
             $db   = Database::getContentDB();
@@ -45,6 +45,11 @@ class EasyVereinSync {
             );
         }
         return $token;
+    }
+
+    /** Instance wrapper around the static token resolver (for use in non-static methods). */
+    private function getApiToken(): string {
+        return self::resolveApiToken();
     }
 
     /**
@@ -544,30 +549,7 @@ class EasyVereinSync {
      * @throws Exception If the API call fails
      */
     public static function getBankTransactions($days = 7) {
-        // Resolve token: DB first, then constant
-        $apiToken = '';
-        try {
-            $db   = Database::getContentDB();
-            $stmt = $db->prepare(
-                "SELECT setting_value FROM system_settings WHERE setting_key = 'easyverein_api_token' LIMIT 1"
-            );
-            $stmt->execute();
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($row && !empty($row['setting_value'])) {
-                $apiToken = $row['setting_value'];
-            }
-        } catch (Exception $e) {
-            // DB unavailable – fall through
-        }
-        if (empty($apiToken)) {
-            $apiToken = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
-        }
-        if (empty($apiToken)) {
-            throw new Exception(
-                'EasyVerein API-Token nicht konfiguriert. '
-                . 'Bitte den Token in den Systemeinstellungen oder in der .env-Datei hinterlegen.'
-            );
-        }
+        $apiToken = self::resolveApiToken();
 
         $days = max(1, (int)$days);
         $dateFrom = date('Y-m-d', strtotime("-{$days} days"));
@@ -719,32 +701,8 @@ class EasyVereinSync {
      * @return array Result with success status and any error messages
      */
     public static function updateItem($easyvereinId, $data) {
-        $apiUrl = "https://easyverein.com/api/v3.0/inventory-object/{$easyvereinId}";
-
-        // Resolve token: DB first, then constant
-        $apiToken = '';
-        try {
-            $db   = Database::getContentDB();
-            $stmt = $db->prepare(
-                "SELECT setting_value FROM system_settings WHERE setting_key = 'easyverein_api_token' LIMIT 1"
-            );
-            $stmt->execute();
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($row && !empty($row['setting_value'])) {
-                $apiToken = $row['setting_value'];
-            }
-        } catch (Exception $e) {
-            // DB unavailable – fall through
-        }
-        if (empty($apiToken)) {
-            $apiToken = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
-        }
-        if (empty($apiToken)) {
-            throw new Exception(
-                'EasyVerein API-Token nicht konfiguriert. '
-                . 'Bitte den Token in den Systemeinstellungen oder in der .env-Datei hinterlegen.'
-            );
-        }
+        $apiUrl   = "https://easyverein.com/api/v3.0/inventory-object/{$easyvereinId}";
+        $apiToken = self::resolveApiToken();
         
         try {
             // Map our fields to EasyVerein API fields
