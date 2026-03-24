@@ -18,7 +18,7 @@ class EasyVereinSync {
      * @throws Exception If API call fails
      */
     public function fetchDataFromEasyVerein() {
-        $apiUrl = 'https://easyverein.com/api/v2.0/inventory-object?limit=100';
+        $apiUrl = 'https://easyverein.com/api/v3.0/inventory-object?limit=100';
         // Get API token from config
         $apiToken = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
         
@@ -190,11 +190,11 @@ class EasyVereinSync {
                     $name = $evItem['name'] ?? $evItem['Name'] ?? 'Unnamed Item';
                     $description = $evItem['note'] ?? $evItem['description'] ?? $evItem['Description'] ?? '';
                     $totalQuantity = (int)($evItem['pieces'] ?? $evItem['quantity'] ?? 0);
-                    // Use acquisitionPrice as primary (original purchase price per requirements), fall back to price
-                    $unitPrice = $evItem['acquisitionPrice'] ?? $evItem['price'] ?? $evItem['unit_price'] ?? 0;
+                    // Use acquisition_price as primary (v3.0 snake_case), with camelCase and other fallbacks
+                    $unitPrice = $evItem['acquisition_price'] ?? $evItem['acquisitionPrice'] ?? $evItem['price'] ?? $evItem['unit_price'] ?? 0;
                     $serialNumber = $evItem['serial_number'] ?? $evItem['SerialNumber'] ?? null;
-                    // Extract location name (stored for future use - requires mapping to location_id)
-                    $locationName = $evItem['locationName'] ?? $evItem['location'] ?? null;
+                    // Extract location name (v3.0 snake_case first, then camelCase fallback)
+                    $locationName = $evItem['location_name'] ?? $evItem['locationName'] ?? $evItem['location'] ?? null;
                     
                     // Extract image URL (do NOT download - save URL directly)
                     $imageUrl = $this->extractImageUrl($evItem);
@@ -650,7 +650,7 @@ class EasyVereinSync {
      * @return array Result with success status and any error messages
      */
     public static function updateItem($easyvereinId, $data) {
-        $apiUrl = "https://easyverein.com/api/v2.0/inventory-object/{$easyvereinId}";
+        $apiUrl = "https://easyverein.com/api/v3.0/inventory-object/{$easyvereinId}";
         // Get API token from config
         $apiToken = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
         
