@@ -10,6 +10,9 @@
  *  - Guarantees that every `overflow: hidden` attribute applied to <body> and
  *    <html> by the mobile-menu overlay is fully cleaned up when the menu closes,
  *    preventing the page from staying locked in a non-scrollable state.
+ *  - Dynamically measures the actual mobile topbar height (including safe area)
+ *    and updates the --topbar-safe-height CSS custom property so that the main
+ *    content is always correctly padded, even on devices with Dynamic Island.
  */
 (function () {
     'use strict';
@@ -20,6 +23,21 @@
     var lastScrollY = 0;
     var navbarBtn = null;
     var sidebarEl = null;
+
+    /* ------------------------------------------------------------------ */
+    /* Dynamic topbar height: measure the real rendered height and update  */
+    /* the CSS custom property so main content padding stays accurate.      */
+    /* ------------------------------------------------------------------ */
+
+    var mobileHeaderEl = null;
+
+    function updateTopbarHeight() {
+        if (!mobileHeaderEl) return;
+        var h = mobileHeaderEl.getBoundingClientRect().height;
+        if (h > 0) {
+            document.documentElement.style.setProperty('--topbar-safe-height', h + 'px');
+        }
+    }
 
     /* ------------------------------------------------------------------ */
     /* Scroll detection – rAF-based to avoid layout thrashing              */
@@ -87,8 +105,17 @@
     /* ------------------------------------------------------------------ */
 
     function init() {
-        navbarBtn = document.getElementById('mobile-menu-btn');
-        sidebarEl  = document.getElementById('sidebar');
+        navbarBtn     = document.getElementById('mobile-menu-btn');
+        sidebarEl     = document.getElementById('sidebar');
+        mobileHeaderEl = document.getElementById('mobile-header');
+
+        // Measure real topbar height immediately and on resize/orientation change
+        updateTopbarHeight();
+        window.addEventListener('resize', updateTopbarHeight, { passive: true });
+        window.addEventListener('orientationchange', function () {
+            // Delay slightly to allow the browser to settle after orientation change
+            setTimeout(updateTopbarHeight, 250);
+        });
 
         // Run once immediately so state is correct on page load
         lastScrollY = window.scrollY;
@@ -118,6 +145,8 @@
                 if (sidebarEl && !sidebarEl.classList.contains('open')) {
                     ensureScrollUnlocked();
                 }
+                // Re-measure topbar in case safe area insets changed
+                updateTopbarHeight();
             }
         });
     }
@@ -130,7 +159,8 @@
 
     // Expose utility for inline scripts or other modules that need to unlock scroll
     window.navbarScrollUtils = {
-        ensureScrollUnlocked: ensureScrollUnlocked
+        ensureScrollUnlocked: ensureScrollUnlocked,
+        updateTopbarHeight: updateTopbarHeight
     };
 
 }());

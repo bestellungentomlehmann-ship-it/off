@@ -9389,3 +9389,797 @@ html {
 body {
     overflow-x: hidden;
 }
+
+/* ============================================================
+   GO-LIVE POLISH: RESPONSIVE & MOBILE ANIMATION IMPROVEMENTS
+   2026 Update — All Mobile Animations, Visual Consistency,
+   Responsive Perfection
+   ============================================================ */
+
+/* ── 1. SAFE AREA & TOPBAR HEIGHT ───────────────────────────
+   Ensure content never hides behind the Dynamic Island/notch.
+   The --topbar-safe-height is used wherever we need the actual
+   rendered height of the mobile topbar (including safe area).
+
+   NOTE: The CSS calc() value here is a static fallback. In practice
+   navbar-scroll.js updates --topbar-safe-height dynamically from the
+   actual getBoundingClientRect().height of #mobile-header so it stays
+   accurate across all devices, orientations and iOS toolbar states.
+   ──────────────────────────────────────────────────────────── */
+:root {
+    /* The real topbar height on devices without a notch */
+    --topbar-height: 60px;
+    /* Topbar height + device safe area (Dynamic Island / notch).
+       JS in navbar-scroll.js overrides this with the measured value. */
+    --topbar-safe-height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+}
+
+@media (max-width: 767px) {
+    /* Ensure the mobile topbar itself fills the safe area */
+    .mobile-topbar {
+        min-height: var(--topbar-safe-height) !important;
+        padding-top: env(safe-area-inset-top, 0px) !important;
+        display: flex;
+        align-items: flex-end;
+    }
+
+    /* Push main content below the expanded topbar.
+       Matches the 0.5rem offset used in main_layout.php inline styles. */
+    #main-content {
+        padding-top: calc(var(--topbar-safe-height) + 0.5rem) !important;
+    }
+}
+
+/* ── 2. ENHANCED PAGE ENTRANCE ANIMATIONS ───────────────────
+   Smooth, lightweight fade-in for main page content.
+   Staggered for a polished, sequential feel.
+   ──────────────────────────────────────────────────────────── */
+@keyframes ibc-fade-up {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 14px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes ibc-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* Animate top-level children of main content on page load */
+    #main-content > .dash-wrap,
+    #main-content > .card,
+    #main-content > section,
+    #main-content > .container,
+    #main-content > .row,
+    #main-content > form {
+        animation: ibc-fade-up 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    #main-content > *:nth-child(1)  { animation-delay: 0.00s; }
+    #main-content > *:nth-child(2)  { animation-delay: 0.05s; }
+    #main-content > *:nth-child(3)  { animation-delay: 0.10s; }
+    #main-content > *:nth-child(4)  { animation-delay: 0.15s; }
+    #main-content > *:nth-child(5)  { animation-delay: 0.20s; }
+    #main-content > *:nth-child(n+6) { animation-delay: 0.25s; }
+}
+
+/* ── 3. IMPROVED CARD MICRO-ANIMATIONS ──────────────────────
+   Desktop: elevate on hover. Mobile: spring-scale on tap.
+   ──────────────────────────────────────────────────────────── */
+
+/* Desktop hover — richer lift with blue glow */
+@media (hover: hover) and (pointer: fine) {
+    .card:hover,
+    .dash-stat-card:hover,
+    .dash-event-card:hover,
+    .dash-blog-card:hover,
+    .dash-helper-card:hover {
+        transform: translate3d(0, -6px, 0) scale(1.005);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12),
+                    0 4px 12px rgba(0, 102, 179, 0.08) !important;
+        transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.28s ease,
+                    border-color 0.2s ease !important;
+    }
+}
+
+/* Touch / mobile — spring-scale on press */
+@media (hover: none) and (pointer: coarse) {
+    .card,
+    .dash-stat-card,
+    .dash-event-card,
+    .dash-blog-card,
+    .dash-helper-card,
+    .dash-poll-card {
+        /* Remove the expensive translate hover that fires on iOS sticky-hover */
+        transform: none !important;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
+        will-change: auto;
+    }
+
+    .card:active,
+    .dash-stat-card:active,
+    .dash-event-card:active,
+    .dash-blog-card:active,
+    .dash-helper-card:active {
+        transform: scale(0.972) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+        transition: transform 0.08s ease,
+                    box-shadow 0.08s ease !important;
+    }
+}
+
+/* ── 4. IMPROVED MOBILE BOTTOM NAVIGATION ───────────────────
+   More premium look with larger active indicator and better
+   icon animation on activation.
+   ──────────────────────────────────────────────────────────── */
+
+/* Slightly taller bar for better thumb reach */
+@media (max-width: 767px) {
+    .mobile-bottom-nav {
+        min-height: calc(64px + env(safe-area-inset-bottom, 0)) !important;
+        padding-bottom: env(safe-area-inset-bottom, 0) !important;
+    }
+
+    .mobile-bottom-nav-item {
+        min-height: 64px !important;
+    }
+
+    /* Make the active pill wider and more prominent */
+    .mobile-bottom-nav-item::before {
+        width: 36px !important;
+    }
+
+    /* Active icon: spring-bounce */
+    @media (prefers-reduced-motion: no-preference) {
+        .mobile-bottom-nav-item.active i {
+            animation: ibc-icon-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+    }
+}
+
+@keyframes ibc-icon-bounce {
+    0%   { transform: translateY(0) scale(1); }
+    40%  { transform: translateY(-5px) scale(1.18); }
+    70%  { transform: translateY(-2px) scale(0.95); }
+    100% { transform: translateY(-2px) scale(1.08); }
+}
+
+/* ── 5. MOBILE SIDEBAR POLISH ───────────────────────────────
+   Slightly taller nav items for easier thumb navigation,
+   refined active state, better visual dividers.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+    .sidebar nav a {
+        min-height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    /* Group separator: subtle rule between nav sections */
+    .sidebar nav .nav-section-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 0.5rem 1rem;
+    }
+
+    /* Larger user-avatar in sidebar on mobile */
+    .sidebar .w-9 {
+        width: 2.5rem !important;
+        height: 2.5rem !important;
+    }
+}
+
+/* ── 6. AUTH PAGE – LANDSCAPE MOBILE IMPROVEMENTS ───────────
+   On landscape mobile the login card must not exceed
+   the viewport height (iOS Safari hides toolbars but layout
+   still gets clipped).
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) and (orientation: landscape) {
+    .login-container {
+        padding: 1.5rem 2rem !important;
+        max-height: calc(100dvh - 2rem) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .logo-container {
+        margin-bottom: 1.25rem !important;
+    }
+
+    .ibc-logo {
+        width: 70px !important;
+    }
+
+    .logo-glow {
+        width: 100px !important;
+        height: 100px !important;
+    }
+
+    .welcome-title {
+        font-size: 1.375rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .welcome-text {
+        margin-bottom: 1.25rem !important;
+    }
+
+    .microsoft-button,
+    .microsoft-btn {
+        padding: 14px !important;
+        font-size: 15px !important;
+    }
+
+    .login-footer {
+        margin-top: 1.25rem !important;
+    }
+}
+
+/* ── 7. BETTER MOBILE TYPOGRAPHY SCALE ──────────────────────
+   Use fluid type that smoothly scales between breakpoints so
+   text is always readable without overflow.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 479px) {
+    /* Page headings */
+    h1 { font-size: clamp(1.375rem, 7vw, 1.875rem) !important; }
+    h2 { font-size: clamp(1.125rem, 5.5vw, 1.5rem) !important; }
+    h3 { font-size: clamp(1rem, 4.5vw, 1.25rem) !important; }
+
+    /* Hero greeting on very small screens */
+    .hero-title {
+        font-size: clamp(1.5rem, 6.5vw, 2rem) !important;
+        line-height: 1.18 !important;
+    }
+
+    /* Section titles */
+    .dash-section-title {
+        font-size: 1rem !important;
+    }
+
+    /* Stat numbers */
+    .dash-stat-card .text-2xl,
+    .dash-stat-card .text-3xl,
+    .dash-stat-card .text-4xl {
+        font-size: 1.875rem !important;
+    }
+}
+
+/* ── 8. ENHANCED TOUCH FEEDBACK FOR INTERACTIVE ELEMENTS ────
+   Better visual feedback on tap for buttons, links, and
+   any interactive element on touch screens.
+   ──────────────────────────────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+    /* Buttons */
+    .btn-primary:active {
+        transform: scale(0.96) !important;
+        opacity: 0.9;
+        transition: transform 0.08s ease, opacity 0.08s ease !important;
+    }
+
+    /* Sidebar nav links */
+    .sidebar nav a:active {
+        background: rgba(255, 255, 255, 0.22) !important;
+        transform: scale(0.985) !important;
+        transition: background 0.07s ease, transform 0.07s ease !important;
+    }
+
+    /* Sidebar footer buttons */
+    .sidebar-footer-btn:active {
+        transform: scale(0.97) !important;
+        transition: transform 0.07s ease !important;
+    }
+
+    /* Dashboard quick action pills */
+    .hero-quick-action:active {
+        transform: scale(0.95) !important;
+        opacity: 0.85 !important;
+        transition: transform 0.08s ease, opacity 0.08s ease !important;
+    }
+
+    /* Bottom nav tap */
+    .mobile-bottom-nav-item:active {
+        transform: scale(0.88) !important;
+        transition: transform 0.08s ease !important;
+    }
+}
+
+/* ── 9. RESPONSIVE TABLE IMPROVEMENTS ──────────────────────
+   Better table UX on all screen sizes with scroll indicators
+   and card-layout fallback.
+   ──────────────────────────────────────────────────────────── */
+
+/* Ensure both wrappers are positioned for the ::before/::after overlays */
+.table-responsive {
+    position: relative;
+}
+
+/* Improved scroll fade indicator */
+.table-scroll-wrapper::after,
+.table-responsive::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 48px;
+    background: linear-gradient(to right,
+        transparent,
+        var(--bg-card, rgba(255,255,255,0.9)) 90%);
+    pointer-events: none;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    transition: opacity 0.25s ease;
+}
+
+.table-scroll-wrapper.scrolled-end::after,
+.table-responsive.scrolled-end::after {
+    opacity: 0;
+}
+
+/* Left scroll indicator */
+.table-scroll-wrapper::before,
+.table-responsive::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 24px;
+    background: linear-gradient(to left,
+        transparent,
+        var(--bg-card, rgba(255,255,255,0.9)) 90%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    z-index: 2;
+}
+
+.table-scroll-wrapper.scrolled-start::before,
+.table-responsive.scrolled-start::before {
+    opacity: 1;
+}
+
+/* ── 10. MODAL SHEET ANIMATION POLISH ──────────────────────
+   Ensure Bootstrap modals slide up smoothly on mobile with
+   spring-like entry.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+    .modal.fade .modal-dialog {
+        transform: translate3d(0, 60%, 0) scale(0.97) !important;
+        transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+                    opacity 0.35s ease !important;
+        opacity: 0;
+    }
+
+    .modal.show .modal-dialog {
+        transform: translate3d(0, 0, 0) scale(1) !important;
+        opacity: 1;
+    }
+
+    /* Drag handle visual for all modals */
+    .modal-header::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 4px;
+        background: var(--border-color);
+        border-radius: 99px;
+        margin: -0.5rem auto 0.875rem;
+        flex-shrink: 0;
+    }
+
+    /* Extra bottom padding for iPhone home indicator */
+    .modal-footer {
+        padding-bottom: max(1rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem));
+    }
+}
+
+/* ── 11. IMPROVED LOADING SKELETON ─────────────────────────
+   Smoother skeleton shimmer with brand colors.
+   ──────────────────────────────────────────────────────────── */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--ibc-gray-100) 0%,
+        rgba(0, 102, 179, 0.05) 40%,
+        var(--ibc-gray-100) 80%
+    ) !important;
+    background-size: 300% 100% !important;
+    animation: ibc-skeleton 1.6s ease-in-out infinite !important;
+}
+
+.dark-mode .skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 0%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.04) 80%
+    ) !important;
+    background-size: 300% 100% !important;
+}
+
+@keyframes ibc-skeleton {
+    0%   { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
+/* ── 12. EMPTY STATE IMPROVEMENTS ──────────────────────────
+   Polished empty states with subtle animation.
+   ──────────────────────────────────────────────────────────── */
+.empty-state-icon {
+    position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .empty-state-icon::after {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        border: 2px dashed var(--border-color);
+        animation: ibc-empty-spin 12s linear infinite;
+    }
+
+    @keyframes ibc-empty-spin {
+        to { transform: rotate(360deg); }
+    }
+}
+
+.dark-mode .empty-state-icon {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── 13. FORM EXPERIENCE IMPROVEMENTS ──────────────────────
+   Better visual feedback for form interactions on all screens.
+   ──────────────────────────────────────────────────────────── */
+
+/* Floating label animation for inputs with labels above */
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label {
+    transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+    color: var(--ibc-blue);
+}
+
+/* Input success state */
+input.is-valid,
+select.is-valid,
+textarea.is-valid {
+    border-color: var(--ibc-green) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath stroke='%2300a651' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 10l3 3 5-5'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.875rem center !important;
+    background-size: 1.25rem !important;
+    padding-right: 2.75rem !important;
+}
+
+/* Input error state */
+input.is-invalid,
+select.is-invalid,
+textarea.is-invalid {
+    border-color: var(--ibc-error) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+/* Better autofill styling */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--bg-input, #fff) inset !important;
+    -webkit-text-fill-color: var(--text-main) !important;
+    caret-color: var(--text-main) !important;
+    transition: background-color 9999s ease-out !important;
+}
+
+.dark-mode input:-webkit-autofill,
+.dark-mode input:-webkit-autofill:hover,
+.dark-mode input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #0c1222 inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+/* ── 14. VISUAL CONSISTENCY – SECTION DIVIDERS ─────────────
+   Consistent visual dividers between page sections.
+   ──────────────────────────────────────────────────────────── */
+.section-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent);
+    margin: 2rem 0;
+}
+
+.dark-mode .section-divider {
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1) 20%, rgba(255, 255, 255, 0.1) 80%, transparent);
+}
+
+/* ── 15. IMPROVED SCROLL RESTORATION ───────────────────────
+   Prevent layout shift on navigation by reserving scrollbar.
+   ──────────────────────────────────────────────────────────── */
+html {
+    scrollbar-gutter: stable;
+}
+
+/* Light mode scrollbar */
+body:not(.dark-mode)::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+body:not(.dark-mode)::-webkit-scrollbar-track {
+    background: var(--ibc-gray-100);
+}
+
+body:not(.dark-mode)::-webkit-scrollbar-thumb {
+    background: var(--ibc-gray-300);
+    border-radius: 4px;
+}
+
+body:not(.dark-mode)::-webkit-scrollbar-thumb:hover {
+    background: var(--ibc-gray-400);
+}
+
+body:not(.dark-mode) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ibc-gray-300) var(--ibc-gray-100);
+}
+
+/* ── 16. RESPONSIVE IMAGE POLISH ────────────────────────────
+   Better responsive images with aspect-ratio preservation
+   and smooth loading.
+   ──────────────────────────────────────────────────────────── */
+img:not([style*="width"]):not([class*="w-"]):not([class*="size-"]) {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Prevent CLS on images with known aspect ratio */
+img[width][height] {
+    aspect-ratio: attr(width) / attr(height);
+}
+
+/* Graceful broken image style */
+img:not([src]),
+img[src=""],
+img[src="#"] {
+    visibility: hidden;
+}
+
+/* ── 17. MOBILE GRID IMPROVEMENTS ───────────────────────────
+   Ensure stat cards always look good at any width
+   without the !important grid override causing issues
+   with intentional 2-col / 3-col grids.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 479px) {
+    /* Only collapse grids that are NOT explicitly 2-col or intentional */
+    .grid-auto-cols {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Stat cards: always at least 1 column on tiny phones */
+    .dash-stat-card {
+        min-width: 0;
+        padding: 1rem !important;
+    }
+
+    /* Compact hero quick action pills */
+    .hero-quick-action {
+        padding: 0.45rem 0.875rem !important;
+        font-size: 0.75rem !important;
+    }
+}
+
+/* ── 18. BUTTON ACCESSIBILITY POLISH ────────────────────────
+   Ensure all buttons are accessible and touch-friendly.
+   ──────────────────────────────────────────────────────────── */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+    outline: 2.5px solid var(--ibc-blue) !important;
+    outline-offset: 3px !important;
+    border-radius: var(--radius-sm);
+}
+
+.dark-mode button:focus-visible,
+.dark-mode a:focus-visible,
+.dark-mode [role="button"]:focus-visible {
+    outline-color: var(--ibc-blue-light) !important;
+}
+
+/* ── 19. SIDEBAR OPEN INDICATOR ANIMATION ───────────────────
+   Animate the "More" button icon when sidebar is open.
+   ──────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+    #bottom-nav-more-btn.open i {
+        animation: ibc-more-open 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    @keyframes ibc-more-open {
+        0%   { transform: rotate(0deg) scale(1); }
+        50%  { transform: rotate(15deg) scale(1.2); }
+        100% { transform: rotate(0deg) scale(1.1); }
+    }
+}
+
+/* ── 20. PREMIUM MOBILE TOPBAR ACTIVE STATE ─────────────────
+   Scrolled state enhancement for the topbar menu button.
+   ──────────────────────────────────────────────────────────── */
+.mobile-topbar-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.mobile-topbar-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgba(255, 255, 255, 0);
+    transition: background 0.15s ease;
+    pointer-events: none;
+}
+
+.mobile-topbar-btn:active::after {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── 21. DARK MODE VISUAL DEPTH IMPROVEMENTS ────────────────
+   Better visual hierarchy in dark mode with layered surfaces.
+   ──────────────────────────────────────────────────────────── */
+.dark-mode .card {
+    background: linear-gradient(145deg,
+        rgba(255, 255, 255, 0.04) 0%,
+        rgba(255, 255, 255, 0.01) 100%),
+        var(--bg-card) !important;
+}
+
+.dark-mode .card:hover {
+    background: linear-gradient(145deg,
+        rgba(255, 255, 255, 0.065) 0%,
+        rgba(255, 255, 255, 0.02) 100%),
+        var(--bg-card) !important;
+}
+
+/* ── 22. RESPONSIVE UTILITIES ────────────────────────────────
+   Utility classes for fine-grained responsive control.
+   ──────────────────────────────────────────────────────────── */
+
+/* Show/hide at specific breakpoints */
+.hide-xs  { display: none !important; }
+@media (min-width: 480px)  { .hide-xs  { display: revert !important; } }
+@media (max-width: 479px)  { .show-xs  { display: revert !important; } }
+@media (min-width: 480px)  { .show-xs  { display: none !important; } }
+
+/* Truncate with tooltip support */
+.truncate-responsive {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+/* Stack flex items vertically on mobile */
+@media (max-width: 640px) {
+    .flex-col-mobile {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .flex-col-mobile > * {
+        width: 100% !important;
+    }
+}
+
+/* ── 23. INTERACTIVE LIST ITEM POLISH ───────────────────────
+   Better tap targets and visual feedback for list items.
+   ──────────────────────────────────────────────────────────── */
+.list-interactive > li,
+.list-interactive > a,
+.list-interactive > div[role="listitem"] {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    transition: background 0.18s ease;
+    border-radius: var(--radius-sm);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .list-interactive > li:hover,
+    .list-interactive > a:hover {
+        background: var(--ibc-gray-50);
+    }
+
+    .dark-mode .list-interactive > li:hover,
+    .dark-mode .list-interactive > a:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .list-interactive > li:active,
+    .list-interactive > a:active {
+        background: var(--ibc-gray-100) !important;
+        transform: scale(0.99);
+        transition: background 0.06s ease, transform 0.06s ease;
+    }
+
+    .dark-mode .list-interactive > li:active,
+    .dark-mode .list-interactive > a:active {
+        background: rgba(255, 255, 255, 0.08) !important;
+    }
+}
+
+/* ── 24. IMPROVED NOTIFICATION / ALERT BOXES ────────────────
+   Polished alerts with icon column and better spacing.
+   ──────────────────────────────────────────────────────────── */
+.alert-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+}
+
+.alert-box-icon {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.125rem;
+}
+
+.alert-box-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ── 25. GO-LIVE FINAL: PRINT OPTIMIZATIONS ─────────────────
+   Ensure pages print cleanly without mobile chrome.
+   ──────────────────────────────────────────────────────────── */
+@media print {
+    .mobile-topbar,
+    .mobile-bottom-nav,
+    .sidebar-overlay,
+    #mobile-menu-btn,
+    #bottom-nav-more-btn,
+    .back-to-top,
+    .hero-quick-action,
+    .skip-link {
+        display: none !important;
+    }
+
+    .sidebar {
+        display: none !important;
+    }
+
+    main {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+        break-inside: avoid;
+    }
+
+    a[href]::after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+        color: #666;
+    }
+
+    /* Don't show URLs for internal links */
+    a[href^="#"]::after,
+    a[href^="javascript"]::after {
+        content: none;
+    }
+}
+
+/* ── END GO-LIVE POLISH SECTION ─────────────────────────────── */
