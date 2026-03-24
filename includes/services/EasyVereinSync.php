@@ -10,7 +10,43 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../src/MailService.php';
 
 class EasyVereinSync {
-    
+
+    /**
+     * Resolve the EasyVerein API token.
+     *
+     * Priority order:
+     *   1. system_settings DB table (key: easyverein_api_token) – updated by token refresh
+     *   2. EASYVEREIN_API_TOKEN constant sourced from .env / config
+     *
+     * @throws Exception If no API token can be found.
+     */
+    private function getApiToken(): string {
+        // 1. Check DB system_settings for a previously refreshed or manually saved token
+        try {
+            $db   = Database::getContentDB();
+            $stmt = $db->prepare(
+                "SELECT setting_value FROM system_settings WHERE setting_key = 'easyverein_api_token' LIMIT 1"
+            );
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && !empty($row['setting_value'])) {
+                return $row['setting_value'];
+            }
+        } catch (Exception $e) {
+            // DB unavailable – fall through to constant
+        }
+
+        // 2. Constant from .env / config
+        $token = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
+        if (empty($token)) {
+            throw new Exception(
+                'EasyVerein API-Token nicht konfiguriert. ' .
+                'Bitte den Token in den Systemeinstellungen (Schlüssel: easyverein_api_token) oder in der .env-Datei hinterlegen.'
+            );
+        }
+        return $token;
+    }
+
     /**
      * Fetch data from EasyVerein API
      * 
@@ -19,12 +55,8 @@ class EasyVereinSync {
      */
     public function fetchDataFromEasyVerein() {
         $apiUrl = 'https://easyverein.com/api/v3.0/inventory-object?limit=100';
-        // Get API token from config
-        $apiToken = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
-        
-        if (empty($apiToken)) {
-            throw new Exception('EasyVerein API token not configured');
-        }
+
+        $apiToken = $this->getApiToken();
         
         try {
             // Initialize cURL
@@ -35,10 +67,13 @@ class EasyVereinSync {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
                 'Authorization: Bearer ' . $apiToken,
-                'Content-Type: application/json'
+                'Content-Type: application/json',
+                'Accept: application/json',
             ]);
             curl_setopt($ch, CURLOPT_TIMEOUT, 30);
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
             
             // Execute the request
             $response = curl_exec($ch);
@@ -48,14 +83,27 @@ class EasyVereinSync {
             
             // Check for cURL errors
             if ($response === false) {
-                throw new Exception('cURL error: ' . $curlError);
+                throw new Exception('Netzwerkfehler: ' . $curlError);
             }
             
-            // Check HTTP status code
+            // Check HTTP status code with detailed German error messages
             if ($httpCode !== 200) {
-                $errorMsg = "API returned HTTP {$httpCode}";
+                $errorMsg = "EasyVerein API: HTTP {$httpCode}";
                 if ($httpCode === 401) {
-                    $errorMsg .= ' - Unauthorized: Invalid API token';
+                    $errorMsg .= ' – Nicht autorisiert. Der API-Token ist ungültig oder abgelaufen. '
+                        . 'Bitte den Token in den Systemeinstellungen aktualisieren.';
+                } elseif ($httpCode === 403) {
+                    $errorMsg .= ' – Zugriff verweigert. Dem API-Token fehlen die nötigen Berechtigungen. '
+                        . 'Bitte sicherstellen, dass das Modul [Inventar] auf [Lesen] gesetzt ist.';
+                } elseif ($httpCode === 404) {
+                    $errorMsg .= ' – Endpunkt nicht gefunden. Der API-Endpunkt /inventory-object existiert nicht. '
+                        . 'Mögliche Ursachen: (1) Das Inventar-Modul ist im easyVerein-Account nicht freigeschaltet. '
+                        . '(2) Die API-Version v3.0 wird von diesem Account nicht unterstützt. '
+                        . 'Bitte im easyVerein-Adminbereich unter Einstellungen → API prüfen.';
+                } elseif ($httpCode === 429) {
+                    $errorMsg .= ' – Zu viele Anfragen (Rate Limit). Bitte etwas warten und es erneut versuchen.';
+                } elseif ($httpCode >= 500) {
+                    $errorMsg .= ' – EasyVerein-Server-Fehler. Bitte später erneut versuchen.';
                 }
                 throw new Exception($errorMsg);
             }
@@ -64,7 +112,7 @@ class EasyVereinSync {
             $data = json_decode($response, true);
             
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new Exception('Failed to parse JSON response: ' . json_last_error_msg());
+                throw new Exception('Ungültige API-Antwort (kein gültiges JSON): ' . json_last_error_msg());
             }
             
             // EasyVerein API typically returns data in a wrapper
@@ -72,7 +120,7 @@ class EasyVereinSync {
             $items = $data['results'] ?? $data['data'] ?? $data;
             
             if (!is_array($items)) {
-                throw new Exception('Invalid API response format: expected array of items');
+                throw new Exception('Unerwartetes API-Antwortformat: Es wurde ein Array erwartet.');
             }
             
             return $items;
@@ -421,11 +469,11 @@ class EasyVereinSync {
      * @return array Result with success status and any error or info messages
      */
     public function triggerBankSync() {
-        $apiToken = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
-
-        if (empty($apiToken)) {
-            error_log('EasyVerein triggerBankSync: API token not configured');
-            return ['success' => false, 'error' => 'EasyVerein API token not configured'];
+        try {
+            $apiToken = $this->getApiToken();
+        } catch (Exception $e) {
+            error_log('EasyVerein triggerBankSync: ' . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
         }
 
         // EasyVerein exposes bank connections under v1.6; triggering a refresh
@@ -468,12 +516,14 @@ class EasyVereinSync {
                 ];
             }
 
-            $errorMsg = "API returned HTTP {$httpCode}";
+            $errorMsg = "EasyVerein API (Bank-Sync): HTTP {$httpCode}";
             if ($httpCode === 401) {
-                $errorMsg .= ' - Unauthorized: Invalid API token';
+                $errorMsg .= ' – Nicht autorisiert. Der API-Token ist ungültig oder abgelaufen.';
             } elseif ($httpCode === 404) {
-                $errorMsg .= ' - Endpoint not found; bank-connection refresh may not be supported by this API version';
-                error_log('EasyVerein triggerBankSync: ' . $errorMsg . '. EasyVerein may only allow asynchronous bank sync via scheduled jobs.');
+                $errorMsg .= ' – Bank-Sync-Endpunkt nicht gefunden. '
+                    . 'Das manuelle Auslösen der Bank-Synchronisierung wird von dieser API-Version möglicherweise nicht unterstützt. '
+                    . 'EasyVerein führt Bank-Syncs normalerweise automatisch im Hintergrund durch.';
+                error_log('EasyVerein triggerBankSync: ' . $errorMsg);
             }
             throw new Exception($errorMsg);
 
@@ -494,10 +544,29 @@ class EasyVereinSync {
      * @throws Exception If the API call fails
      */
     public static function getBankTransactions($days = 7) {
-        $apiToken = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
-
+        // Resolve token: DB first, then constant
+        $apiToken = '';
+        try {
+            $db   = Database::getContentDB();
+            $stmt = $db->prepare(
+                "SELECT setting_value FROM system_settings WHERE setting_key = 'easyverein_api_token' LIMIT 1"
+            );
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && !empty($row['setting_value'])) {
+                $apiToken = $row['setting_value'];
+            }
+        } catch (Exception $e) {
+            // DB unavailable – fall through
+        }
         if (empty($apiToken)) {
-            throw new Exception('EasyVerein API token not configured');
+            $apiToken = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
+        }
+        if (empty($apiToken)) {
+            throw new Exception(
+                'EasyVerein API-Token nicht konfiguriert. '
+                . 'Bitte den Token in den Systemeinstellungen oder in der .env-Datei hinterlegen.'
+            );
         }
 
         $days = max(1, (int)$days);
@@ -581,14 +650,14 @@ class EasyVereinSync {
      * @return array Result with success status and any error messages
      */
     public function markInvoiceAsPaidInEV($easyvereinInvoiceId) {
-        $apiToken = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
-
-        if (empty($apiToken)) {
-            return ['success' => false, 'error' => 'EasyVerein API token not configured'];
+        try {
+            $apiToken = $this->getApiToken();
+        } catch (Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
         }
 
         if (empty($easyvereinInvoiceId)) {
-            return ['success' => false, 'error' => 'Invalid invoice ID'];
+            return ['success' => false, 'error' => 'Ungültige Rechnungs-ID'];
         }
 
         $apiUrl = 'https://easyverein.com/api/v1.6/invoices/' . urlencode($easyvereinInvoiceId) . '/';
@@ -626,11 +695,11 @@ class EasyVereinSync {
                 ];
             }
 
-            $errorMsg = "API returned HTTP {$httpCode}";
+            $errorMsg = "EasyVerein API (Rechnung): HTTP {$httpCode}";
             if ($httpCode === 401) {
-                $errorMsg .= ' - Unauthorized: Invalid API token';
+                $errorMsg .= ' – Nicht autorisiert. Der API-Token ist ungültig.';
             } elseif ($httpCode === 404) {
-                $errorMsg .= ' - Invoice not found in EasyVerein';
+                $errorMsg .= ' – Rechnung mit ID ' . $easyvereinInvoiceId . ' nicht in EasyVerein gefunden.';
             }
             throw new Exception($errorMsg);
 
@@ -651,11 +720,30 @@ class EasyVereinSync {
      */
     public static function updateItem($easyvereinId, $data) {
         $apiUrl = "https://easyverein.com/api/v3.0/inventory-object/{$easyvereinId}";
-        // Get API token from config
-        $apiToken = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
-        
+
+        // Resolve token: DB first, then constant
+        $apiToken = '';
+        try {
+            $db   = Database::getContentDB();
+            $stmt = $db->prepare(
+                "SELECT setting_value FROM system_settings WHERE setting_key = 'easyverein_api_token' LIMIT 1"
+            );
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && !empty($row['setting_value'])) {
+                $apiToken = $row['setting_value'];
+            }
+        } catch (Exception $e) {
+            // DB unavailable – fall through
+        }
         if (empty($apiToken)) {
-            throw new Exception('EasyVerein API token not configured');
+            $apiToken = defined('EASYVEREIN_API_TOKEN') ? EASYVEREIN_API_TOKEN : '';
+        }
+        if (empty($apiToken)) {
+            throw new Exception(
+                'EasyVerein API-Token nicht konfiguriert. '
+                . 'Bitte den Token in den Systemeinstellungen oder in der .env-Datei hinterlegen.'
+            );
         }
         
         try {
@@ -704,18 +792,18 @@ class EasyVereinSync {
             
             // Check HTTP status code (200 or 204 for successful PATCH)
             if ($httpCode !== 200 && $httpCode !== 204) {
-                $errorMsg = "API returned HTTP {$httpCode}";
+                $errorMsg = "EasyVerein API (Update Artikel): HTTP {$httpCode}";
                 if ($httpCode === 401) {
-                    $errorMsg .= ' - Unauthorized: Invalid API token';
+                    $errorMsg .= ' – Nicht autorisiert. Der API-Token ist ungültig.';
                 } elseif ($httpCode === 404) {
-                    $errorMsg .= ' - Not Found: Item not found in EasyVerein';
+                    $errorMsg .= ' – Artikel (EV-ID: ' . $easyvereinId . ') nicht in EasyVerein gefunden.';
                 }
                 throw new Exception($errorMsg);
             }
             
             return [
                 'success' => true,
-                'message' => 'Item updated in EasyVerein successfully'
+                'message' => 'Artikel in EasyVerein erfolgreich aktualisiert'
             ];
             
         } catch (Exception $e) {

@@ -79,25 +79,54 @@ ob_start();
 
 <!-- Sync Results -->
 <?php if ($syncResult): ?>
-<div class="mb-6 p-4 rounded-lg bg-blue-100 border border-blue-400 text-blue-700">
-    <div class="flex items-start">
-        <i class="fas fa-sync-alt mr-3 mt-1"></i>
-        <div class="flex-1">
-            <p class="font-semibold">EasyVerein Synchronisierung abgeschlossen</p>
-            <ul class="mt-2 text-sm">
-                <li>&#10003; Erstellt: <?php echo htmlspecialchars($syncResult['created']); ?> Artikel</li>
-                <li>&#10003; Aktualisiert: <?php echo htmlspecialchars($syncResult['updated']); ?> Artikel</li>
-                <li>&#10003; Archiviert: <?php echo htmlspecialchars($syncResult['archived']); ?> Artikel</li>
+<?php
+    $syncHasErrors   = !empty($syncResult['errors']);
+    $syncTotalFailed = $syncHasErrors
+        && ($syncResult['created'] === 0 && $syncResult['updated'] === 0 && $syncResult['archived'] === 0);
+    if ($syncTotalFailed) {
+        $syncBannerClass = 'bg-red-50 dark:bg-red-900/20 border-red-400 dark:border-red-600';
+        $syncTextClass   = 'text-red-700 dark:text-red-300';
+        $syncIcon        = 'fa-exclamation-circle';
+        $syncTitle       = 'EasyVerein Sync fehlgeschlagen';
+    } elseif ($syncHasErrors) {
+        $syncBannerClass = 'bg-orange-50 dark:bg-orange-900/20 border-orange-400 dark:border-orange-600';
+        $syncTextClass   = 'text-orange-700 dark:text-orange-300';
+        $syncIcon        = 'fa-exclamation-triangle';
+        $syncTitle       = 'EasyVerein Sync abgeschlossen (mit Fehlern)';
+    } else {
+        $syncBannerClass = 'bg-green-50 dark:bg-green-900/20 border-green-400 dark:border-green-600';
+        $syncTextClass   = 'text-green-700 dark:text-green-300';
+        $syncIcon        = 'fa-check-circle';
+        $syncTitle       = 'EasyVerein Sync erfolgreich';
+    }
+?>
+<div class="mb-6 p-4 rounded-xl border <?php echo $syncBannerClass; ?> <?php echo $syncTextClass; ?> shadow-sm">
+    <div class="flex items-start gap-3">
+        <i class="fas <?php echo $syncIcon; ?> mt-0.5 text-xl flex-shrink-0"></i>
+        <div class="flex-1 min-w-0">
+            <p class="font-bold text-base"><?php echo htmlspecialchars($syncTitle); ?></p>
+            <?php if (!$syncTotalFailed): ?>
+            <ul class="mt-2 text-sm space-y-0.5">
+                <li><i class="fas fa-plus-circle mr-1.5 opacity-70"></i>Erstellt: <strong><?php echo (int)$syncResult['created']; ?></strong> Artikel</li>
+                <li><i class="fas fa-pen mr-1.5 opacity-70"></i>Aktualisiert: <strong><?php echo (int)$syncResult['updated']; ?></strong> Artikel</li>
+                <li><i class="fas fa-archive mr-1.5 opacity-70"></i>Archiviert: <strong><?php echo (int)$syncResult['archived']; ?></strong> Artikel</li>
             </ul>
-            <?php if (!empty($syncResult['errors'])): ?>
-            <details class="mt-2">
-                <summary class="cursor-pointer text-sm underline">Fehler anzeigen (<?php echo count($syncResult['errors']); ?>)</summary>
-                <ul class="mt-2 list-disc list-inside text-sm">
+            <?php endif; ?>
+            <?php if ($syncHasErrors): ?>
+            <div class="mt-3">
+                <p class="text-sm font-semibold mb-1">
+                    <i class="fas fa-bug mr-1.5"></i>
+                    <?php echo count($syncResult['errors']); ?> Fehler aufgetreten:
+                </p>
+                <ul class="text-sm space-y-1 list-none pl-0">
                     <?php foreach ($syncResult['errors'] as $error): ?>
-                    <li><?php echo htmlspecialchars($error); ?></li>
+                    <li class="flex items-start gap-1.5">
+                        <i class="fas fa-angle-right mt-0.5 flex-shrink-0 opacity-60"></i>
+                        <span><?php echo htmlspecialchars($error); ?></span>
+                    </li>
                     <?php endforeach; ?>
                 </ul>
-            </details>
+            </div>
             <?php endif; ?>
         </div>
     </div>

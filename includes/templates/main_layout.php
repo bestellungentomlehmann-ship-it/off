@@ -396,7 +396,7 @@ if (!isset($currentUser)) {
             <nav aria-label="Hauptnavigation">
                 <!-- Dashboard (All) -->
                 <a href="<?php echo asset('pages/dashboard/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/dashboard/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/dashboard/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/dashboard/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-home w-5 mr-3" aria-hidden="true"></i>
                     <span>Dashboard</span>
@@ -404,7 +404,7 @@ if (!isset($currentUser)) {
 
                 <!-- Newsletter (All authenticated users) -->
                 <a href="<?php echo asset('pages/newsletter/index.php'); ?>"
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/newsletter/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/newsletter/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/newsletter/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-envelope-open-text w-5 mr-3" aria-hidden="true"></i>
                     <span>Newsletter</span>
@@ -412,7 +412,7 @@ if (!isset($currentUser)) {
 
                 <!-- Alumni (All) -->
                 <a href="<?php echo asset('pages/alumni/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/alumni/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/alumni/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/alumni/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-user-graduate w-5 mr-3" aria-hidden="true"></i>
                     <span>Alumni-Datenbank</span>
@@ -420,7 +420,7 @@ if (!isset($currentUser)) {
 
                 <!-- Blog (All) -->
                 <a href="<?php echo asset('pages/blog/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/blog/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/blog/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/blog/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-newspaper w-5 mr-3" aria-hidden="true"></i>
                     <span>Blog</span>
@@ -428,7 +428,7 @@ if (!isset($currentUser)) {
 
                 <!-- Job- & Praktikumsbörse (All) -->
                 <a href="<?php echo asset('pages/jobs/index.php'); ?>"
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/jobs/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/jobs/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/jobs/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-briefcase w-5 mr-3" aria-hidden="true"></i>
                     <span>Job- &amp; Praktikumsbörse</span>
@@ -436,7 +436,7 @@ if (!isset($currentUser)) {
 
                 <!-- Events (All) -->
                 <a href="<?php echo asset('pages/events/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/events/') && !is_nav_active('/events/helpers.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/events/') && !is_nav_active('/events/helpers.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/events/') && !is_nav_active('/events/helpers.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-calendar w-5 mr-3" aria-hidden="true"></i>
                     <span>Events</span>
@@ -444,7 +444,7 @@ if (!isset($currentUser)) {
 
                 <!-- Helfersystem (All) -->
                 <a href="<?php echo asset('pages/events/helpers.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/events/helpers.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/events/helpers.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/events/helpers.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-hands-helping w-5 mr-3" aria-hidden="true"></i>
                     <span>Helfersystem</span>
@@ -453,7 +453,7 @@ if (!isset($currentUser)) {
                 <!-- Ideenbox (Members, Candidates, Head, Board) -->
                 <?php if (Auth::canAccessPage('ideas')): ?>
                 <a href="<?php echo asset('pages/ideas/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/ideas/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/ideas/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/ideas/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-lightbulb w-5 mr-3" aria-hidden="true"></i>
                     <span>Ideenbox</span>
@@ -462,7 +462,7 @@ if (!isset($currentUser)) {
 
                 <!-- Inventar (All) -->
                 <a href="<?php echo asset('pages/inventory/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/inventory/') && !is_nav_active('/my_rentals.php') && !is_nav_active('/checkout.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/inventory/') && !is_nav_active('/my_rentals.php') && !is_nav_active('/checkout.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/inventory/') && !is_nav_active('/my_rentals.php') && !is_nav_active('/checkout.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-box w-5 mr-3" aria-hidden="true"></i>
                     <span>Inventar</span>
@@ -470,7 +470,7 @@ if (!isset($currentUser)) {
 
                 <!-- Ausleihe (All) -->
                 <a href="<?php echo asset('pages/inventory/my_rentals.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/my_rentals.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/my_rentals.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/my_rentals.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-clipboard-list w-5 mr-3" aria-hidden="true"></i>
                     <span>Ausleihe</span>
@@ -479,7 +479,7 @@ if (!isset($currentUser)) {
                 <!-- Mitglieder (Board, Head, Member, Candidate) -->
                 <?php if (Auth::canAccessPage('members')): ?>
                 <a href="<?php echo asset('pages/members/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/members/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/members/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/members/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-users w-5 mr-3" aria-hidden="true"></i>
                     <span>Mitglieder-Datenbank</span>
@@ -489,7 +489,7 @@ if (!isset($currentUser)) {
                 <!-- Nützliche Links (Board + Alumni Vorstand + Alumni Finanzprüfer) -->
                 <?php if (in_array($userRole, ['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'alumni_vorstand', 'alumni_finanz'])): ?>
                 <a href="<?php echo asset('pages/links/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/links/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/links/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/links/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-link w-5 mr-3" aria-hidden="true"></i>
                     <span>Nützliche Links</span>
@@ -498,7 +498,7 @@ if (!isset($currentUser)) {
 
                 <!-- Projekte (All) -->
                 <a href="<?php echo asset('pages/projects/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/projects/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/projects/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/projects/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-project-diagram w-5 mr-3" aria-hidden="true"></i>
                     <span>Projekte</span>
@@ -507,7 +507,7 @@ if (!isset($currentUser)) {
                 <!-- Rechnungen (All roles) -->
                 <?php if (Auth::canAccessPage('invoices')): ?>
                 <a href="<?php echo asset('pages/invoices/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/invoices/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/invoices/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/invoices/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-file-invoice-dollar w-5 mr-3" aria-hidden="true"></i>
                     <span>Rechnungen</span>
@@ -517,7 +517,7 @@ if (!isset($currentUser)) {
                 <!-- Schulungsanfrage (Alumni, Alumni-Board) -->
                 <?php if (Auth::canAccessPage('training_requests')): ?>
                 <a href="<?php echo asset('pages/alumni/requests.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/alumni/requests.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/alumni/requests.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/alumni/requests.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-chalkboard-teacher w-5 mr-3" aria-hidden="true"></i>
                     <span>Schulungsanfrage</span>
@@ -526,7 +526,7 @@ if (!isset($currentUser)) {
 
                 <!-- Shop (All authenticated users) -->
                 <a href="<?php echo asset('pages/shop/index.php'); ?>"
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/shop/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/shop/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/shop/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-shopping-cart w-5 mr-3" aria-hidden="true"></i>
                     <span>Shop</span>
@@ -546,7 +546,7 @@ if (!isset($currentUser)) {
                 <!-- Umfragen (Polls - All authenticated users) -->
                 <?php if (Auth::canAccessPage('polls')): ?>
                 <a href="<?php echo asset('pages/polls/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/polls/') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/polls/') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/polls/') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-poll w-5 mr-3" aria-hidden="true"></i>
                     <span>Umfragen</span>
@@ -564,7 +564,7 @@ if (!isset($currentUser)) {
                 <!-- Benutzerverwaltung (All board members who can manage users) -->
                 <?php if (Auth::canManageUsers()): ?>
                 <a href="<?php echo asset('pages/admin/users.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/users.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/users.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/users.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-users-cog w-5 mr-3" aria-hidden="true"></i>
                     <span>Benutzerverwaltung</span>
@@ -574,7 +574,7 @@ if (!isset($currentUser)) {
                 <!-- Admin Dashboard -->
                 <?php if (Auth::isAdmin()): ?>
                 <a href="<?php echo asset('pages/admin/index.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/index.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/index.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/index.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-tachometer-alt w-5 mr-3" aria-hidden="true"></i>
                     <span>Dashboard</span>
@@ -584,7 +584,7 @@ if (!isset($currentUser)) {
                 <!-- Inventarverwaltung -->
                 <?php if (Auth::hasRole(['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'ressortleiter']) || Auth::isAdmin()): ?>
                 <a href="<?php echo asset('pages/admin/rental_returns.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/rental_returns.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/rental_returns.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/rental_returns.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-clipboard-check w-5 mr-3" aria-hidden="true"></i>
                     <span>Inventarverwaltung</span>
@@ -594,7 +594,7 @@ if (!isset($currentUser)) {
                 <!-- Bewerbungsverwaltung (Board only) -->
                 <?php if (Auth::isBoard()): ?>
                 <a href="<?php echo asset('pages/admin/project_applications.php'); ?>"
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/project_applications.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/project_applications.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/project_applications.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-file-alt w-5 mr-3" aria-hidden="true"></i>
                     <span>Bewerbungsverwaltung</span>
@@ -604,7 +604,7 @@ if (!isset($currentUser)) {
                 <!-- Alumni-Anfragen (Alumni-Führung + Vorstand) -->
                 <?php if (Auth::hasRole(['alumni_finanz', 'alumni_vorstand', 'vorstand_finanzen', 'vorstand_extern', 'vorstand_intern'])): ?>
                 <a href="<?php echo asset('pages/admin/alumni_requests.php'); ?>"
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/alumni_requests.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/alumni_requests.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/alumni_requests.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-user-graduate w-5 mr-3" aria-hidden="true"></i>
                     <span>Alumni-Anfragen</span>
@@ -614,7 +614,7 @@ if (!isset($currentUser)) {
                 <!-- Neue Alumni-Anfragen (Alumni-Führung + Vorstand) -->
                 <?php if (Auth::hasRole(['alumni_finanz', 'alumni_vorstand', 'vorstand_finanzen', 'vorstand_extern', 'vorstand_intern'])): ?>
                 <a href="<?php echo asset('pages/admin/neue_alumni_requests.php'); ?>"
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/neue_alumni_requests.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/neue_alumni_requests.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/neue_alumni_requests.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-user-plus w-5 mr-3" aria-hidden="true"></i>
                     <span>Neue Alumni</span>
@@ -625,7 +625,7 @@ if (!isset($currentUser)) {
                 <!-- Shop-Verwaltung (Board + Resortleiter) -->
                 <?php if (Auth::hasRole(['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'ressortleiter'])): ?>
                 <a href="<?php echo asset('pages/admin/shop_manage.php'); ?>"
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/shop_manage.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/shop_manage.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/shop_manage.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-store w-5 mr-3" aria-hidden="true"></i>
                     <span>Shop-Verwaltung</span>
@@ -635,7 +635,7 @@ if (!isset($currentUser)) {
                 <!-- Systemeinstellungen (Board roles + alumni_vorstand + alumni_finanz) -->
                 <?php if (Auth::canAccessSystemSettings()): ?>
                 <a href="<?php echo asset('pages/admin/settings.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/settings.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/settings.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/settings.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-cogs w-5 mr-3" aria-hidden="true"></i>
                     <span>Systemeinstellungen</span>
@@ -653,7 +653,7 @@ if (!isset($currentUser)) {
                 <!-- Event-Statistiken (Admin roles only) -->
                 <?php if (Auth::isAdmin()): ?>
                 <a href="<?php echo asset('pages/admin/event_stats.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/event_stats.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/event_stats.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/event_stats.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-chart-bar w-5 mr-3" aria-hidden="true"></i>
                     <span>Event-Statistiken</span>
@@ -663,7 +663,7 @@ if (!isset($currentUser)) {
                 <!-- Statistiken (All board members) -->
                 <?php if (Auth::isAdmin()): ?>
                 <a href="<?php echo asset('pages/admin/stats.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/stats.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/stats.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/stats.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-chart-pie w-5 mr-3" aria-hidden="true"></i>
                     <span>Statistiken</span>
@@ -673,7 +673,7 @@ if (!isset($currentUser)) {
                 <!-- Audit Logs (All board members) -->
                 <?php if (Auth::isAdmin()): ?>
                 <a href="<?php echo asset('pages/admin/audit.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/audit.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/audit.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/audit.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-clipboard-list w-5 mr-3" aria-hidden="true"></i>
                     <span>Audit Logs</span>
@@ -683,7 +683,7 @@ if (!isset($currentUser)) {
                 <!-- System Health (All board members) -->
                 <?php if (Auth::isAdmin()): ?>
                 <a href="<?php echo asset('pages/admin/db_maintenance.php'); ?>" 
-                   class="flex items-center justify-start px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/db_maintenance.php') ? 'bg-white/20 text-white border-l-4 border-ibc-green' : ''; ?>"
+                   class="flex items-center justify-start px-4 py-2.5 mx-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200 <?php echo is_nav_active('/admin/db_maintenance.php') ? 'bg-white/20' : ''; ?>"
                    <?php echo is_nav_active('/admin/db_maintenance.php') ? 'aria-current="page"' : ''; ?>>
                     <i class="fas fa-database w-5 mr-3" aria-hidden="true"></i>
                     <span>System Health</span>
