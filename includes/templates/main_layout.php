@@ -233,6 +233,52 @@ if (!isset($currentUser)) {
             font-weight: 600;
         }
         .skip-link:focus { top: 0; }
+
+        /* ── DVH SUPPORT ────────────────────────────────────────── */
+        @supports (height: 100dvh) {
+            .sidebar {
+                height: 100dvh;
+            }
+        }
+
+        /* ── SIDEBAR CLOSING ANIMATION ───────────────────────────── */
+        .sidebar {
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s 0.3s;
+            visibility: hidden;
+        }
+        .sidebar.open {
+            visibility: visible;
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s 0s;
+        }
+        @media (min-width: 768px) {
+            .sidebar {
+                visibility: visible;
+                transition: none;
+            }
+        }
+
+        /* ── MOBILE: BODY SCROLL LOCK FIX ───────────────────────── */
+        body.sidebar-open {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+
+        /* ── IMPROVED SELECTION HIGHLIGHT ───────────────────────── */
+        ::selection {
+            background-color: rgba(0, 102, 179, 0.2);
+            color: inherit;
+        }
+        .dark-mode ::selection {
+            background-color: rgba(51, 133, 196, 0.3);
+        }
+
+        /* ── IMPROVE MAIN CONTENT AREA PADDING ──────────────────── */
+        @media (max-width: 767px) {
+            #main-content {
+                padding-top: calc(var(--topbar-height) + 0.5rem) !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 overflow-x-hidden" data-user-theme="<?php echo htmlspecialchars($currentUser['theme_preference'] ?? 'auto'); ?>">

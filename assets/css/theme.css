@@ -8817,3 +8817,575 @@ body:not(.dark-mode) .dash-stat-card * {
 /* ============================================================
    END FINAL LIGHT MODE DESIGN IMPROVEMENTS (2026)
    ============================================================ */
+
+/* ============================================================
+   RESPONSIVE DESIGN IMPROVEMENTS 2026
+   ============================================================ */
+
+/* ── MICRO-INTERACTION IMPROVEMENTS ────────────────────────── */
+
+/* Sidebar nav link active indicator */
+.sidebar nav a.bg-white\/20 {
+    position: relative;
+}
+
+/* Sidebar nav link: icon scale on active */
+.sidebar nav a.bg-white\/20 i {
+    transform: scale(1.08);
+}
+
+/* ── MOBILE SWIPE HINT ──────────────────────────────────────
+   Subtle visual affordance for sidebar swipe gesture.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) and (hover: none) {
+    .sidebar-swipe-hint {
+        position: fixed;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 40px;
+        background: var(--ibc-blue);
+        border-radius: 0 4px 4px 0;
+        opacity: 0.4;
+        z-index: calc(var(--z-sidebar) - 1);
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+
+    body.sidebar-open .sidebar-swipe-hint {
+        opacity: 0;
+    }
+}
+
+/* ── IMPROVED CARD HOVER ANIMATIONS ────────────────────────── */
+@media (hover: hover) and (pointer: fine) {
+    .card {
+        transition: 
+            transform var(--transition-slow),
+            box-shadow var(--transition-slow),
+            border-color var(--transition-normal);
+    }
+
+    .card:hover {
+        transform: translate3d(0, -4px, 0);
+    }
+}
+
+/* ── BETTER SCROLLBAR STYLING ───────────────────────────────── */
+/* Dark mode scrollbar */
+.dark-mode::-webkit-scrollbar { width: 7px; height: 7px; }
+.dark-mode::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 99px;
+}
+.dark-mode::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 99px;
+}
+.dark-mode::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Sidebar scrollbar */
+.sidebar-scroll::-webkit-scrollbar { width: 4px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 99px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+/* ── IMPROVED MOBILE MODAL ANIMATION ───────────────────────── */
+@media (max-width: 767px) {
+    .modal.fade .modal-dialog {
+        transform: translate3d(0, 100%, 0) !important;
+        transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1) !important;
+    }
+
+    .modal.show .modal-dialog {
+        transform: translate3d(0, 0, 0) !important;
+    }
+
+    .modal-dialog {
+        margin: 0 !important;
+        max-width: 100% !important;
+        position: absolute !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+    }
+
+    .modal-content {
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+        border-bottom: none !important;
+        padding-bottom: env(safe-area-inset-bottom, 0) !important;
+    }
+
+    /* Modal drag handle indicator */
+    .modal-header::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: var(--border-color);
+        border-radius: 99px;
+        margin: -0.5rem auto 0.75rem;
+    }
+}
+
+/* ── REDUCED MOTION: DISABLE HEAVY ANIMATIONS ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .mobile-bottom-nav-item i {
+        transition: none !important;
+    }
+
+    .mobile-bottom-nav-item::before {
+        transition: none !important;
+    }
+
+    main > .animated-entrance,
+    main > .card {
+        animation: none !important;
+    }
+
+    .staggered-list > * {
+        animation: none !important;
+    }
+}
+
+/* ── ACTIVE STATE IMPROVEMENTS FOR TOUCH ───────────────────── */
+@media (hover: none) and (pointer: coarse) {
+    /* Better tap feedback for cards (replaces hover state) */
+    .card:active {
+        transform: scale(0.985) !important;
+        transition: transform 0.1s ease !important;
+    }
+
+    /* Better tap feedback for nav links */
+    .sidebar nav a:active {
+        background: rgba(255, 255, 255, 0.2) !important;
+        transition: background 0.1s ease !important;
+    }
+
+    /* No hover state on bottom nav (prevents sticky hover) */
+    .mobile-bottom-nav-item:hover {
+        color: inherit !important;
+    }
+
+    /* Bottom nav active state icon scale */
+    .mobile-bottom-nav-item.active i {
+        transform: translateY(-2px) scale(1.1) !important;
+    }
+}
+
+/* ── EXTRA SMALL SCREEN IMPROVEMENTS (< 360px) ─────────────── */
+@media (max-width: 359px) {
+    .mobile-topbar {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    main {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+
+    .card {
+        padding: 0.875rem !important;
+        border-radius: 12px !important;
+    }
+
+    .mobile-bottom-nav-item span {
+        font-size: 0.5625rem !important;
+    }
+
+    .mobile-bottom-nav-item i {
+        font-size: 1.125rem !important;
+    }
+}
+
+/* ── LANDSCAPE MOBILE IMPROVEMENTS ─────────────────────────── */
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 896px) {
+    /* In landscape mobile, sidebar should scroll better */
+    .sidebar {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Compact bottom navigation in landscape */
+    .mobile-bottom-nav {
+        min-height: 50px !important;
+    }
+
+    .mobile-bottom-nav-item {
+        min-height: 50px !important;
+        padding: 6px 4px 8px !important;
+    }
+
+    .mobile-bottom-nav-item span {
+        display: none !important;
+    }
+
+    .mobile-bottom-nav-item i {
+        font-size: 1.375rem !important;
+        margin-top: 2px;
+    }
+
+    /* Reduce main padding in landscape mobile */
+    main {
+        padding-bottom: calc(50px + env(safe-area-inset-bottom, 0) + 0.5rem) !important;
+    }
+}
+
+/* ── FIXED: BODY DVH SUPPORT ─────────────────────────────────
+   Use dvh (dynamic viewport height) on browsers that support it
+   so the content fills the screen correctly on mobile browsers
+   that have dynamically resizing toolbars.
+   ──────────────────────────────────────────────────────────── */
+@supports (height: 100dvh) {
+    body {
+        min-height: 100dvh;
+    }
+
+    .sidebar {
+        height: 100dvh;
+    }
+}
+
+/* ── IMPROVED INPUT FOCUS RING ───────────────────────────────
+   Better visual focus indicator for keyboard navigation.
+   ──────────────────────────────────────────────────────────── */
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--ibc-blue) !important;
+    outline-offset: 2px !important;
+}
+
+/* Remove outline when using mouse/touch */
+input:not([type="checkbox"]):not([type="radio"]):focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) {
+    outline: none !important;
+}
+
+/* ── CONTENT IMAGE IMPROVEMENTS ─────────────────────────────
+   Ensure all content images are responsive by default.
+   ──────────────────────────────────────────────────────────── */
+.card img:not([class*="w-"]):not([class*="h-"]):not([class*="size-"]):not(.ibc-logo):not([class*="logo"]) {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+}
+
+/* ── MOBILE BACK-TO-TOP BUTTON ───────────────────────────────
+   Floating back-to-top button styles for mobile.
+   ──────────────────────────────────────────────────────────── */
+.back-to-top {
+    position: fixed;
+    bottom: calc(75px + env(safe-area-inset-bottom, 0));
+    right: 1rem;
+    width: 44px;
+    height: 44px;
+    background: var(--ibc-blue);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0, 102, 179, 0.4);
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    z-index: calc(var(--z-bottom-nav) - 1);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.back-to-top.visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    pointer-events: auto;
+}
+
+@media (min-width: 768px) {
+    .back-to-top {
+        bottom: 1.5rem;
+        right: 1.5rem;
+    }
+}
+
+/* ── MOBILE TOPBAR TITLE ANIMATION ──────────────────────────
+   Adds a subtle fade when page title changes.
+   ──────────────────────────────────────────────────────────── */
+.mobile-topbar .page-title-text {
+    transition: opacity 0.2s ease;
+}
+
+/* ── SIDEBAR OPEN TRANSITION IMPROVEMENT ────────────────────
+   Smoother sidebar slide-in with better easing curve.
+   ──────────────────────────────────────────────────────────── */
+.sidebar {
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
+}
+
+.sidebar.open {
+    transform: translate3d(0, 0, 0) !important;
+}
+
+/* ── OVERLAY BACKDROP IMPROVEMENTS ──────────────────────────
+   Better backdrop blur on modern browsers.
+   ──────────────────────────────────────────────────────────── */
+.sidebar-overlay {
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    will-change: opacity;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ── IMPROVED DARK MODE SIDEBAR ─────────────────────────────
+   Better visual hierarchy for dark mode sidebar nav.
+   ──────────────────────────────────────────────────────────── */
+.dark-mode .sidebar {
+    box-shadow: 2px 0 32px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* ── OVERSCROLL BEHAVIOR ─────────────────────────────────────
+   Prevent overscroll bounce on the main content while
+   allowing smooth scrolling inside the sidebar.
+   ──────────────────────────────────────────────────────────── */
+main {
+    overscroll-behavior-y: auto;
+}
+
+.sidebar-scroll {
+    overscroll-behavior-y: contain;
+}
+
+/* ── SELECTION HIGHLIGHT ─────────────────────────────────────
+   Brand-colored text selection highlight.
+   ──────────────────────────────────────────────────────────── */
+::selection {
+    background-color: rgba(0, 102, 179, 0.2);
+    color: inherit;
+}
+
+.dark-mode ::selection {
+    background-color: rgba(51, 133, 196, 0.3);
+}
+
+/* ── SMOOTH SCROLL FOR ALL PAGES ────────────────────────────
+   Enable smooth scrolling for all anchor navigation.
+   ──────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
+/* ── LOADING SKELETON IMPROVEMENTS ──────────────────────────
+   Better skeleton loading animation for content placeholders.
+   ──────────────────────────────────────────────────────────── */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--ibc-gray-100) 25%,
+        var(--ibc-gray-200) 50%,
+        var(--ibc-gray-100) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+}
+
+.dark-mode .skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 25%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.04) 75%
+    );
+    background-size: 200% 100%;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton {
+        animation: none;
+        background: var(--ibc-gray-100);
+    }
+
+    .dark-mode .skeleton {
+        background: rgba(255, 255, 255, 0.06);
+    }
+}
+
+/* ── CARD HOVER BORDER ACCENT ────────────────────────────────
+   Light mode: subtle top border highlight on hover.
+   ──────────────────────────────────────────────────────────── */
+@media (hover: hover) and (pointer: fine) {
+    body:not(.dark-mode) .card {
+        position: relative;
+    }
+
+    body:not(.dark-mode) .card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 10%;
+        right: 10%;
+        height: 2px;
+        background: linear-gradient(90deg, var(--ibc-blue), var(--ibc-green));
+        border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+        opacity: 0;
+        transform: scaleX(0.5);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    body:not(.dark-mode) .card:hover::before {
+        opacity: 0.7;
+        transform: scaleX(1);
+    }
+}
+
+/* ── IMPROVED DROPDOWN / SELECT MOBILE ──────────────────────
+   Native selects on mobile get better visual treatment.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+    select {
+        /* Remove native arrow on iOS to use our custom one */
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        padding-right: 2.5rem !important;
+        background-image: var(--select-arrow-light);
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1.25em;
+    }
+
+    .dark-mode select {
+        background-image: var(--select-arrow-dark);
+    }
+}
+
+/* ── NOTIFICATION / TOAST MOBILE POSITIONING ────────────────
+   Move toasts above the bottom nav bar on mobile.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+    .toast-container,
+    .notifications-container,
+    [class*="toast"][class*="container"],
+    [class*="notification"][class*="container"] {
+        bottom: calc(75px + env(safe-area-inset-bottom, 0)) !important;
+    }
+}
+
+/* ── FOCUS TRAP HELPER ───────────────────────────────────────
+   The sidebar visibility toggling (hidden when closed, visible
+   when open) is handled in main_layout.php with a transition
+   delay so the slide-out animation completes before the element
+   is hidden from screen readers and keyboard navigation.
+   ──────────────────────────────────────────────────────────── */
+
+/* ── EMPTY STATE ILLUSTRATIONS ───────────────────────────────
+   Consistent empty state styling for when there's no data.
+   ──────────────────────────────────────────────────────────── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    gap: 1rem;
+}
+
+.empty-state-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--ibc-gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ibc-gray-400);
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.dark-mode .empty-state-icon {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--ibc-gray-500);
+}
+
+.empty-state-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.empty-state-description {
+    font-size: 0.9375rem;
+    color: var(--text-muted);
+    margin: 0;
+    max-width: 28rem;
+}
+
+/* ── IMPROVED MOBILE SIDEBAR HEADER ─────────────────────────
+   Better visual for IBC logo in mobile sidebar.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+    .sidebar .p-5 > .mb-6 {
+        padding-top: 1rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+}
+
+/* ── BETTER SCROLL SNAP FOR HORIZONTAL CAROUSELS ────────────
+   If the site has any horizontal scroll sections, make them
+   snap-scroll friendly on mobile.
+   ──────────────────────────────────────────────────────────── */
+.scroll-snap-x {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.scroll-snap-x::-webkit-scrollbar {
+    display: none;
+}
+
+.scroll-snap-x > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+}
+
+/* ── FINAL: OVERFLOW CLIP ON ROOT TO PREVENT HORIZONTAL SCROLL
+   Ensures no horizontal overflow on the page root.
+   ──────────────────────────────────────────────────────────── */
+html {
+    overflow-x: clip;
+}
+
+body {
+    overflow-x: hidden;
+}
