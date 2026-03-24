@@ -791,7 +791,8 @@ INSERT IGNORE INTO `links` (`id`, `title`, `url`, `description`, `icon`, `sort_o
 (5,  'SharePoint',            'https://sharepoint.com',             'Dokumente und Zusammenarbeit',                'fas fa-folder-open',  5),
 (6,  'Teams',                 'https://teams.microsoft.com',        'Chats, Meetings und Kanäle',                  'fas fa-comments',     6),
 (7,  'Azure Portal',          'https://portal.azure.com',           'Cloud-Infrastruktur und Dienste',             'fas fa-cloud',        7),
-(8,  'GitHub',                'https://github.com',                 'Quellcode und Versionsverwaltung',            'fab fa-github',       8);
+(8,  'GitHub',                'https://github.com',                 'Quellcode und Versionsverwaltung',            'fab fa-github',       8),
+(9,  'Confluence',           'https://business-consulting.atlassian.net', 'Wissensdatenbank und Dokumentation',        'fab fa-atlassian',    9);
 
 -- ================================================
 -- TABLE: ideas
