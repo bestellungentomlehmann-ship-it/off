@@ -1,7 +1,7 @@
 <?php
 /**
  * EasyVereinInventory Service
- * Manages inventory items and member assignments via the EasyVerein API v2.0.
+ * Manages inventory items and member assignments via the EasyVerein API v3.0.
  *
  * Uses the same authentication pattern as EasyVereinSync.php.
  */
@@ -11,7 +11,7 @@ require_once __DIR__ . '/../database.php';
 
 class EasyVereinInventory {
 
-    private const API_BASE                    = 'https://easyverein.com/api/v2.0';
+    private const API_BASE                    = 'https://easyverein.com/api/v3.0';
     private const CACHE_TTL                   = 300; // seconds (5 minutes)
     private const FALLBACK_CONTACT_NAME       = 'Intra Ausleihe';
     private const CF_NAME_NOT_IN_EASYVEREIN   = 'Name nicht im easyverein';
@@ -90,7 +90,7 @@ class EasyVereinInventory {
      *
      * After each successful response the method inspects the response headers.
      * If the EasyVerein API signals that a token refresh is needed
-     * (header "tokenRefreshNeeded: true"), refreshToken() is called automatically
+     * (header "token_refresh_needed: true"), refreshToken() is called automatically
      * so that the new token is available for the next API call within this process.
      *
      * @param string     $method           HTTP method (GET, PATCH, PUT, DELETE, …)
@@ -157,8 +157,8 @@ class EasyVereinInventory {
 
         // Automatic token refresh when the API signals it is needed
         if (!$skipTokenRefresh
-            && isset($responseHeaders['tokenrefreshneeded'])
-            && strtolower($responseHeaders['tokenrefreshneeded']) === 'true'
+            && isset($responseHeaders['token_refresh_needed'])
+            && strtolower($responseHeaders['token_refresh_needed']) === 'true'
         ) {
             try {
                 $this->refreshToken();
@@ -183,7 +183,7 @@ class EasyVereinInventory {
     /**
      * Refresh the EasyVerein API token.
      *
-     * Calls GET /api/v2.0/refresh-token and persists the new token:
+     * Calls GET /api/v3.0/refresh-token and persists the new token:
      *   1. Updates self::$currentToken immediately so the next API call in this
      *      process uses the fresh token without any further DB or file I/O.
      *   2. Saves the token to the system_settings DB table
@@ -308,7 +308,7 @@ class EasyVereinInventory {
     /**
      * Fetch all inventory items from EasyVerein.
      *
-     * Calls GET /api/v2.0/inventory-object and follows pagination links until
+     * Calls GET /api/v3.0/inventory-object and follows pagination links until
      * all items have been retrieved (handles the standard EasyVerein
      * results/next/data wrapper).
      *
@@ -390,7 +390,7 @@ class EasyVereinInventory {
         $url  = self::API_BASE . '/inventory-object/' . $itemId;
         $item = $this->request('GET', $url);
 
-        $currentPieces = (int)($item['pieces'] ?? $item['inventoryQuantity'] ?? $item['quantity'] ?? 0);
+        $currentPieces = (int)($item['pieces'] ?? $item['inventory_quantity'] ?? $item['inventoryQuantity'] ?? $item['quantity'] ?? 0);
         if ($currentPieces < $quantity) {
             throw new Exception(
                 "Insufficient stock: requested {$quantity}, available {$currentPieces}"
@@ -464,7 +464,7 @@ class EasyVereinInventory {
      * @throws Exception On API or network errors
      */
     public function getMyAssignedItems($userIdentifier): array {
-        $url  = self::API_BASE . '/lending?futureReturnDate=true&limit=100&query={id,parentInventoryObject{*,customFields{id,value,customField{id,name}}}}';
+        $url  = self::API_BASE . '/lending?future_return_date=true&limit=100&query={id,parent_inventory_object{*,custom_fields{id,value,custom_field{id,name}}}}';
         $data  = $this->request('GET', $url);
         $items = $data['results'] ?? $data['data'] ?? $data;
 
@@ -476,14 +476,15 @@ class EasyVereinInventory {
         $myItems = [];
 
         foreach ($items as $lending) {
-            $obj = $lending['parentInventoryObject'] ?? null;
+            $obj = $lending['parent_inventory_object'] ?? $lending['parentInventoryObject'] ?? null;
             if (!is_array($obj)) {
                 continue;
             }
 
-            $customFields = $obj['customFields'] ?? [];
+            $customFields = $obj['custom_fields'] ?? $obj['customFields'] ?? [];
             foreach ($customFields as $cf) {
-                $fieldName = strtolower($cf['customField']['name'] ?? '');
+                $cfMeta    = $cf['custom_field'] ?? $cf['customField'] ?? null;
+                $fieldName = strtolower(is_array($cfMeta) ? ($cfMeta['name'] ?? '') : '');
                 if ($fieldName !== 'entra e-mail' && $fieldName !== 'aktuelle ausleiher') {
                     continue;
                 }
@@ -501,7 +502,7 @@ class EasyVereinInventory {
     }
 
     /**
-     * Fetch all inventory objects from EasyVerein (GET /api/v2.0/inventory-object).
+     * Fetch all inventory objects from EasyVerein (GET /api/v3.0/inventory-object).
      *
      * Follows pagination links until all items have been retrieved. Each item
      * contains at least the `name` and `pieces` fields as returned by the API.
@@ -531,7 +532,7 @@ class EasyVereinInventory {
     /**
      * Fetch all currently active lendings for a given inventory object.
      *
-     * Calls GET /api/v2.0/lending?parentInventoryObject={id}&futureReturnDate=true
+     * Calls GET /api/v3.0/lending?parent_inventory_object={id}&future_return_date=true
      * and follows pagination until all records have been retrieved.
      *
      * @param int|string $inventoryObjectId EasyVerein inventory-object ID
@@ -540,8 +541,8 @@ class EasyVereinInventory {
      */
     public function getActiveLendings($inventoryObjectId): array {
         $allLendings = [];
-        $url         = self::API_BASE . '/lending?parentInventoryObject='
-            . urlencode((string)$inventoryObjectId) . '&futureReturnDate=true&limit=100';
+        $url         = self::API_BASE . '/lending?parent_inventory_object='
+            . urlencode((string)$inventoryObjectId) . '&future_return_date=true&limit=100';
 
         while ($url !== null) {
             $data  = $this->request('GET', $url);
@@ -563,9 +564,10 @@ class EasyVereinInventory {
      * Return the total number of pieces stored in EasyVerein for an inventory object.
      *
      * The field name varies across EasyVerein API versions:
-     *   – 'pieces'            (current stable API v2)
-     *   – 'inventoryQuantity' (legacy v1 field)
-     *   – 'quantity'          (fallback / custom deployments)
+     *   – 'pieces'             (v2 / v3)
+     *   – 'inventory_quantity' (v3 snake_case)
+     *   – 'inventoryQuantity'  (legacy v2 camelCase field)
+     *   – 'quantity'           (fallback / custom deployments)
      *
      * @param int|string $inventoryObjectId EasyVerein inventory-object ID
      * @return int Total pieces
@@ -574,7 +576,7 @@ class EasyVereinInventory {
     public function getTotalPieces($inventoryObjectId): int {
         $url  = self::API_BASE . '/inventory-object/' . urlencode((string)$inventoryObjectId);
         $item = $this->request('GET', $url);
-        return (int)($item['pieces'] ?? $item['inventoryQuantity'] ?? $item['quantity'] ?? 0);
+        return (int)($item['pieces'] ?? $item['inventory_quantity'] ?? $item['inventoryQuantity'] ?? $item['quantity'] ?? 0);
     }
 
     /**
@@ -600,15 +602,15 @@ class EasyVereinInventory {
         // 1. Fetch total pieces from the inventory object
         $url  = self::API_BASE . '/inventory-object/' . urlencode((string)$inventoryObjectId);
         $item = $this->request('GET', $url);
-        $totalPieces = (int)($item['pieces'] ?? $item['inventoryQuantity'] ?? $item['quantity'] ?? 0);
+        $totalPieces = (int)($item['pieces'] ?? $item['inventory_quantity'] ?? $item['inventoryQuantity'] ?? $item['quantity'] ?? 0);
 
         // 2. Count EasyVerein active lendings that overlap the requested period
         $activeLendings = $this->getActiveLendings($inventoryObjectId);
         $evLent = 0;
         foreach ($activeLendings as $lending) {
-            // Try multiple possible field names for lending start / end dates
-            $lendStart = $lending['startDate']    ?? $lending['lendingStart'] ?? $lending['start_date'] ?? $lending['dateFrom'] ?? null;
-            $lendEnd   = $lending['returnDate']   ?? $lending['lendingEnd']   ?? $lending['end_date']   ?? $lending['dateTo']   ?? $lending['dueDate'] ?? null;
+            // Try multiple possible field names for lending start / end dates (v3.0 snake_case first, then v2.0 camelCase)
+            $lendStart = $lending['start_date']   ?? $lending['startDate']    ?? $lending['lending_start'] ?? $lending['lendingStart'] ?? $lending['date_from'] ?? $lending['dateFrom'] ?? null;
+            $lendEnd   = $lending['return_date']  ?? $lending['returnDate']   ?? $lending['lending_end']   ?? $lending['lendingEnd']   ?? $lending['end_date']  ?? $lending['dateTo']   ?? $lending['due_date'] ?? $lending['dueDate'] ?? null;
 
             $overlaps = false;
             if ($lendStart !== null && $lendEnd !== null) {
@@ -679,7 +681,7 @@ class EasyVereinInventory {
         $url  = self::API_BASE . '/inventory-object/' . $itemId;
         $item = $this->request('GET', $url);
 
-        $currentPieces = (int)($item['pieces'] ?? $item['inventoryQuantity'] ?? $item['quantity'] ?? 0);
+        $currentPieces = (int)($item['pieces'] ?? $item['inventory_quantity'] ?? $item['inventoryQuantity'] ?? $item['quantity'] ?? 0);
 
         // Determine who is returning the item for the log entry.
         $memberRaw = $item['member'] ?? null;
@@ -730,16 +732,16 @@ class EasyVereinInventory {
      *    If the borrower is not found in EasyVerein, falls back to the placeholder
      *    contact "Intra Ausleihe" and records the original name in the custom field
      *    "Name nicht im easyverein".
-     * 3. Creates the official lending record in EasyVerein via POST /api/v2.0/lending.
+     * 3. Creates the official lending record in EasyVerein via POST /api/v3.0/lending.
      * 4. Queries all currently active (approved) rentals for this item from the local DB
      *    (including the request being approved now) and builds multiline strings for the
      *    custom fields 'Aktuelle Ausleiher' and 'Entra E-Mail'.
-     * 5. Fetches the individual fields via GET /api/v2.0/inventory-object/{id}/custom-fields,
+     * 5. Fetches the individual fields via GET /api/v3.0/inventory-object-custom-field-assignment?inventory_object={id},
      *    updates 'Aktuelle Ausleiher' and 'Entra E-Mail' with the multiline strings, and
      *    clears 'Zustand der letzten Rückgabe'.
      *    When the fallback was used, also sets "Name nicht im easyverein" to $userName.
-     *    For each field, PATCHes /api/v2.0/custom-field-values/{id} if a value already
-     *    exists, or POSTs /api/v2.0/custom-field-values to create it otherwise.
+     *    For each field, PATCHes /api/v3.0/custom-field-values/{id} if a value already
+     *    exists, or POSTs /api/v3.0/custom-field-values to create it otherwise.
      * 6. Updates the local DB status to 'approved'.
      *
      * @param int    $requestId  Local inventory_requests row ID
@@ -825,15 +827,15 @@ class EasyVereinInventory {
      * Verify the return of a rental request.
      *
      * 1. Finds the active EasyVerein lending for the inventory object and sets
-     *    its returnDate to today via PATCH /api/v2.0/lending/{id}.
+     *    its return_date to today via PATCH /api/v3.0/lending/{id}.
      * 2. Queries all remaining active (approved) rentals for this item from the local DB
      *    (excluding the request being returned) and builds multiline strings for the
      *    custom fields 'Aktuelle Ausleiher' and 'Entra E-Mail'. Sets both to '' if nobody
      *    still has the item.
      * 3. Finds the individual field 'Zustand der letzten Rückgabe' and writes
      *    '$condition - Geprüft am [DATE] durch $adminName. Notiz: $notes'.
-     *    For each field, PATCHes /api/v2.0/custom-field-values/{id} if a value already
-     *    exists, or POSTs /api/v2.0/custom-field-values to create it otherwise.
+     *    For each field, PATCHes /api/v3.0/custom-field-values/{id} if a value already
+     *    exists, or POSTs /api/v3.0/custom-field-values to create it otherwise.
      * 4. Updates the local DB status to 'returned'.
      *
      * @param int    $requestId  Local inventory_requests row ID
@@ -862,7 +864,7 @@ class EasyVereinInventory {
         $today          = (new DateTime('now', $tz))->format('Y-m-d');
         $todayFormatted = (new DateTime('now', $tz))->format('d.m.Y');
 
-        // 2. End the active lending in EasyVerein by patching its returnDate to today.
+        // 2. End the active lending in EasyVerein by patching its return_date to today.
         //    Wrapped in try-catch so an EasyVerein API failure does not prevent
         //    the local DB update that marks the item as available again.
         try {
@@ -873,7 +875,7 @@ class EasyVereinInventory {
                 if ($lendingId === null) {
                     continue;
                 }
-                $this->request('PATCH', self::API_BASE . '/lending/' . $lendingId, ['returnDate' => $today]);
+                $this->request('PATCH', self::API_BASE . '/lending/' . $lendingId, ['return_date' => $today]);
                 $lendingPatched = true;
                 break;
             }
@@ -953,7 +955,7 @@ class EasyVereinInventory {
      * always update both the local DB and EasyVerein.
      *
      * 1. Finds the active EasyVerein lending for the inventory object and sets
-     *    its returnDate to today via PATCH /api/v2.0/lending/{id}.
+     *    its return_date to today via PATCH /api/v3.0/lending/{id}.
      * 2. Removes the borrower from the custom fields on the inventory object.
      *
      * Errors from EasyVerein are logged but do not throw, so that a temporary
@@ -970,7 +972,7 @@ class EasyVereinInventory {
         $today          = (new DateTime('now', $tz))->format('Y-m-d');
         $todayFormatted = (new DateTime('now', $tz))->format('d.m.Y');
 
-        // 1. End the active lending in EasyVerein by patching its returnDate to today.
+        // 1. End the active lending in EasyVerein by patching its return_date to today.
         //    Wrapped in try-catch so an EasyVerein API failure does not prevent
         //    the local DB record from being deleted.
         try {
@@ -981,7 +983,7 @@ class EasyVereinInventory {
                 if ($lendingId === null) {
                     continue;
                 }
-                $this->request('PATCH', self::API_BASE . '/lending/' . $lendingId, ['returnDate' => $today]);
+                $this->request('PATCH', self::API_BASE . '/lending/' . $lendingId, ['return_date' => $today]);
                 $lendingPatched = true;
                 break;
             }
@@ -1043,8 +1045,8 @@ class EasyVereinInventory {
      * @param array $removeFrom fieldName → value to remove
      */
     private function modifyCustomFields(int $objectId, array $setTo, array $appendTo, array $removeFrom): void {
-        $cfUrl = self::API_BASE . '/inventory-object/' . $objectId
-            . '/custom-fields?query={id,value,customField{id,name}}';
+        $cfUrl = self::API_BASE . '/inventory-object-custom-field-assignment?inventory_object=' . $objectId
+            . '&query={id,value,custom_field{id,name}}';
 
         try {
             $cfData = $this->request('GET', $cfUrl);
@@ -1064,8 +1066,8 @@ class EasyVereinInventory {
         $allFieldNames = array_unique(array_merge(array_keys($setTo), array_keys($appendTo), array_keys($removeFrom)));
 
         foreach ($existingFields as $field) {
-            $fieldName        = $field['customField']['name'] ?? '';
-            $customFieldDefId = $field['customField']['id']   ?? null;
+            $fieldName        = $field['custom_field']['name'] ?? $field['customField']['name'] ?? '';
+            $customFieldDefId = $field['custom_field']['id']   ?? $field['customField']['id']   ?? null;
             $valueId          = $field['id']                  ?? null;
 
             if (!in_array($fieldName, $allFieldNames, true) || $customFieldDefId === null) {
@@ -1103,8 +1105,8 @@ class EasyVereinInventory {
                         'POST',
                         self::API_BASE . '/custom-field-values',
                         [
-                            'customField'            => $customFieldDefId,
-                            'relatedInventoryObject' => $objectId,
+                            'custom_field'            => $customFieldDefId,
+                            'related_inventory_object' => $objectId,
                             'value'                  => $newValue,
                         ]
                     );
@@ -1121,7 +1123,7 @@ class EasyVereinInventory {
     /**
      * Resolve a display name to an EasyVerein contact ID.
      *
-     * Calls GET /api/v2.0/contact-details?search={name} and returns the id of
+     * Calls GET /api/v3.0/contact-details?search={name} and returns the id of
      * the first matching contact as an integer.
      *
      * @param string $name Display name to look up
@@ -1146,7 +1148,7 @@ class EasyVereinInventory {
     /**
      * Create a lending record in EasyVerein.
      *
-     * Calls POST /api/v2.0/lending with the required fields for a new loan.
+     * Calls POST /api/v3.0/lending with the required fields for a new loan.
      *
      * @param int|string $parentInventoryObject EasyVerein inventory-object ID
      * @param int        $borrowAddress         EasyVerein contact ID of the borrower
@@ -1163,11 +1165,11 @@ class EasyVereinInventory {
 
         $url     = self::API_BASE . '/lending';
         $payload = [
-            'parentInventoryObject' => (string)$parentInventoryObject,
-            'borrowAddress'         => $borrowAddress,
-            'quantity'              => $quantity,
-            'borrowingDate'         => substr($borrowingDate, 0, 10),
-            'returnDate'            => substr($returnDate, 0, 10),
+            'parent_inventory_object' => (string)$parentInventoryObject,
+            'borrow_address'          => $borrowAddress,
+            'quantity'                => $quantity,
+            'borrowing_date'          => substr($borrowingDate, 0, 10),
+            'return_date'             => substr($returnDate, 0, 10),
         ];
 
         $result = $this->request('POST', $url, $payload);
