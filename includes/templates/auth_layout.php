@@ -1560,6 +1560,140 @@ $_tailwindCssVersion = filemtime(__DIR__ . '/../../assets/css/tailwind.css');
             }
         }
 
+        /* ── PERFORMANCE: REDUCE ANIMATIONS ON MOBILE ──────────── */
+        @media (hover: none) and (pointer: coarse) {
+            /* Simplify background animation on touch devices for performance */
+            .gradient-bg {
+                animation-duration: 40s !important;
+            }
+
+            .floating-shape {
+                animation-duration: 20s !important;
+            }
+
+            /* Disable expensive particle animations on low-power devices */
+            .smooth-particle {
+                display: none !important;
+            }
+
+            /* Keep logo float but simplify it */
+            .logo-wrapper {
+                animation-duration: 8s !important;
+            }
+
+            /* Touch: no hover effects on Microsoft button */
+            .microsoft-button:hover,
+            .microsoft-btn:hover {
+                transform: none !important;
+            }
+
+            /* Touch: tap feedback instead */
+            .microsoft-button:active,
+            .microsoft-btn:active {
+                transform: scale(0.97) !important;
+                opacity: 0.9 !important;
+            }
+        }
+
+        /* ── PERFORMANCE: HONOR prefers-reduced-motion ─────────── */
+        @media (prefers-reduced-motion: reduce) {
+            .gradient-bg,
+            .gradient-wave,
+            .animated-grid,
+            .light-beam,
+            .smooth-particle,
+            .floating-shape {
+                animation: none !important;
+            }
+
+            .logo-wrapper {
+                animation: none !important;
+            }
+
+            .logo-glow {
+                animation: none !important;
+            }
+
+            .ibc-logo {
+                animation: none !important;
+                opacity: 1 !important;
+                transform: none !important;
+            }
+
+            .login-container {
+                animation: none !important;
+                opacity: 1 !important;
+                transform: none !important;
+            }
+
+            .welcome-text {
+                animation: none !important;
+                opacity: 1 !important;
+            }
+
+            .microsoft-button,
+            .microsoft-btn {
+                animation: none !important;
+                opacity: 1 !important;
+            }
+
+            .microsoft-button::before,
+            .microsoft-btn::before {
+                animation: none !important;
+            }
+
+            .microsoft-logo {
+                animation: none !important;
+            }
+
+            .auth-card {
+                animation: none !important;
+            }
+        }
+
+        /* ── IMPROVED VIEWPORT HEIGHT FOR MOBILE BROWSERS ──────── */
+        @supports (height: 100dvh) {
+            body {
+                min-height: 100dvh !important;
+            }
+        }
+
+        /* ── OVERSCROLL BEHAVIOR ON MOBILE ──────────────────────── */
+        @media (max-width: 767px) {
+            body {
+                overscroll-behavior: none;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Ensure content is always scrollable when login form is tall */
+            .login-container {
+                margin-top: max(1rem, env(safe-area-inset-top, 0));
+                margin-bottom: max(1rem, env(safe-area-inset-bottom, 0));
+            }
+        }
+
+        /* ── LIGHT BEAM STAGGER DELAY FOR PERFORMANCE ───────────── */
+        @media (max-width: 767px) {
+            /* Reduce number of active light beams on mobile */
+            .light-beam:nth-child(7),
+            .light-beam:nth-child(8) {
+                display: none !important;
+            }
+        }
+
+        /* ── MICROSOFT BUTTON FOCUS RING ─────────────────────────── */
+        .microsoft-button:focus-visible,
+        .microsoft-btn:focus-visible {
+            outline: 3px solid rgba(108, 183, 62, 0.8);
+            outline-offset: 3px;
+        }
+
+        /* ── SELECTION COLOR ─────────────────────────────────────── */
+        ::selection {
+            background: rgba(108, 183, 62, 0.25);
+            color: inherit;
+        }
+
     </style>
 </head>
 <body class="min-h-screen dark-mode dark">
