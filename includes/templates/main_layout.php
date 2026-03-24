@@ -274,9 +274,58 @@ if (!isset($currentUser)) {
         }
 
         /* ── IMPROVE MAIN CONTENT AREA PADDING ──────────────────── */
+        /* Use --topbar-safe-height which already includes env(safe-area-inset-top).
+           The CSS variable is set to a CSS calc() fallback and then updated by
+           navbar-scroll.js with the actual rendered height. */
         @media (max-width: 767px) {
             #main-content {
-                padding-top: calc(var(--topbar-height) + 0.5rem) !important;
+                padding-top: calc(var(--topbar-safe-height) + 0.5rem) !important;
+            }
+        }
+
+        /* ── PAGE ENTRANCE ANIMATION ─────────────────────────────── */
+        @keyframes pageEntranceFade {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: no-preference) {
+            #main-content > *:not(.fixed):not([style*="position: fixed"]):not([style*="position:fixed"]) {
+                animation: pageEntranceFade 0.35s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+            }
+            #main-content > *:nth-child(2) { animation-delay: 0.04s; }
+            #main-content > *:nth-child(3) { animation-delay: 0.08s; }
+            #main-content > *:nth-child(4) { animation-delay: 0.12s; }
+            #main-content > *:nth-child(5) { animation-delay: 0.16s; }
+        }
+
+        /* ── SPRING-LIKE CARD TAP ANIMATION (MOBILE) ─────────────── */
+        @media (hover: none) and (pointer: coarse) {
+            .card, .dash-stat-card, .dash-event-card, .dash-blog-card,
+            .dash-helper-card, .dash-poll-card {
+                transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+                            box-shadow 0.15s ease,
+                            border-color 0.15s ease !important;
+            }
+            .card:active, .dash-stat-card:active, .dash-event-card:active,
+            .dash-blog-card:active, .dash-helper-card:active {
+                transform: scale(0.975) !important;
+                transition: transform 0.08s ease !important;
+            }
+        }
+
+        /* ── IMPROVED MOBILE TOPBAR SAFE AREA ───────────────────── */
+        /* Ensure topbar correctly accommodates Dynamic Island and notch */
+        #mobile-header {
+            min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+            padding-top: env(safe-area-inset-top, 0px);
+        }
+
+        /* ── SMOOTH SIDEBAR OVERLAY BLUR ─────────────────────────── */
+        @supports (backdrop-filter: blur(4px)) {
+            .sidebar-overlay.active {
+                backdrop-filter: blur(4px) saturate(1.2);
+                -webkit-backdrop-filter: blur(4px) saturate(1.2);
+                background: rgba(0, 0, 0, 0.45) !important;
             }
         }
     </style>
@@ -1252,6 +1301,8 @@ if (!isset($currentUser)) {
                 const SCROLL_END_TOLERANCE = 4;
                 const atEnd = wrapper.scrollLeft + wrapper.clientWidth >= wrapper.scrollWidth - SCROLL_END_TOLERANCE;
                 wrapper.classList.toggle('scrolled-end', atEnd);
+                // Detect scroll-start for left fade indicator
+                wrapper.classList.toggle('scrolled-start', wrapper.scrollLeft > SCROLL_END_TOLERANCE);
             };
             checkOverflow();
             wrapper.addEventListener('scroll', checkOverflow, { passive: true });
