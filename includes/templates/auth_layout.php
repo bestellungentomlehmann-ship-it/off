@@ -1689,6 +1689,8 @@ $_tailwindCssVersion = filemtime(__DIR__ . '/../../assets/css/tailwind.css');
         }
 
         /* ── SELECTION COLOR ─────────────────────────────────────── */
+        /* Uses green to match the dark auth page's IBC green accents.
+           Authenticated pages use IBC blue (see theme.css). */
         ::selection {
             background: rgba(108, 183, 62, 0.25);
             color: inherit;

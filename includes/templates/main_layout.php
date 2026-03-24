@@ -266,11 +266,11 @@ if (!isset($currentUser)) {
 
         /* ── IMPROVED SELECTION HIGHLIGHT ───────────────────────── */
         ::selection {
-            background-color: rgba(0, 102, 179, 0.15);
+            background-color: rgba(0, 102, 179, 0.2);
             color: inherit;
         }
         .dark-mode ::selection {
-            background-color: rgba(51, 133, 196, 0.25);
+            background-color: rgba(51, 133, 196, 0.3);
         }
 
         /* ── IMPROVE MAIN CONTENT AREA PADDING ──────────────────── */

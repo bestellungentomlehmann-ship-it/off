@@ -9298,23 +9298,11 @@ main {
 }
 
 /* ── FOCUS TRAP HELPER ───────────────────────────────────────
-   When sidebar or modal is open, ensure focus stays inside.
+   The sidebar visibility toggling (hidden when closed, visible
+   when open) is handled in main_layout.php with a transition
+   delay so the slide-out animation completes before the element
+   is hidden from screen readers and keyboard navigation.
    ──────────────────────────────────────────────────────────── */
-.sidebar:not(.open) {
-    visibility: hidden;
-}
-
-@media (min-width: 768px) {
-    .sidebar {
-        visibility: visible !important;
-    }
-}
-
-/* Prevent sidebar from being invisible during transition */
-.sidebar.open,
-.sidebar.closing {
-    visibility: visible !important;
-}
 
 /* ── EMPTY STATE ILLUSTRATIONS ───────────────────────────────
    Consistent empty state styling for when there's no data.
