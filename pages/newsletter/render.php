@@ -107,7 +107,10 @@ if ($htmlContent !== null) {
 // ── 7. Send response ──────────────────────────────────────────────────────────
 header('Content-Type: text/html; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
+// Allow this document to be embedded as an iframe on the same origin only.
+// Override the global 'frame-ancestors 'none'' set by security_headers.php.
 header('X-Frame-Options: SAMEORIGIN');
+header('Content-Security-Policy: default-src \'none\'; img-src data: blob:; style-src \'unsafe-inline\'; frame-ancestors \'self\'');
 ?>
 <!DOCTYPE html>
 <html lang="de">
