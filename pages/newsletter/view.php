@@ -140,8 +140,7 @@ ob_start();
                         class="w-full border-0 block"
                         style="min-height:500px;"
                         sandbox="allow-same-origin"
-                        title="Newsletter Vorschau"
-                        scrolling="no">
+                        title="Newsletter Vorschau">
                     </iframe>
                 </div>
 
