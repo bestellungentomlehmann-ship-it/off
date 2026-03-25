@@ -68,6 +68,7 @@ if (!isset($currentUser)) {
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#0066b3">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title><?php echo $title ?? 'IBC Intranet'; ?></title>
     <?php if (!empty($og_title)): ?>

@@ -68,6 +68,8 @@ self.addEventListener('fetch', (event) => {
 
     // Network-first strategy for HTML pages
     event.respondWith(
-        fetch(request).catch(() => caches.match(request))
+        fetch(request).catch(() =>
+            caches.match(request).then((cached) => cached || Response.error())
+        )
     );
 });

@@ -549,7 +549,6 @@ $isProfileComplete = $completionPercent === 100;
 $title = 'Profil - IBC Intranet';
 // Pass $user as $userData to avoid a redundant DB query – Auth::user() already fetched
 // avatar_path via SELECT *.
-$profile_image = asset(User::getProfilePictureUrl($user['id'], $user));
 
 // Determine the current photo source so the UI can inform the user and offer the
 // appropriate action buttons.
@@ -559,7 +558,26 @@ $currentAvatarPath = $user['avatar_path'] ?? null;
 $hasValidAvatar    = !empty($currentAvatarPath) && resolveImagePath($currentAvatarPath) !== null;
 $hasManualUpload   = $hasValidAvatar && strpos($currentAvatarPath, 'custom_') !== false;
 $hasEntraPhoto     = $hasValidAvatar && strpos($currentAvatarPath, 'entra_') !== false;
-$photoSource = $hasManualUpload ? 'manual' : ($hasEntraPhoto ? 'entra' : 'default');
+// A Microsoft (Entra) account is present when azure_oid is set, even if the photo
+// has not yet been cached locally.
+$hasMicrosoftAccount = !empty($user['azure_oid']);
+if ($hasManualUpload) {
+    $photoSource = 'manual';
+} elseif ($hasEntraPhoto || $hasMicrosoftAccount) {
+    $photoSource = 'entra';
+} else {
+    $photoSource = 'default';
+}
+
+// Use fetch-profile-photo.php (live Entra ID photo, cached 24 h) when the user
+// has no manually uploaded photo and an e-mail address is available.
+// This mirrors the logic in main_layout.php so the sidebar and profile page
+// always show the same image.
+if ($photoSource !== 'manual' && !empty($user['email'])) {
+    $profile_image = asset('fetch-profile-photo.php') . '?email=' . urlencode($user['email']);
+} else {
+    $profile_image = asset(User::getProfilePictureUrl($user['id'], $user));
+}
 ob_start();
 ?>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" rel="stylesheet">
