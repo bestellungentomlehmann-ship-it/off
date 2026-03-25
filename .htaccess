@@ -3,3 +3,24 @@ RewriteEngine On
 # Map clean public URLs to the actual PHP files
 RewriteRule ^public/alumni_recovery/?$ /pages/public/alumni_recovery.php [L]
 RewriteRule ^public/neue_alumni/?$ /pages/public/neue_alumni.php [L]
+
+# ---------------------------------------------------------------------------
+# Security headers – applied at the Apache level so they take effect even
+# when a server-level security module has already set conflicting defaults.
+# PHP (includes/security_headers.php) manages the full Content-Security-Policy
+# for dynamic pages; the directives below act as a safety net:
+#
+#  1. X-Frame-Options is unconditionally set to SAMEORIGIN so that any
+#     server-level DENY value (which would break same-origin iframes such as
+#     the newsletter preview) is overridden.
+#
+#  2. If the hosting server injects a Content-Security-Policy header that
+#     contains "frame-ancestors 'none'", the Header edit directive rewrites
+#     it to "frame-ancestors 'self'".  PHP-managed CSP headers that already
+#     carry "frame-ancestors 'self'" are left untouched (the regex does not
+#     match).
+# ---------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always edit Content-Security-Policy "frame-ancestors 'none'" "frame-ancestors 'self'"
+</IfModule>
