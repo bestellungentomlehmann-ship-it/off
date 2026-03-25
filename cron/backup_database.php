@@ -2,7 +2,7 @@
 /**
  * Database Backup – Cron Script
  *
- * Creates a full backup of every configured database (user, content, newsletter, invoice/rech).
+ * Creates a full backup of every configured database (user, content, invoice/rech).
  * Each dump is written as a gzip-compressed .sql.gz file inside the backups/ directory,
  * using the current date in the filename (e.g. backup_user_2026-03-01.sql.gz).
  * Backups older than 30 days are automatically removed.
@@ -324,14 +324,6 @@ $databases = [
         'dbname' => DB_CONTENT_NAME,
         'user'   => DB_CONTENT_USER,
         'pass'   => DB_CONTENT_PASS,
-    ],
-    [
-        'label'  => 'newsletter',
-        'host'   => DB_NEWSLETTER_HOST,
-        'port'   => '3306',  // no separate port constant defined for newsletter DB (see config/config.php)
-        'dbname' => DB_NEWSLETTER_NAME,
-        'user'   => DB_NEWSLETTER_USER,
-        'pass'   => DB_NEWSLETTER_PASS,
     ],
     [
         'label'  => 'invoice',

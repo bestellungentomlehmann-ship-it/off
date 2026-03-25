@@ -10,14 +10,11 @@ class Database {
     private static $userConnection = null;
     private static $contentConnection = null;
     private static $rechConnection = null;
-    private static $newsletterConnection = null;
     private static $inventoryConnection = null;
     /** @var bool Tracks whether content-DB schema migration has run this request */
     private static $contentMigrated = false;
     /** @var bool Tracks whether user-DB schema migration has run this request */
     private static $userMigrated = false;
-    /** @var bool Tracks whether newsletter-DB schema migration has run this request */
-    private static $newsletterMigrated = false;
 
     /**
      * Get User Database Connection
@@ -106,7 +103,8 @@ class Database {
     }
 
     /**
-     * Ensure optional columns added after the initial deployment exist in alumni_profiles.
+     * Ensure optional columns added after the initial deployment exist in alumni_profiles,
+     * and that the newsletters table exists in the content database.
      * Runs at most once per request. Safe to call even when the table already has the columns.
      */
     private static function migrateContentSchema(PDO $db): void {
@@ -137,13 +135,7 @@ class Database {
                 error_log("Content schema migration skipped for column '$column': " . $e->getMessage());
             }
         }
-    }
 
-    /**
-     * Create the newsletters table in the newsletter database if it does not exist yet.
-     * Runs at most once per request.
-     */
-    private static function migrateNewsletterSchema(PDO $db): void {
         // Create the newsletters table if it does not exist yet
         try {
             $stmt = $db->prepare(
@@ -155,58 +147,35 @@ class Database {
             $stmt->execute();
             if (!$stmt->fetch()) {
                 $db->exec(
-                    "CREATE TABLE newsletters (
-                        id               INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                        title            VARCHAR(255) NOT NULL,
-                        description      TEXT         DEFAULT NULL,
-                        filename         VARCHAR(255) NOT NULL COMMENT 'Secure storage filename',
-                        original_filename VARCHAR(255) NOT NULL COMMENT 'Original uploaded filename',
-                        file_size        INT          NOT NULL DEFAULT 0,
-                        sent_date        DATE         DEFAULT NULL COMMENT 'Date the newsletter was originally sent',
-                        uploaded_by      INT          NOT NULL,
-                        created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                        INDEX idx_sent_date (sent_date),
-                        INDEX idx_uploaded_by (uploaded_by)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+                    "CREATE TABLE `newsletters` (
+                        `id`          INT UNSIGNED   NOT NULL AUTO_INCREMENT,
+                        `title`       VARCHAR(255)   NOT NULL,
+                        `month_year`  VARCHAR(20)    DEFAULT NULL    COMMENT 'Versandmonat/-jahr, z. B. März 2025',
+                        `file_path`   VARCHAR(500)   NOT NULL        COMMENT 'Gespeicherter Dateiname im Upload-Verzeichnis',
+                        `uploaded_by` INT UNSIGNED   DEFAULT NULL    COMMENT 'Intranet-Benutzer-ID des Hochladenden',
+                        `created_at`  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (`id`),
+                        KEY `idx_month_year`  (`month_year`),
+                        KEY `idx_uploaded_by` (`uploaded_by`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    COMMENT='Internes Newsletter-Archiv (.eml / .msg Dateien)'"
                 );
-                error_log("Newsletter schema migration applied: created table 'newsletters'");
+                error_log("Content schema migration applied: created table 'newsletters'");
             }
         } catch (PDOException $e) {
-            error_log("Newsletter schema migration skipped for table 'newsletters': " . $e->getMessage());
+            error_log("Content schema migration skipped for table 'newsletters': " . $e->getMessage());
         }
     }
 
     /**
      * Get Newsletter Database Connection
-     * Uses the dedicated newsletter database (formerly shop DB).
+     * Newsletters are stored in the content database.
      *
      * @return PDO Database connection instance
      * @throws Exception If database connection fails
      */
     public static function getNewsletterDB() {
-        if (self::$newsletterConnection === null) {
-            try {
-                self::$newsletterConnection = new PDO(
-                    "mysql:host=" . DB_NEWSLETTER_HOST . ";dbname=" . DB_NEWSLETTER_NAME . ";charset=utf8mb4",
-                    DB_NEWSLETTER_USER,
-                    DB_NEWSLETTER_PASS,
-                    [
-                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                        PDO::ATTR_EMULATE_PREPARES => false
-                    ]
-                );
-            } catch (PDOException $e) {
-                error_log("Verbindung fehlgeschlagen: " . $e->getCode());
-                throw new Exception("Database connection failed");
-            }
-        }
-        if (!self::$newsletterMigrated) {
-            self::migrateNewsletterSchema(self::$newsletterConnection);
-            self::$newsletterMigrated = true;
-        }
-        return self::$newsletterConnection;
+        return self::getContentDB();
     }
 
     /**
@@ -295,7 +264,6 @@ class Database {
         self::$userConnection = null;
         self::$contentConnection = null;
         self::$rechConnection = null;
-        self::$newsletterConnection = null;
         self::$inventoryConnection = null;
     }
 }

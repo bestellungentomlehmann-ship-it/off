@@ -72,12 +72,6 @@ define('DB_CONTENT_NAME', _env('DB_CONTENT_NAME', ''));
 define('DB_CONTENT_USER', _env('DB_CONTENT_USER', ''));
 define('DB_CONTENT_PASS', _env('DB_CONTENT_PASS', ''));
 
-// Database Settings (Newsletter DB)
-define('DB_NEWSLETTER_HOST', _env('DB_NEWSLETTER_HOST', 'localhost'));
-define('DB_NEWSLETTER_NAME', _env('DB_NEWSLETTER_NAME', ''));
-define('DB_NEWSLETTER_USER', _env('DB_NEWSLETTER_USER', ''));
-define('DB_NEWSLETTER_PASS', _env('DB_NEWSLETTER_PASS', ''));
-
 // Database Settings (Invoice/Rech DB)
 define('DB_RECH_HOST', _env('DB_RECH_HOST', _env('DB_INVOICE_HOST', 'localhost')));
 define('DB_RECH_PORT', _env('DB_RECH_PORT', _env('DB_INVOICE_PORT', '3306')));
