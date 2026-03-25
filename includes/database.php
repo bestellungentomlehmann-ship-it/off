@@ -16,6 +16,8 @@ class Database {
     private static $contentMigrated = false;
     /** @var bool Tracks whether user-DB schema migration has run this request */
     private static $userMigrated = false;
+    /** @var bool Tracks whether news-DB schema migration has run this request */
+    private static $newsMigrated = false;
 
     /**
      * Get User Database Connection
@@ -169,14 +171,49 @@ class Database {
     }
 
     /**
+     * Ensure the newsletters table exists in the news database.
+     * Runs at most once per request.
+     */
+    private static function migrateNewsSchema(PDO $db): void {
+        try {
+            $stmt = $db->prepare(
+                "SELECT TABLE_NAME
+                 FROM INFORMATION_SCHEMA.TABLES
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME   = 'newsletters'"
+            );
+            $stmt->execute();
+            if (!$stmt->fetch()) {
+                $db->exec(
+                    "CREATE TABLE `newsletters` (
+                        `id`          INT UNSIGNED   NOT NULL AUTO_INCREMENT,
+                        `title`       VARCHAR(255)   NOT NULL,
+                        `month_year`  VARCHAR(20)    DEFAULT NULL    COMMENT 'Versandmonat/-jahr, z. B. März 2025',
+                        `file_path`   VARCHAR(500)   NOT NULL        COMMENT 'Gespeicherter Dateiname im Upload-Verzeichnis',
+                        `uploaded_by` INT UNSIGNED   DEFAULT NULL    COMMENT 'Intranet-Benutzer-ID des Hochladenden',
+                        `created_at`  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (`id`),
+                        KEY `idx_month_year`  (`month_year`),
+                        KEY `idx_uploaded_by` (`uploaded_by`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    COMMENT='Internes Newsletter-Archiv (.eml / .msg Dateien)'"
+                );
+                error_log("News schema migration applied: created table 'newsletters'");
+            }
+        } catch (PDOException $e) {
+            error_log("News schema migration skipped for table 'newsletters': " . $e->getMessage());
+        }
+    }
+
+    /**
      * Get Newsletter Database Connection
-     * Newsletters are stored in the content database.
+     * Newsletters are stored in the dedicated news database (DB_NEWS_*).
      *
      * @return PDO Database connection instance
      * @throws Exception If database connection fails
      */
     public static function getNewsletterDB() {
-        return self::getContentDB();
+        return self::getNewsDB();
     }
 
     /**
@@ -257,6 +294,10 @@ class Database {
                 throw new Exception("Database connection failed");
             }
         }
+        if (!self::$newsMigrated) {
+            self::migrateNewsSchema(self::$newsConnection);
+            self::$newsMigrated = true;
+        }
         return self::$newsConnection;
     }
 
@@ -296,5 +337,8 @@ class Database {
         self::$rechConnection = null;
         self::$inventoryConnection = null;
         self::$newsConnection = null;
+        self::$userMigrated = false;
+        self::$contentMigrated = false;
+        self::$newsMigrated = false;
     }
 }
