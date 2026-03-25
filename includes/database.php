@@ -11,6 +11,7 @@ class Database {
     private static $contentConnection = null;
     private static $rechConnection = null;
     private static $inventoryConnection = null;
+    private static $newsConnection = null;
     /** @var bool Tracks whether content-DB schema migration has run this request */
     private static $contentMigrated = false;
     /** @var bool Tracks whether user-DB schema migration has run this request */
@@ -233,9 +234,36 @@ class Database {
     }
 
     /**
+     * Get News Database Connection
+     *
+     * @return PDO Database connection instance
+     * @throws Exception If database connection fails
+     */
+    public static function getNewsDB() {
+        if (self::$newsConnection === null) {
+            try {
+                self::$newsConnection = new PDO(
+                    "mysql:host=" . DB_NEWS_HOST . ";dbname=" . DB_NEWS_NAME . ";charset=utf8mb4",
+                    DB_NEWS_USER,
+                    DB_NEWS_PASS,
+                    [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_EMULATE_PREPARES => false
+                    ]
+                );
+            } catch (PDOException $e) {
+                error_log("Verbindung fehlgeschlagen: " . $e->getCode());
+                throw new Exception("Database connection failed");
+            }
+        }
+        return self::$newsConnection;
+    }
+
+    /**
      * Get database connection by name
      * 
-     * @param string $name Connection name ('user', 'content', 'rech', 'invoice', 'newsletter', or 'inventory')
+     * @param string $name Connection name ('user', 'content', 'rech', 'invoice', 'newsletter', 'inventory', or 'news')
      * @return PDO Database connection
      * @throws Exception If connection name is invalid
      */
@@ -252,6 +280,8 @@ class Database {
                 return self::getRechDB();
             case 'inventory':
                 return self::getInventoryDB();
+            case 'news':
+                return self::getNewsDB();
             default:
                 throw new Exception("Invalid connection name: $name");
         }
@@ -265,5 +295,6 @@ class Database {
         self::$contentConnection = null;
         self::$rechConnection = null;
         self::$inventoryConnection = null;
+        self::$newsConnection = null;
     }
 }
