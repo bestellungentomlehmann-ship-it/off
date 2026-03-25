@@ -81,12 +81,13 @@ if (!headers_sent()) {
 
     // ------------------------------------------------------------------
     // X-Frame-Options
-    // DENY completely blocks rendering this page inside any frame or
-    // iframe, protecting against clickjacking attacks.
-    // (Reinforced at the CSP level via frame-ancestors 'none' below.)
+    // SAMEORIGIN restricts rendering this page inside a frame or iframe
+    // to the same origin only, protecting against clickjacking attacks
+    // from external sites.
+    // (Reinforced at the CSP level via frame-ancestors 'self' below.)
     // ------------------------------------------------------------------
     if (!header_sent_check('X-Frame-Options')) {
-        header('X-Frame-Options: DENY');
+        header('X-Frame-Options: SAMEORIGIN');
     }
 
     // ------------------------------------------------------------------
@@ -153,11 +154,14 @@ if (!headers_sent()) {
     //                                 map fetches by browser DevTools
     //   frame-src 'self'            – explicit allowlist for iframes;
     //                                 google.com required for reCAPTCHA
-    //                                 challenge iframe
+    //                                 challenge iframe;
+    //                                 forms.office.com required for
+    //                                 Microsoft Forms polls embedding
     //   form-action 'self'          – form submissions only to same origin
     //   base-uri 'self'             – prevents <base> tag hijacking
     //   object-src 'none'           – blocks Flash / plugins entirely
-    //   frame-ancestors 'none'      – reinforces X-Frame-Options: DENY
+    //   frame-ancestors 'self'      – allows same-origin framing only;
+    //                                 reinforces X-Frame-Options: SAMEORIGIN
     //   upgrade-insecure-requests   – transparently upgrades HTTP sub-
     //                                 resource requests to HTTPS
     // ------------------------------------------------------------------
@@ -169,11 +173,11 @@ if (!headers_sent()) {
             "img-src 'self' data: blob: https://www.gstatic.com",
             "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn-uicons.flaticon.com",
             "connect-src 'self' https://cdn.jsdelivr.net",
-            "frame-src 'self' https://www.google.com",
+            "frame-src 'self' https://www.google.com https://forms.office.com",
             "form-action 'self'",
             "base-uri 'self'",
             "object-src 'none'",
-            "frame-ancestors 'none'",
+            "frame-ancestors 'self'",
             "upgrade-insecure-requests",
         ];
         header('Content-Security-Policy: ' . implode('; ', $csp_directives));
