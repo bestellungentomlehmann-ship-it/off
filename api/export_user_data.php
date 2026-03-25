@@ -83,34 +83,7 @@ try {
     error_log("export_user_data: inventory_rentals query failed: " . $e->getMessage());
 }
 
-// ── 5. Shop orders ───────────────────────────────────────────────────────────
-$shopOrders = [];
-try {
-    $shopDb = Database::getShopDB();
-    $stmt = $shopDb->prepare(
-        "SELECT so.id, so.status, so.total_amount_cents, so.currency,
-                so.shipping_name, so.shipping_address, so.shipping_city,
-                so.shipping_zip, so.shipping_country, so.created_at,
-                GROUP_CONCAT(
-                    CONCAT(soi.quantity, 'x ', soi.product_name,
-                           IF(soi.variant_label IS NOT NULL AND soi.variant_label != '',
-                              CONCAT(' (', soi.variant_label, ')'), '')
-                    )
-                    ORDER BY soi.id SEPARATOR ', '
-                ) AS items
-         FROM shop_orders so
-         LEFT JOIN shop_order_items soi ON soi.order_id = so.id
-         WHERE so.user_id = ?
-         GROUP BY so.id
-         ORDER BY so.created_at DESC"
-    );
-    $stmt->execute([$userId]);
-    $shopOrders = $stmt->fetchAll();
-} catch (Exception $e) {
-    error_log("export_user_data: shop_orders query failed: " . $e->getMessage());
-}
-
-// ── 6. Project applications ──────────────────────────────────────────────────
+// ── 5. Project applications ──────────────────────────────────────────────────
 $projectApplications = [];
 try {
     $db = Database::getContentDB();
@@ -198,26 +171,6 @@ foreach ($rentals as $row) {
         sanitizeCsvValue((string)($row['returned_at'] ?? '')),
         sanitizeCsvValue((string)($row['status'] ?? '')),
         sanitizeCsvValue((string)($row['notes'] ?? '')),
-        sanitizeCsvValue((string)($row['created_at'] ?? '')),
-    ], ';');
-}
-fputcsv($out, [], ';');
-
-// ── Section: Shop-Bestellungen ────────────────────────────────────────────────
-fputcsv($out, ['=== Shop-Bestellungen ==='], ';');
-fputcsv($out, ['ID', 'Status', 'Betrag (Cent)', 'Währung', 'Liefername', 'Lieferadresse', 'Stadt', 'PLZ', 'Land', 'Artikel', 'Erstellt am'], ';');
-foreach ($shopOrders as $row) {
-    fputcsv($out, [
-        sanitizeCsvValue((string)($row['id'] ?? '')),
-        sanitizeCsvValue((string)($row['status'] ?? '')),
-        sanitizeCsvValue((string)($row['total_amount_cents'] ?? '')),
-        sanitizeCsvValue((string)($row['currency'] ?? '')),
-        sanitizeCsvValue((string)($row['shipping_name'] ?? '')),
-        sanitizeCsvValue((string)($row['shipping_address'] ?? '')),
-        sanitizeCsvValue((string)($row['shipping_city'] ?? '')),
-        sanitizeCsvValue((string)($row['shipping_zip'] ?? '')),
-        sanitizeCsvValue((string)($row['shipping_country'] ?? '')),
-        sanitizeCsvValue((string)($row['items'] ?? '')),
         sanitizeCsvValue((string)($row['created_at'] ?? '')),
     ], ';');
 }

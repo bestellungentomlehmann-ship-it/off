@@ -10,12 +10,14 @@ class Database {
     private static $userConnection = null;
     private static $contentConnection = null;
     private static $rechConnection = null;
-    private static $shopConnection = null;
+    private static $newsletterConnection = null;
     private static $inventoryConnection = null;
     /** @var bool Tracks whether content-DB schema migration has run this request */
     private static $contentMigrated = false;
     /** @var bool Tracks whether user-DB schema migration has run this request */
     private static $userMigrated = false;
+    /** @var bool Tracks whether newsletter-DB schema migration has run this request */
+    private static $newsletterMigrated = false;
 
     /**
      * Get User Database Connection
@@ -135,7 +137,13 @@ class Database {
                 error_log("Content schema migration skipped for column '$column': " . $e->getMessage());
             }
         }
+    }
 
+    /**
+     * Create the newsletters table in the newsletter database if it does not exist yet.
+     * Runs at most once per request.
+     */
+    private static function migrateNewsletterSchema(PDO $db): void {
         // Create the newsletters table if it does not exist yet
         try {
             $stmt = $db->prepare(
@@ -162,27 +170,27 @@ class Database {
                         INDEX idx_uploaded_by (uploaded_by)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
                 );
-                error_log("Content schema migration applied: created table 'newsletters'");
+                error_log("Newsletter schema migration applied: created table 'newsletters'");
             }
         } catch (PDOException $e) {
-            error_log("Content schema migration skipped for table 'newsletters': " . $e->getMessage());
+            error_log("Newsletter schema migration skipped for table 'newsletters': " . $e->getMessage());
         }
     }
 
     /**
-     * Get Shop Database Connection
-     * Exclusive connection for the shop (dbs15381315), strictly separated from the Content DB.
+     * Get Newsletter Database Connection
+     * Uses the dedicated newsletter database (formerly shop DB).
      *
      * @return PDO Database connection instance
      * @throws Exception If database connection fails
      */
-    public static function getShopDB() {
-        if (self::$shopConnection === null) {
+    public static function getNewsletterDB() {
+        if (self::$newsletterConnection === null) {
             try {
-                self::$shopConnection = new PDO(
-                    "mysql:host=" . DB_SHOP_HOST . ";dbname=" . DB_SHOP_NAME . ";charset=utf8mb4",
-                    DB_SHOP_USER,
-                    DB_SHOP_PASS,
+                self::$newsletterConnection = new PDO(
+                    "mysql:host=" . DB_NEWSLETTER_HOST . ";dbname=" . DB_NEWSLETTER_NAME . ";charset=utf8mb4",
+                    DB_NEWSLETTER_USER,
+                    DB_NEWSLETTER_PASS,
                     [
                         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -194,7 +202,11 @@ class Database {
                 throw new Exception("Database connection failed");
             }
         }
-        return self::$shopConnection;
+        if (!self::$newsletterMigrated) {
+            self::migrateNewsletterSchema(self::$newsletterConnection);
+            self::$newsletterMigrated = true;
+        }
+        return self::$newsletterConnection;
     }
 
     /**
@@ -254,7 +266,7 @@ class Database {
     /**
      * Get database connection by name
      * 
-     * @param string $name Connection name ('user', 'content', 'rech', 'invoice', 'shop', or 'inventory')
+     * @param string $name Connection name ('user', 'content', 'rech', 'invoice', 'newsletter', or 'inventory')
      * @return PDO Database connection
      * @throws Exception If connection name is invalid
      */
@@ -264,8 +276,8 @@ class Database {
                 return self::getUserDB();
             case 'content':
                 return self::getContentDB();
-            case 'shop':
-                return self::getShopDB();
+            case 'newsletter':
+                return self::getNewsletterDB();
             case 'rech':
             case 'invoice':
                 return self::getRechDB();
@@ -283,7 +295,7 @@ class Database {
         self::$userConnection = null;
         self::$contentConnection = null;
         self::$rechConnection = null;
-        self::$shopConnection = null;
+        self::$newsletterConnection = null;
         self::$inventoryConnection = null;
     }
 }

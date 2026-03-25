@@ -72,11 +72,11 @@ define('DB_CONTENT_NAME', _env('DB_CONTENT_NAME', ''));
 define('DB_CONTENT_USER', _env('DB_CONTENT_USER', ''));
 define('DB_CONTENT_PASS', _env('DB_CONTENT_PASS', ''));
 
-// Database Settings (Shop DB)
-define('DB_SHOP_HOST', _env('DB_SHOP_HOST', 'localhost'));
-define('DB_SHOP_NAME', _env('DB_SHOP_NAME', ''));
-define('DB_SHOP_USER', _env('DB_SHOP_USER', ''));
-define('DB_SHOP_PASS', _env('DB_SHOP_PASS', ''));
+// Database Settings (Newsletter DB)
+define('DB_NEWSLETTER_HOST', _env('DB_NEWSLETTER_HOST', 'localhost'));
+define('DB_NEWSLETTER_NAME', _env('DB_NEWSLETTER_NAME', ''));
+define('DB_NEWSLETTER_USER', _env('DB_NEWSLETTER_USER', ''));
+define('DB_NEWSLETTER_PASS', _env('DB_NEWSLETTER_PASS', ''));
 
 // Database Settings (Invoice/Rech DB)
 define('DB_RECH_HOST', _env('DB_RECH_HOST', _env('DB_INVOICE_HOST', 'localhost')));
@@ -134,7 +134,6 @@ define('MAIL_SUPPORT',    _env('SUPPORT_EMAIL',    'it@business-consulting.de'))
 define('MAIL_IDEAS',      _env('IDEAS_EMAIL',       'ideas@business-consulting.de'));
 define('MAIL_FINANCE',    _env('FINANCE_EMAIL',     'finance@business-consulting.de'));
 define('MAIL_INVENTORY',  _env('INVENTORY_EMAIL',   'inventory@business-consulting.de'));
-define('MAIL_SHOP',       _env('SHOP_EMAIL',        'shop@business-consulting.de'));
 define('MAIL_IT_RESSORT', _env('IT_RESSORT_MAIL',   'it@business-consulting.de'));
 
 // EasyVerein API
@@ -174,19 +173,6 @@ define('TRUSTED_PROXIES', (static function (): array {
     }
     return $result;
 })());
-
-// Bank Transfer / Shop Payment Settings
-define('VEREIN_IBAN', _env('VEREIN_IBAN', ''));
-
-// PayPal Settings
-define('PAYPAL_MODE',       _env('PAYPAL_MODE', 'live'));
-define('PAYPAL_CLIENT_ID',  _env('PAYPAL_CLIENT_ID', 'BAAwoaMI_T_AOk8NElgiCw6BzdvAKmHkdbqR12PgkXHtkU5N22TnlsPoOU4qPAE8ba1GuOoNO443v3AjEM'));
-define('PAYPAL_SECRET',     _env('PAYPAL_SECRET', ''));
-define('PAYPAL_WEBHOOK_ID', _env('PAYPAL_WEBHOOK_ID', '34085732682525935'));
-define('PAYPAL_BASE_URL',   PAYPAL_MODE === 'live'
-    ? 'https://api-m.paypal.com'
-    : 'https://api-m.sandbox.paypal.com'
-);
 
 // Role Mapping (IDs aus Entra -> Interne Rollen)
 define('ROLE_MAPPING', [

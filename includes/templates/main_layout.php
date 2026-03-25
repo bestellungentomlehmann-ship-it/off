@@ -362,18 +362,6 @@ if (!isset($currentUser)) {
             <span class="mobile-topbar-page-title text-white/60 text-[11px] font-medium leading-tight"><?php echo htmlspecialchars($title ?? 'Dashboard'); ?></span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
-            <?php
-            $topbarCartCount = 0;
-            if (!empty($_SESSION['shop_cart'])) {
-                $topbarCartCount = array_sum(array_column($_SESSION['shop_cart'], 'quantity'));
-            }
-            if ($topbarCartCount > 0):
-            ?>
-            <a href="<?php echo asset('pages/shop/index.php'); ?>" class="mobile-topbar-btn relative" aria-label="Warenkorb (<?php echo intval($topbarCartCount); ?> Artikel)">
-                <i class="fas fa-shopping-cart text-white text-base" aria-hidden="true"></i>
-                <span class="mobile-topbar-cart-badge" aria-hidden="true"><?php echo $topbarCartCount > 9 ? '9+' : $topbarCartCount; ?></span>
-            </a>
-            <?php endif; ?>
             <button id="mobile-theme-toggle" class="mobile-topbar-btn" aria-label="Zwischen hellem und dunklem Modus wechseln">
                 <i id="mobile-theme-icon" class="fas fa-moon text-white text-base" aria-hidden="true"></i>
             </button>
@@ -536,22 +524,12 @@ if (!isset($currentUser)) {
                 <?php endif; ?>
 
                 <!-- Shop (All authenticated users) -->
-                <a href="<?php echo asset('pages/shop/index.php'); ?>"
-                   class="sidebar-nav-item <?php echo is_nav_active('/shop/') ? 'sidebar-nav-item--active' : ''; ?>"
-                   <?php echo is_nav_active('/shop/') ? 'aria-current="page"' : ''; ?>>
+                <a href="<?php echo htmlspecialchars(_env('SHOPLINK', '#')); ?>"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="sidebar-nav-item">
                     <i class="fas fa-shopping-cart sidebar-nav-icon" aria-hidden="true"></i>
                     <span>Shop</span>
-                    <?php
-                        $sidebarCartCount = 0;
-                        if (!empty($_SESSION['shop_cart'])) {
-                            $sidebarCartCount = array_sum(array_column($_SESSION['shop_cart'], 'quantity'));
-                        }
-                        if ($sidebarCartCount > 0):
-                    ?>
-                    <span class="sidebar-nav-badge" aria-label="<?php echo intval($sidebarCartCount); ?> Artikel im Warenkorb">
-                        <?php echo $sidebarCartCount > 99 ? '99+' : $sidebarCartCount; ?>
-                    </span>
-                    <?php endif; ?>
                 </a>
 
                 <!-- Umfragen (Polls - All authenticated users) -->
@@ -629,16 +607,6 @@ if (!isset($currentUser)) {
                 </a>
                 <?php endif; ?>
 
-
-                <!-- Shop-Verwaltung (Board + Resortleiter) -->
-                <?php if (Auth::hasRole(['vorstand_finanzen', 'vorstand_intern', 'vorstand_extern', 'ressortleiter'])): ?>
-                <a href="<?php echo asset('pages/admin/shop_manage.php'); ?>"
-                   class="sidebar-nav-item <?php echo is_nav_active('/admin/shop_manage.php') ? 'sidebar-nav-item--active' : ''; ?>"
-                   <?php echo is_nav_active('/admin/shop_manage.php') ? 'aria-current="page"' : ''; ?>>
-                    <i class="fas fa-store sidebar-nav-icon" aria-hidden="true"></i>
-                    <span>Shop-Verwaltung</span>
-                </a>
-                <?php endif; ?>
 
                 <!-- Systemeinstellungen (Board roles + alumni_vorstand + alumni_finanz) -->
                 <?php if (Auth::canAccessSystemSettings()): ?>

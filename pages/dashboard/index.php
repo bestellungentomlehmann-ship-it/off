@@ -762,11 +762,11 @@ function dismissProfileReviewPrompt() {
             <!-- Slide 2 -->
             <div class="onboarding-slide hidden" id="slide-2">
                 <p class="text-base mb-4" style="color: var(--text-main)">
-                    Teile deine Ideen in der <strong>Ideenbox</strong> und stöbere im <strong>IBC-Shop</strong>.
+                    Teile deine Ideen in der <strong>Ideenbox</strong> und stöbere im <strong>Shop</strong>.
                 </p>
                 <ul class="space-y-2 text-sm" style="color: var(--text-muted)">
                     <li><i class="fas fa-check-circle text-emerald-500 mr-2"></i>Reiche Ideen ein und stimme über Vorschläge ab</li>
-                    <li><i class="fas fa-check-circle text-emerald-500 mr-2"></i>Bestelle Merchandise direkt im Shop</li>
+                    <li><i class="fas fa-check-circle text-emerald-500 mr-2"></i>Bestelle Merchandise im externen Shop</li>
                     <li><i class="fas fa-check-circle text-emerald-500 mr-2"></i>Gestalte den IBC aktiv mit!</li>
                 </ul>
             </div>

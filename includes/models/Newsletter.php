@@ -19,7 +19,7 @@ class Newsletter {
      * @return array
      */
     public static function getAll(string $search = ''): array {
-        $db = Database::getContentDB();
+        $db = Database::getNewsletterDB();
         if ($search !== '') {
             $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
             $like    = '%' . $escaped . '%';
@@ -49,7 +49,7 @@ class Newsletter {
      * @return array|false
      */
     public static function getById(int $id) {
-        $db   = Database::getContentDB();
+        $db   = Database::getNewsletterDB();
         $stmt = $db->prepare(
             "SELECT n.*, u.first_name, u.last_name
              FROM newsletters n
@@ -67,7 +67,7 @@ class Newsletter {
      * @return int  New record ID.
      */
     public static function create(array $data): int {
-        $db   = Database::getContentDB();
+        $db   = Database::getNewsletterDB();
         $stmt = $db->prepare(
             "INSERT INTO newsletters
                  (title, month_year, file_path, uploaded_by)
@@ -101,7 +101,7 @@ class Newsletter {
             @unlink($filePath);
         }
 
-        $db   = Database::getContentDB();
+        $db   = Database::getNewsletterDB();
         $stmt = $db->prepare("DELETE FROM newsletters WHERE id = ?");
         return $stmt->execute([$id]);
     }
