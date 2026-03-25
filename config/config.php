@@ -130,11 +130,13 @@ define('INVENTORY_BOARD_EMAIL', _env('INVENTORY_BOARD_EMAIL', 'vorstand@business
 define('INTRA_RENTAL_USER_NAME', _env('INTRA_RENTAL_USER_NAME', 'Intra Ausleihe'));
 
 // Mail Recipient Settings
-define('MAIL_SUPPORT',    _env('SUPPORT_EMAIL',    'it@business-consulting.de'));
+// IT_Mail acts as a shared fallback for both MAIL_SUPPORT and MAIL_IT_RESSORT
+// so that a single IT_Mail= entry in .env is sufficient.
+define('MAIL_SUPPORT',    _env('SUPPORT_EMAIL',    _env('IT_Mail', 'it@business-consulting.de')));
 define('MAIL_IDEAS',      _env('IDEAS_EMAIL',       'ideas@business-consulting.de'));
 define('MAIL_FINANCE',    _env('FINANCE_EMAIL',     'finance@business-consulting.de'));
 define('MAIL_INVENTORY',  _env('INVENTORY_EMAIL',   'inventory@business-consulting.de'));
-define('MAIL_IT_RESSORT', _env('IT_RESSORT_MAIL',   'it@business-consulting.de'));
+define('MAIL_IT_RESSORT', _env('IT_RESSORT_MAIL',   _env('IT_Mail', 'it@business-consulting.de')));
 
 // EasyVerein API
 define('EASYVEREIN_API_TOKEN', _env('EASYVEREIN_API_TOKEN', ''));
