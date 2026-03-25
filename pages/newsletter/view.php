@@ -55,8 +55,9 @@ ob_start();
         </a>
     </div>
 
-    <div class="flex-1 flex flex-col items-center justify-center px-4 py-12">
-        <div class="w-full max-w-lg">
+    <div class="px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 items-center">
+
+        <div class="w-full max-w-2xl">
             <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
 
                 <div class="bg-blue-50 dark:bg-blue-900/20 px-6 py-8 flex flex-col items-center text-center gap-3">
@@ -114,9 +115,84 @@ ob_start();
 
             </div>
         </div>
+
+        <!-- ── Email preview ───────────────────────────────────────────────── -->
+        <div class="w-full max-w-2xl">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-eye text-ibc-blue"></i>
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Vorschau</h2>
+                    </div>
+                    <button id="toggle-preview"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            aria-expanded="true">
+                        <i class="fas fa-chevron-up" id="toggle-icon"></i>
+                        <span id="toggle-label">Ausblenden</span>
+                    </button>
+                </div>
+
+                <div id="preview-container">
+                    <iframe
+                        id="newsletter-preview"
+                        src="render.php?id=<?php echo $newsletterId; ?>"
+                        class="w-full border-0 block"
+                        style="min-height:500px;"
+                        sandbox="allow-same-origin"
+                        title="Newsletter Vorschau"
+                        scrolling="no">
+                    </iframe>
+                </div>
+
+            </div>
+        </div>
+
     </div>
 
 </div>
+
+<script>
+(function () {
+    var iframe    = document.getElementById('newsletter-preview');
+    var container = document.getElementById('preview-container');
+    var btn       = document.getElementById('toggle-preview');
+    var icon      = document.getElementById('toggle-icon');
+    var label     = document.getElementById('toggle-label');
+
+    // Auto-resize the iframe to fit its content once it has loaded.
+    if (iframe) {
+        iframe.addEventListener('load', function () {
+            try {
+                var h = this.contentDocument.documentElement.scrollHeight;
+                if (h > 0) {
+                    this.style.height = h + 'px';
+                }
+            } catch (e) {
+                // Same-origin restriction not met – keep the default min-height.
+            }
+        });
+    }
+
+    // Toggle preview visibility.
+    if (btn && container) {
+        btn.addEventListener('click', function () {
+            var expanded = btn.getAttribute('aria-expanded') === 'true';
+            if (expanded) {
+                container.style.display = 'none';
+                btn.setAttribute('aria-expanded', 'false');
+                icon.className  = 'fas fa-chevron-down';
+                label.textContent = 'Anzeigen';
+            } else {
+                container.style.display = '';
+                btn.setAttribute('aria-expanded', 'true');
+                icon.className  = 'fas fa-chevron-up';
+                label.textContent = 'Ausblenden';
+            }
+        });
+    }
+}());
+</script>
 
 <?php
 $content = ob_get_clean();
