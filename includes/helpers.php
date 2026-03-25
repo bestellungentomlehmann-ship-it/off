@@ -203,6 +203,30 @@ function getFormattedRoleName(string $role): string {
 }
 
 /**
+ * Return the Font Awesome icon class for a given role key.
+ * Used to display a consistent icon next to role badges across all views.
+ *
+ * @param string $role Database role identifier (e.g. 'vorstand_intern')
+ * @return string Font Awesome class name (e.g. 'fa-crown')
+ */
+function getRoleIcon(string $role): string {
+    return match($role) {
+        'admin'             => 'fa-shield-alt',
+        'vorstand_intern'   => 'fa-crown',
+        'vorstand_extern'   => 'fa-crown',
+        'vorstand_finanzen' => 'fa-crown',
+        'alumni_vorstand'   => 'fa-user-tie',
+        'alumni_finanz'     => 'fa-user-tie',
+        'alumni'            => 'fa-user-graduate',
+        'ressortleiter'     => 'fa-briefcase',
+        'mitglied'          => 'fa-user',
+        'anwaerter'         => 'fa-user-clock',
+        'ehrenmitglied'     => 'fa-star',
+        default             => 'fa-user',
+    };
+}
+
+/**
  * Translate role from English to German
  * All board sub-roles (vorstand_*) are displayed as 'Vorstand'
  * 

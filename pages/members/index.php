@@ -196,7 +196,8 @@ ob_start();
                     <!-- Card Header: gradient band with avatar -->
                     <div class="directory-card-header">
                         <div class="position-absolute top-0 end-0 mt-2 me-2">
-                            <span class="inline-block px-3 py-1 text-xs font-semibold directory-role-badge border <?php echo $badgeClass; ?>">
+                            <span class="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold directory-role-badge border <?php echo $badgeClass; ?>">
+                                <i class="fas <?php echo getRoleIcon($displayRoleKey); ?>" aria-hidden="true"></i>
                                 <?php echo $displayRole; ?>
                             </span>
                         </div>
