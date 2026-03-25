@@ -151,7 +151,8 @@ ob_start();
                 $badgeClass = $roleBadgeColors[$displayRoleKey] ?? 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600';
                 ?>
                 <div class="mb-3">
-                    <span class="inline-block px-4 py-1.5 text-sm font-semibold rounded-full border <?php echo $badgeClass; ?>">
+                    <span class="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold rounded-full border <?php echo $badgeClass; ?>">
+                        <i class="fas <?php echo getRoleIcon($displayRoleKey); ?>" aria-hidden="true"></i>
                         <?php echo htmlspecialchars($resolvedDisplayRole, ENT_QUOTES, 'UTF-8'); ?>
                     </span>
                 </div>

@@ -306,15 +306,15 @@ if (!isset($currentUser)) {
         .role-badge {
             font-size: 10px;
             font-weight: 700;
-            letter-spacing: 0.03em;
-            padding: 0.2rem 0.55rem;
+            letter-spacing: 0.04em;
+            padding: 0.25rem 0.6rem;
             border-radius: 9999px;
             line-height: 1;
             white-space: nowrap;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.30);
         }
         .role-badge i {
-            font-size: 8px;
+            font-size: 9px;
         }
     </style>
 </head>
@@ -771,19 +771,19 @@ if (!isset($currentUser)) {
 
             // Role badge: color-coded by role type for clear visual separation
             $roleBadgeConfig = [
-                'admin'             => ['bg' => '#dc2626', 'text' => '#fff', 'icon' => 'fa-shield-alt'],
-                'vorstand_intern'   => ['bg' => '#d97706', 'text' => '#fff', 'icon' => 'fa-crown'],
-                'vorstand_extern'   => ['bg' => '#d97706', 'text' => '#fff', 'icon' => 'fa-crown'],
-                'vorstand_finanzen' => ['bg' => '#d97706', 'text' => '#fff', 'icon' => 'fa-crown'],
-                'alumni_vorstand'   => ['bg' => '#2563eb', 'text' => '#fff', 'icon' => 'fa-user-tie'],
-                'alumni_finanz'     => ['bg' => '#2563eb', 'text' => '#fff', 'icon' => 'fa-user-tie'],
-                'alumni'            => ['bg' => '#0891b2', 'text' => '#fff', 'icon' => 'fa-user-graduate'],
-                'ressortleiter'     => ['bg' => '#7c3aed', 'text' => '#fff', 'icon' => 'fa-briefcase'],
-                'mitglied'          => ['bg' => '#4f46e5', 'text' => '#fff', 'icon' => 'fa-user'],
-                'anwaerter'         => ['bg' => '#ea580c', 'text' => '#fff', 'icon' => 'fa-user-clock'],
-                'ehrenmitglied'     => ['bg' => '#be185d', 'text' => '#fff', 'icon' => 'fa-star'],
+                'admin'             => ['bg' => '#dc2626', 'text' => '#fff'],
+                'vorstand_intern'   => ['bg' => '#d97706', 'text' => '#fff'],
+                'vorstand_extern'   => ['bg' => '#d97706', 'text' => '#fff'],
+                'vorstand_finanzen' => ['bg' => '#d97706', 'text' => '#fff'],
+                'alumni_vorstand'   => ['bg' => '#2563eb', 'text' => '#fff'],
+                'alumni_finanz'     => ['bg' => '#2563eb', 'text' => '#fff'],
+                'alumni'            => ['bg' => '#0891b2', 'text' => '#fff'],
+                'ressortleiter'     => ['bg' => '#7c3aed', 'text' => '#fff'],
+                'mitglied'          => ['bg' => '#4f46e5', 'text' => '#fff'],
+                'anwaerter'         => ['bg' => '#ea580c', 'text' => '#fff'],
+                'ehrenmitglied'     => ['bg' => '#be185d', 'text' => '#fff'],
             ];
-            $badgeCfg = $roleBadgeConfig[$role] ?? ['bg' => '#374151', 'text' => '#fff', 'icon' => 'fa-user'];
+            $badgeCfg = $roleBadgeConfig[$role] ?? ['bg' => '#374151', 'text' => '#fff'];
             $badgeStyle = 'background:' . htmlspecialchars($badgeCfg['bg']) . '; color:' . htmlspecialchars($badgeCfg['text']) . ';';
             ?>
 
@@ -813,20 +813,20 @@ if (!isset($currentUser)) {
                         <?php echo htmlspecialchars($email); ?>
                     </p>
                     <?php if (!empty($displayRoles)): ?>
-                    <span class='role-badge inline-flex items-center gap-1 mt-1 truncate max-w-full'
+                    <span class='role-badge inline-flex items-center gap-1 mt-1 max-w-full'
                           style='<?php echo $badgeStyle; ?>'
                           title='<?php echo htmlspecialchars(implode(', ', $displayRoles)); ?>'
                           aria-label='Rolle: <?php echo htmlspecialchars($displayRoles[0]); ?>'>
-                        <i class='fas <?php echo htmlspecialchars($badgeCfg['icon']); ?>' aria-hidden='true'></i>
-                        <?php echo htmlspecialchars($displayRoles[0]); ?>
+                        <i class='fas <?php echo getRoleIcon($role); ?> flex-shrink-0' aria-hidden='true'></i>
+                        <span class='truncate'><?php echo htmlspecialchars($displayRoles[0]); ?></span>
                     </span>
                     <?php elseif (!empty($role) && $role !== 'User'): ?>
-                    <span class='role-badge inline-flex items-center gap-1 mt-1 truncate max-w-full'
+                    <span class='role-badge inline-flex items-center gap-1 mt-1 max-w-full'
                           style='<?php echo $badgeStyle; ?>'
                           title='<?php echo htmlspecialchars(getFormattedRoleName($role)); ?>'
                           aria-label='Rolle: <?php echo htmlspecialchars(getFormattedRoleName($role)); ?>'>
-                        <i class='fas <?php echo htmlspecialchars($badgeCfg['icon']); ?>' aria-hidden='true'></i>
-                        <?php echo htmlspecialchars(getFormattedRoleName($role)); ?>
+                        <i class='fas <?php echo getRoleIcon($role); ?> flex-shrink-0' aria-hidden='true'></i>
+                        <span class='truncate'><?php echo htmlspecialchars(getFormattedRoleName($role)); ?></span>
                     </span>
                     <?php endif; ?>
                 </div>
