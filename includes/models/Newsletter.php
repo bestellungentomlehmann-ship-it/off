@@ -14,6 +14,8 @@ class Newsletter {
 
     /**
      * Retrieve all newsletters, newest first, with optional keyword search.
+     * Uploader names are resolved separately from the user DB to avoid a
+     * cross-server JOIN (the news DB and the user DB may reside on different hosts).
      *
      * @param string $search Optional search term (title / month_year).
      * @return array
@@ -24,40 +26,84 @@ class Newsletter {
             $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
             $like    = '%' . $escaped . '%';
             $stmt    = $db->prepare(
-                "SELECT n.*, u.first_name, u.last_name
-                 FROM newsletters n
-                 LEFT JOIN users u ON u.id = n.uploaded_by
-                 WHERE n.title LIKE ? OR n.month_year LIKE ?
-                 ORDER BY n.created_at DESC"
+                "SELECT * FROM newsletters
+                 WHERE title LIKE ? OR month_year LIKE ?
+                 ORDER BY created_at DESC"
             );
             $stmt->execute([$like, $like]);
         } else {
             $stmt = $db->query(
-                "SELECT n.*, u.first_name, u.last_name
-                 FROM newsletters n
-                 LEFT JOIN users u ON u.id = n.uploaded_by
-                 ORDER BY n.created_at DESC"
+                "SELECT * FROM newsletters ORDER BY created_at DESC"
             );
         }
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return self::enrichWithUploaderNames($rows);
     }
 
     /**
      * Retrieve a single newsletter by ID.
+     * Uploader name is resolved separately from the user DB.
      *
      * @param int $id
      * @return array|false
      */
     public static function getById(int $id) {
         $db   = Database::getNewsletterDB();
-        $stmt = $db->prepare(
-            "SELECT n.*, u.first_name, u.last_name
-             FROM newsletters n
-             LEFT JOIN users u ON u.id = n.uploaded_by
-             WHERE n.id = ?"
-        );
+        $stmt = $db->prepare("SELECT * FROM newsletters WHERE id = ?");
         $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return false;
+        }
+        $enriched = self::enrichWithUploaderNames([$row]);
+        return $enriched[0];
+    }
+
+    /**
+     * Resolve uploader first_name / last_name for a list of newsletter rows.
+     * Queries the user DB once with an IN() clause to avoid N+1 lookups.
+     * Gracefully falls back (leaves names empty) if the user DB is unreachable.
+     *
+     * @param array $rows
+     * @return array
+     */
+    private static function enrichWithUploaderNames(array $rows): array {
+        if (empty($rows)) {
+            return $rows;
+        }
+
+        // Collect distinct non-null uploader IDs
+        $ids = array_values(array_unique(array_filter(
+            array_column($rows, 'uploaded_by'),
+            static fn($v) => $v !== null && $v > 0
+        )));
+
+        $userMap = [];
+        if (!empty($ids)) {
+            try {
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $stmt = Database::getUserDB()->prepare(
+                    "SELECT id, first_name, last_name FROM users WHERE id IN ($placeholders)"
+                );
+                $stmt->execute($ids);
+                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $u) {
+                    $userMap[(int) $u['id']] = $u;
+                }
+            } catch (Exception $e) {
+                // Non-fatal: uploader names will simply be absent
+                error_log('Newsletter: could not resolve uploader names: ' . $e->getMessage());
+            }
+        }
+
+        foreach ($rows as &$row) {
+            $uid = isset($row['uploaded_by']) ? (int) $row['uploaded_by'] : 0;
+            $user = isset($userMap[$uid]) ? $userMap[$uid] : null;
+            $row['first_name'] = $user['first_name'] ?? null;
+            $row['last_name']  = $user['last_name']  ?? null;
+        }
+        unset($row);
+
+        return $rows;
     }
 
     /**
