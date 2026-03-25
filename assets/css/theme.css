@@ -11443,3 +11443,516 @@ body:not(.dark-mode) .rounded-full.bg-indigo-100,
 body:not(.dark-mode) .rounded-xl.bg-indigo-100 { background-color: #e0e7ff !important; }
 
 /* ── END IBC DESIGN SYSTEM v5 ─────────────────────────────────── */
+
+/* ============================================================
+   IBC DESIGN SYSTEM v6 — RESPONSIVE & UI IMPROVEMENTS 2026
+   ============================================================ */
+
+/* ── SIDEBAR NAVIGATION: NEW CLASS-BASED SYSTEM ─────────────────
+
+   Replaces the verbose Tailwind utility strings in the PHP template
+   with semantic CSS classes that can be overridden per theme/breakpoint.
+   ──────────────────────────────────────────────────────────────── */
+
+/* Base nav item — higher specificity to override .sidebar nav a */
+.sidebar nav .sidebar-nav-item,
+.sidebar .sidebar-nav-item {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 0.6rem 1rem !important;
+    margin: 1px 0.5rem !important;
+    border-radius: var(--radius-sm) !important;
+    color: rgba(255, 255, 255, 0.88) !important;
+    text-decoration: none !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease !important;
+    line-height: 1.4 !important;
+    position: relative;
+    border-left: 3px solid transparent;
+    transform: none !important;
+    overflow: hidden;
+}
+
+.sidebar nav .sidebar-nav-item:hover,
+.sidebar .sidebar-nav-item:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #fff !important;
+    transform: translate3d(2px, 0, 0) !important;
+    text-decoration: none !important;
+}
+
+/* Active state */
+.sidebar nav .sidebar-nav-item--active,
+.sidebar .sidebar-nav-item--active {
+    background: rgba(255, 255, 255, 0.18) !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    border-left: 3px solid rgba(255, 255, 255, 0.85) !important;
+    transform: none !important;
+}
+
+/* Icon */
+.sidebar-nav-item .sidebar-nav-icon {
+    width: 1.25rem !important;
+    font-size: 0.875rem !important;
+    flex-shrink: 0;
+    margin-right: 0.75rem !important;
+    text-align: center;
+    opacity: 0.9;
+    transition: opacity 0.18s ease;
+}
+
+.sidebar-nav-item--active .sidebar-nav-icon {
+    opacity: 1;
+}
+
+/* Badge pill (e.g., cart count) */
+.sidebar-nav-badge {
+    margin-left: auto;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    border-radius: 9999px;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.3rem;
+    line-height: 1;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    flex-shrink: 0;
+}
+
+/* Section label */
+.sidebar-section-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.42);
+    padding: 0.875rem 1.25rem 0.375rem;
+    margin-top: 0.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Dark mode overrides */
+body.dark-mode .sidebar nav .sidebar-nav-item,
+body.dark-mode .sidebar .sidebar-nav-item {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+body.dark-mode .sidebar nav .sidebar-nav-item:hover,
+body.dark-mode .sidebar .sidebar-nav-item:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+body.dark-mode .sidebar nav .sidebar-nav-item--active,
+body.dark-mode .sidebar .sidebar-nav-item--active {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border-left-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Mobile: slightly taller touch targets */
+@media (max-width: 767px) {
+    .sidebar nav .sidebar-nav-item,
+    .sidebar .sidebar-nav-item {
+        min-height: 48px !important;
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+    }
+    .sidebar-section-label {
+        font-size: 0.625rem;
+        padding-top: 0.75rem;
+    }
+}
+
+/* ── MOBILE TOPBAR CART BADGE ────────────────────────────────
+   Small red dot badge on the cart icon in the mobile topbar.
+   ──────────────────────────────────────────────────────────── */
+.mobile-topbar-cart-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.5625rem;
+    font-weight: 700;
+    border-radius: 9999px;
+    min-width: 1rem;
+    height: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.2rem;
+    line-height: 1;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+}
+
+/* The anchor button wrapping the cart icon needs relative positioning */
+.mobile-topbar-btn {
+    position: relative;
+}
+
+/* ── RESPONSIVE HERO SECTION IMPROVEMENTS ─────────────────────
+   Better hero section padding & text sizing on extra small screens.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 479px) {
+    .hero-gradient {
+        min-height: auto !important;
+        padding: 1.5rem 1.25rem !important;
+    }
+
+    .hero-title {
+        font-size: clamp(1.5rem, 6vw, 2rem) !important;
+        line-height: 1.15 !important;
+    }
+
+    .hero-subtitle-text {
+        font-size: 0.875rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .hero-quick-action {
+        font-size: 0.75rem !important;
+        padding: 0.45rem 0.875rem !important;
+    }
+
+    /* Date pill */
+    .hero-date-text {
+        font-size: 0.6875rem !important;
+        padding: 0.25rem 0.65rem !important;
+    }
+
+    /* Compact hero badge on very small screens */
+    .hero-badge-icon {
+        width: 2.5rem !important;
+        height: 2.5rem !important;
+    }
+}
+
+/* ── IMPROVED PAGE HEADER RESPONSIVE LAYOUT ───────────────────
+   Stack title and actions on narrow screens, keep side-by-side
+   on wider screens.
+   ──────────────────────────────────────────────────────────── */
+.page-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.875rem;
+    margin-bottom: 1.5rem;
+}
+
+.page-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+@media (max-width: 639px) {
+    .page-header-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-header-actions {
+        justify-content: flex-start;
+    }
+
+    .page-header-actions .btn,
+    .page-header-actions a {
+        flex: 1;
+        justify-content: center;
+        min-width: 0;
+    }
+}
+
+/* ── IMPROVED FORM LAYOUT ─────────────────────────────────────
+   Two-column form grids collapse gracefully on narrow screens.
+   ──────────────────────────────────────────────────────────── */
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 639px) {
+    .form-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── IMPROVED CARD GRID ON MOBILE ─────────────────────────────
+   3-column grids collapse to 2 on small tablets, 1 on phones.
+   ──────────────────────────────────────────────────────────── */
+.card-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+}
+
+@media (max-width: 1023px) {
+    .card-grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 639px) {
+    .card-grid-3 {
+        grid-template-columns: 1fr;
+        gap: 0.875rem;
+    }
+}
+
+/* ── STAT CARD GRID ───────────────────────────────────────────
+   Stat cards: 4 col desktop → 2 col tablet → 2 col mobile.
+   ──────────────────────────────────────────────────────────── */
+.stat-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 1023px) {
+    .stat-grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 479px) {
+    .stat-grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+}
+
+/* ── IMPROVED DARK MODE CARD HOVER ────────────────────────────
+   Subtle glow on hover in dark mode for better visual feedback.
+   ──────────────────────────────────────────────────────────── */
+@media (hover: hover) and (pointer: fine) {
+    body.dark-mode .card:hover {
+        border-color: rgba(51, 133, 196, 0.4) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5),
+                    0 0 0 1px rgba(51, 133, 196, 0.2) !important;
+    }
+}
+
+/* ── IMPROVED MOBILE PADDING FOR MAIN CONTENT ─────────────────
+   Ensure consistent horizontal padding on the main content area.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+    #main-content {
+        padding-left: max(1rem, env(safe-area-inset-left, 0px)) !important;
+        padding-right: max(1rem, env(safe-area-inset-right, 0px)) !important;
+    }
+}
+
+/* ── AUTH PAGE IMPROVEMENTS ───────────────────────────────────
+   Better login page readability and spacing on small screens.
+   ──────────────────────────────────────────────────────────── */
+
+/* Ensure the login container is always scrollable on small phones */
+@media (max-height: 700px) and (max-width: 767px) {
+    body.min-h-screen {
+        align-items: flex-start !important;
+        padding-top: max(1rem, env(safe-area-inset-top, 0px));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* ── IMPROVED BUTTON SIZES FOR ACCESSIBILITY ──────────────────
+   All interactive buttons meet the 44×44 px minimum touch target.
+   ──────────────────────────────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+    .btn,
+    .btn-primary,
+    .btn-secondary,
+    .btn-cancel,
+    button[type="submit"] {
+        min-height: 44px;
+    }
+
+    /* Table action buttons: ensure they are tappable */
+    td .btn,
+    td button {
+        min-height: 36px;
+        min-width: 36px;
+    }
+}
+
+/* ── IMPROVED MODAL BOTTOM SHEET STYLING ──────────────────────
+   The sheet drag handle is now rendered only on the very first
+   child inside the modal-header (avoids double handles when
+   multiple modals are open).
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+    .modal-dialog {
+        margin: 0 !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        transform: translateY(100%) !important;
+        transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1) !important;
+    }
+
+    .modal.show .modal-dialog {
+        transform: translateY(0) !important;
+    }
+
+    .modal-content {
+        border-radius: 20px 20px 0 0 !important;
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        max-height: 92dvh !important;
+        max-height: 92vh !important;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-body {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        flex: 1;
+        min-height: 0;
+    }
+
+    /* Drag handle on modal header */
+    .modal-header::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: var(--border-color);
+        border-radius: 99px;
+        margin: -0.25rem auto 0.75rem;
+    }
+
+    /* Safe area for footer */
+    .modal-footer {
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
+    }
+}
+
+/* ── IMPROVED RESPONSIVE IMAGES ───────────────────────────────
+   Prevent images from overflowing their containers while
+   maintaining aspect ratio.
+   ──────────────────────────────────────────────────────────── */
+.img-fluid {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* ── PRINT MEDIA IMPROVEMENTS ─────────────────────────────────
+   Clean, print-friendly layout.
+   ──────────────────────────────────────────────────────────── */
+@media print {
+    .sidebar,
+    .mobile-bottom-nav,
+    .mobile-topbar,
+    #sidebar-overlay,
+    .back-to-top,
+    .no-print {
+        display: none !important;
+    }
+
+    #main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+        break-inside: avoid;
+    }
+}
+
+/* ── IMPROVED RESPONSIVE TABLE CARDS (MOBILE FALLBACK) ────────
+   On very small screens, key=value table rows become card-style
+   stacked items for readability.
+   ──────────────────────────────────────────────────────────── */
+@media (max-width: 479px) {
+    table.table-card-mobile {
+        display: block;
+    }
+
+    table.table-card-mobile thead {
+        display: none;
+    }
+
+    table.table-card-mobile tbody,
+    table.table-card-mobile tr,
+    table.table-card-mobile td {
+        display: block;
+        width: 100%;
+    }
+
+    table.table-card-mobile tr {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 0.875rem 1rem;
+        margin-bottom: 0.75rem;
+        background: var(--bg-card);
+        box-shadow: var(--shadow-soft);
+    }
+
+    table.table-card-mobile td {
+        padding: 0.25rem 0;
+        border: none;
+        font-size: 0.9rem;
+    }
+
+    table.table-card-mobile td[data-label]::before {
+        content: attr(data-label) ': ';
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: block;
+        margin-bottom: 0.125rem;
+    }
+}
+
+/* ── IMPROVED CONTAINER WIDTHS ────────────────────────────────
+   Consistent max-width for main content containers.
+   ──────────────────────────────────────────────────────────── */
+.container-content {
+    max-width: 72rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+.container-narrow {
+    max-width: 48rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+.container-wide {
+    max-width: 88rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+/* ── END IBC DESIGN SYSTEM v6 ─────────────────────────────────── */
