@@ -1,0 +1,5 @@
+RewriteEngine On
+
+# Map clean public URLs to the actual PHP files
+RewriteRule ^public/alumni_recovery/?$ /pages/public/alumni_recovery.php [L]
+RewriteRule ^public/neue_alumni/?$ /pages/public/neue_alumni.php [L]
