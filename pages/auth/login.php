@@ -1195,7 +1195,7 @@ try {
         .login-footer {
             text-align: center;
             margin-top: 40px;
-            color: rgba(255, 255, 255, 0.4);
+            color: #ffffff;
             font-size: 14px;
             -webkit-animation: textSlideUp 1s ease-out 1.1s both;
             animation: textSlideUp 1s ease-out 1.1s both;
