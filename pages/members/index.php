@@ -110,14 +110,14 @@ ob_start();
     </div>
 
     <!-- Results Count -->
-    <div class="mb-6">
+    <div class="mb-6 directory-results-count">
         <p class="text-gray-600 dark:text-gray-300">
             <strong><?php echo count($members); ?></strong> 
             <?php echo count($members) === 1 ? 'Mitglied' : 'Mitglieder'; ?> gefunden
         </p>
     </div>
 
-    <!-- Results Grid: Responsive (1 col mobile, 3 cols desktop) -->
+    <!-- Results Grid: Responsive (1 col mobile, 2 col 440px+, 3 cols desktop) -->
     <?php if (empty($members)): ?>
         <div class="card p-12 text-center rounded-2xl border border-dashed border-gray-300 dark:border-gray-600">
             <img src="<?php echo htmlspecialchars(BASE_URL); ?>/assets/img/cropped_maskottchen_270x270.webp"
@@ -132,7 +132,7 @@ ob_start();
             <?php endif; ?>
         </div>
     <?php else: ?>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div class="directory-grid-responsive grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             <?php foreach ($members as $member): ?>
                 <?php
                 // Determine role badge color

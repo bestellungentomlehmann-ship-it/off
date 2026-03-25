@@ -11956,3 +11956,140 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
 }
 
 /* ── END IBC DESIGN SYSTEM v6 ─────────────────────────────────── */
+
+/* ============================================================
+   DIRECTORY DESIGN ENHANCEMENTS v2
+   Improved mobile layout and visual polish for the
+   Mitglieder- und Alumniverzeichnis
+   ============================================================ */
+
+/* ── Directory card: compact layout on small screens (<640px) ─── */
+@media (max-width: 639px) {
+    /* Slightly shorter header band so the card fits tightly */
+    .directory-card-header {
+        height: 68px;
+    }
+
+    /* Smaller floating avatar on mobile */
+    .directory-avatar--sm {
+        width: 60px;
+        height: 60px;
+        font-size: 1.2rem;
+    }
+
+    /* Reposition avatar hang for the smaller size (half of 60px = 30px) */
+    .directory-card--members .directory-card-avatar-wrap {
+        bottom: -30px;
+    }
+
+    /* Compact body top padding matches new avatar hang */
+    .directory-card--members .directory-card-body {
+        padding-top: 38px;
+    }
+
+    /* Tighter horizontal/bottom padding */
+    .directory-card-body {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    /* Allow long names to wrap & hyphenate on narrow cards */
+    .directory-card-name {
+        overflow-wrap: break-word;
+        hyphens: auto;
+        font-size: 0.875rem;
+    }
+
+    /* Compact role badge so it fits the narrow card header */
+    .directory-role-badge {
+        font-size: 0.6rem;
+        padding: 0.175rem 0.45rem;
+        letter-spacing: 0.04em;
+        gap: 0.2rem;
+    }
+
+    /* Larger tap targets for contact icon buttons */
+    .directory-contact-icon {
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+}
+
+/* ── Profile view page: responsive padding ───────────────────── */
+/* Replace hard-coded p-8/p-6 classes on profile cards with these  */
+.directory-profile-header {
+    padding: 1rem;
+}
+
+@media (min-width: 480px) {
+    .directory-profile-header {
+        padding: 1.5rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .directory-profile-header {
+        padding: 2rem;
+    }
+}
+
+/* Detail/info cards inside the profile view */
+.directory-detail-card {
+    padding: 1rem;
+}
+
+@media (min-width: 480px) {
+    .directory-detail-card {
+        padding: 1.5rem;
+    }
+}
+
+/* ── Directory toolbar: refined spacing on mobile ─────────────── */
+@media (max-width: 479px) {
+    .directory-toolbar {
+        padding: 0.75rem 0.875rem;
+    }
+    .directory-toolbar-group label {
+        font-size: 0.8rem;
+    }
+}
+
+/* ── Directory grid: 2 columns starting at ~440px ─────────────── */
+/* Fills the dead space between 1-col (xs) and 2-col (sm/640px+)   */
+@media (min-width: 440px) and (max-width: 639px) {
+    .directory-grid-responsive {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ── Directory card: smoother hover lift on touch-enabled devices ─ */
+@media (hover: none) {
+    .directory-card:hover {
+        transform: none;
+        box-shadow: none;
+    }
+}
+
+/* ── Profile header: better mobile image centering ───────────────
+   On small screens the avatar sits above the info text. Ensure the
+   outer flex container stacks without clipping the circular image. */
+@media (max-width: 767px) {
+    .directory-profile-avatar-wrap {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* ── Highlight member/alumni counts in results bar ───────────── */
+.directory-results-count strong {
+    font-size: 1.1em;
+    font-weight: 700;
+}
+
+/* ── Toolbar search input: green accent for members directory ─── */
+.directory-search-wrapper--green input:focus {
+    border-color: var(--ibc-green);
+    box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.15);
+}
+
+/* ── END DIRECTORY DESIGN ENHANCEMENTS v2 ───────────────────────── */

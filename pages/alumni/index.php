@@ -110,7 +110,7 @@ ob_start();
     </div>
 
     <!-- Results Count -->
-    <div class="mb-6">
+    <div class="mb-6 directory-results-count">
         <p class="text-gray-600 dark:text-gray-300">
             <strong><?php echo count($profiles); ?></strong> 
             <?php echo count($profiles) === 1 ? 'Profil' : 'Profile'; ?> gefunden
@@ -132,7 +132,7 @@ ob_start();
             <?php endif; ?>
         </div>
     <?php else: ?>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="directory-grid-responsive grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             <?php foreach ($profiles as $profile): ?>
                 <?php
                 // Determine role badge color
