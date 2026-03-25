@@ -113,7 +113,7 @@ ob_start();
     </div>
 
     <!-- Profile Header Card -->
-    <div class="card p-8 mb-6">
+    <div class="card directory-profile-header mb-6">
         <div class="flex flex-col md:flex-row gap-6">
             <!-- Profile Image -->
             <div class="flex justify-center md:justify-start flex-shrink-0">
@@ -216,7 +216,7 @@ ob_start();
 
     <!-- Über mich -->
     <?php if (!empty($profileUser['about_me'])): ?>
-    <div class="card p-6 mb-6">
+    <div class="card directory-detail-card mb-6">
         <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
             <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600">
                 <i class="fas fa-quote-left text-sm"></i>
@@ -229,7 +229,7 @@ ob_start();
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <!-- Kontaktinformationen -->
-        <div class="card p-6">
+        <div class="card directory-detail-card">
             <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600">
                     <i class="fas fa-address-card text-sm"></i>
@@ -380,7 +380,7 @@ ob_start();
 
         <!-- Berufliche Informationen -->
         <?php if (!empty($profile['company']) || !empty($profile['position']) || !empty($profile['industry'])): ?>
-        <div class="card p-6">
+        <div class="card directory-detail-card">
             <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-600">
                     <i class="fas fa-briefcase text-sm"></i>
@@ -419,7 +419,7 @@ ob_start();
 
     <!-- Absolviertes Studium -->
     <?php if (!empty($profile['study_program']) || !empty($profile['semester']) || !empty($profile['angestrebter_abschluss']) || !empty($profile['graduation_year']) || !empty($profile['degree'])): ?>
-    <div class="card p-6 mb-6">
+    <div class="card directory-detail-card mb-6">
         <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
             <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600">
                 <i class="fas fa-graduation-cap text-sm"></i>
@@ -470,7 +470,7 @@ ob_start();
     $skillsList = !empty($profile['skills']) ? array_values(array_filter(array_map('trim', explode(',', $profile['skills'])))) : [];
     if (!empty($skillsList)):
     ?>
-    <div class="card p-6 mb-6">
+    <div class="card directory-detail-card mb-6">
         <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
             <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-teal-100 text-teal-600">
                 <i class="fas fa-tags text-sm"></i>
@@ -489,7 +489,7 @@ ob_start();
 
     <!-- Lebenslauf / CV -->
     <?php if (!empty($profile['cv_path'])): ?>
-    <div class="card p-6 mb-6">
+    <div class="card directory-detail-card mb-6">
         <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
             <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-600">
                 <i class="fas fa-file-pdf text-sm"></i>
