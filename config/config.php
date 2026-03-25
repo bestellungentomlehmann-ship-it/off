@@ -86,6 +86,12 @@ define('DB_INVENTORY_NAME', _env('DB_INVENTORY_NAME', ''));
 define('DB_INVENTORY_USER', _env('DB_INVENTORY_USER', ''));
 define('DB_INVENTORY_PASS', _env('DB_INVENTORY_PASS', ''));
 
+// Database Settings (News DB)
+define('DB_NEWS_HOST', _env('DB_NEWS_HOST', 'localhost'));
+define('DB_NEWS_NAME', _env('DB_NEWS_NAME', ''));
+define('DB_NEWS_USER', _env('DB_NEWS_USER', ''));
+define('DB_NEWS_PASS', _env('DB_NEWS_PASS', ''));
+
 // SMTP Settings
 define('SMTP_HOST',       _env('SMTP_HOST', ''));
 define('SMTP_PORT',       (int) _env('SMTP_PORT', '587'));
