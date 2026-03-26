@@ -4706,15 +4706,18 @@ body:not(.dark-mode) .hero-gradient .hero-date {
     }
 }
 
-/* Card-based responsive table: stacked cards on mobile, normal table on desktop */
-@media (max-width: 767px) {
-    .card-table {
+/* Card-based responsive table and .table-responsive: stacked cards below 640 px, normal table on wider screens */
+@media (max-width: 639px) {
+    .card-table,
+    .table-responsive {
         overflow-x: visible;
     }
-    .card-table thead {
+    .card-table thead,
+    .table-responsive thead {
         display: none;
     }
-    .card-table tr {
+    .card-table tr,
+    .table-responsive tr {
         display: block;
         margin-bottom: 0.75rem;
         border: 1px solid var(--border-color);
@@ -4723,19 +4726,22 @@ body:not(.dark-mode) .hero-gradient .hero-date {
         background: var(--bg-card);
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
-    .card-table td {
+    .card-table td,
+    .table-responsive td {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 0.5rem 1rem;
         border-bottom: 1px solid var(--ibc-gray-100);
         text-align: right;
-        white-space: normal !important; /* override Tailwind whitespace-nowrap */
+        white-space: normal !important; /* remove nowrap in stacked view so text can wrap */
     }
-    .card-table td:last-child {
+    .card-table td:last-child,
+    .table-responsive td:last-child {
         border-bottom: none;
     }
-    .card-table td[data-label]::before {
+    .card-table td[data-label]::before,
+    .table-responsive td[data-label]::before {
         content: attr(data-label);
         font-weight: 600;
         font-size: 0.875rem;
@@ -8780,7 +8786,7 @@ body:not(.dark-mode) p.text-secondary {
    Mobile card-table data-label values need correct font size.
    ──────────────────────────────────────────────────────────── */
 
-@media (max-width: 767px) {
+@media (max-width: 639px) {
     body:not(.dark-mode) .card-table td {
         font-size: 0.9375rem !important;
     }
@@ -12079,3 +12085,21 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
 }
 
 /* ── END DIRECTORY DESIGN ENHANCEMENTS v2 ───────────────────────── */
+
+/* ── Stacked table design overrides: disable horizontal scroll below 640 px ──
+   Earlier @media (max-width: 767px) blocks set overflow-x: auto on
+   .table-responsive; this block restores the correct stacked-design values
+   for viewports below 640 px so the card layout is not broken by those rules.
+   ──────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+    .table-responsive {
+        overflow-x: visible;
+        box-shadow: none;
+        border-radius: 0;
+        overscroll-behavior-x: unset;
+    }
+    .table-responsive::after,
+    .table-responsive::before {
+        display: none; /* hide scroll-hint gradients in stacked view */
+    }
+}
