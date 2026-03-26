@@ -3439,6 +3439,7 @@ body.dark-mode .sidebar {
     img {
         max-width: 100%;
         height: auto;
+        display: block;
         border-radius: var(--radius-sm);
     }
     
@@ -4142,6 +4143,7 @@ body.dark-mode .glass {
 img {
     max-width: 100%;
     height: auto;
+    display: block;
 }
 
 img[loading="lazy"] {
@@ -7468,6 +7470,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
 img {
     max-width: 100%;
     height: auto;
+    display: block;
 }
 
 /* ── Better overflow handling for long content ──────────────── */
@@ -9094,6 +9097,7 @@ textarea:focus:not(:focus-visible) {
 .card img:not([class*="w-"]):not([class*="h-"]):not([class*="size-"]):not(.ibc-logo):not([class*="logo"]) {
     max-width: 100%;
     height: auto;
+    display: block;
     border-radius: var(--radius-sm);
 }
 
@@ -9947,6 +9951,7 @@ body:not(.dark-mode) {
 img:not([style*="width"]):not([class*="w-"]):not([class*="size-"]) {
     max-width: 100%;
     height: auto;
+    display: block;
 }
 
 /* Prevent CLS on images with known aspect ratio */
@@ -11299,6 +11304,7 @@ body:not(.dark-mode) .mobile-topbar {
     img:not(.avatar):not(.logo):not([class*="w-"]) {
         max-width: 100%;
         height: auto;
+        display: block;
     }
 
     /* Better table scroll hint */
