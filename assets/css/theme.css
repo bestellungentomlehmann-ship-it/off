@@ -2826,9 +2826,10 @@ a.microsoft-btn {
     pointer-events: none;
 }
 
-/* Login Container - Centered with fixed width */
+/* Login Container - Centered with responsive max-width */
 .login-container {
     max-width: 450px;
+    width: 100%;
     margin: 0 auto;
     padding: 3rem;
     display: flex;
@@ -2837,6 +2838,7 @@ a.microsoft-btn {
     align-items: center;
     position: relative;
     z-index: 10;
+    box-sizing: border-box;
 }
 
 /* Login Footer - High contrast and centered */
@@ -2858,7 +2860,8 @@ a.microsoft-btn {
 
 /* Logo styles */
 .logo-wrapper {
-    width: 200px;
+    max-width: 200px;
+    width: 100%;
     height: auto;
     filter: drop-shadow(0 4px 12px rgba(255, 255, 255, 0.1));
 }
@@ -2918,6 +2921,17 @@ a.microsoft-btn {
     .welcome-text h1,
     .welcome-text .welcome-title {
         font-size: 1.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-container {
+        padding: 1.5rem 1rem;
+    }
+
+    .welcome-text h1,
+    .welcome-text .welcome-title {
+        font-size: 1.5rem;
     }
 }
 
