@@ -2913,7 +2913,7 @@ a.microsoft-btn {
 }
 
 /* Responsive adjustments for smaller screens */
-@media (max-width: 640px) {
+@media (max-width: 767px) {
     .login-container {
         padding: 2rem 1.5rem;
     }
@@ -3308,8 +3308,8 @@ body.dark-mode .sidebar {
    Mobile-First Approach
    ======================================== */
 
-/* Base Mobile Styles (0-639px) - Mobile First */
-@media (max-width: 639px) {
+/* Medium Mobile Styles (0-767px) - Mobile First */
+@media (max-width: 767px) {
     /* Typography - Better readability on small screens */
     body {
         font-size: 0.9375rem; /* 15px */
@@ -3487,8 +3487,8 @@ body.dark-mode .sidebar {
     }
 }
 
-/* Small Tablets (640px - 768px) */
-@media (min-width: 640px) and (max-width: 768px) {
+/* Medium Mobile Refinements (481px - 767px) */
+@media (min-width: 481px) and (max-width: 767px) {
     body {
         font-size: 1rem;
     }
@@ -3552,23 +3552,8 @@ body.dark-mode .sidebar {
     }
 }
 
-/* Desktop (1025px - 1280px) */
-@media (min-width: 1025px) and (max-width: 1280px) {
-    .card {
-        padding: 1.75rem !important;
-    }
-    
-    main {
-        padding: 2rem !important;
-    }
-    
-    .grid.grid-cols-3 {
-        grid-template-columns: repeat(3, 1fr) !important;
-    }
-}
-
-/* Large Desktop (1281px+) */
-@media (min-width: 1281px) {
+/* Desktop (1025px+) - Standard desktop styling */
+@media (min-width: 1025px) {
     .card {
         padding: 2rem !important;
     }
@@ -3580,6 +3565,10 @@ body.dark-mode .sidebar {
     .container {
         max-width: 1400px;
         margin: 0 auto;
+    }
+    
+    .grid.grid-cols-3 {
+        grid-template-columns: repeat(3, 1fr) !important;
     }
 }
 
@@ -3908,7 +3897,7 @@ body.dark-mode .sidebar {
     }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1025px) {
     .section-padding {
         padding: 4rem 2rem;
     }
@@ -4120,7 +4109,7 @@ body.dark-mode .glass {
     display: none;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1025px) {
     .desktop-only {
         display: block;
     }
@@ -4647,7 +4636,7 @@ body:not(.dark-mode) .hero-gradient .hero-date {
 
 /* Ensure all buttons are touch-friendly on mobile 
    Note: min-height ensures accessibility; padding/font-size only applied to non-icon buttons */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
     button,
     .btn,
     a.btn,
@@ -4691,7 +4680,7 @@ body:not(.dark-mode) .hero-gradient .hero-date {
  * Only applied on desktop (≥ 769 px) where the horizontal-scroll table layout is active;
  * on mobile the card-table layout stacks rows and no padding is needed.
  */
-@media (min-width: 769px) {
+@media (min-width: 768px) {
     .has-action-dropdown {
         padding-bottom: 12rem; /* ~192 px – enough for a typical dropdown panel */
     }
@@ -4703,7 +4692,7 @@ body:not(.dark-mode) .hero-gradient .hero-date {
 }
 
 /* Ensure tables don't cause horizontal scroll on mobile */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
     table {
         display: block;
         width: 100%;
@@ -4718,7 +4707,7 @@ body:not(.dark-mode) .hero-gradient .hero-date {
 }
 
 /* Card-based responsive table: stacked cards on mobile, normal table on desktop */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
     .card-table {
         overflow-x: visible;
     }
@@ -4777,7 +4766,7 @@ body:not(.dark-mode) .hero-gradient .hero-date {
 }
 
 /* Mobile-friendly form inputs */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
     input[type="text"],
     input[type="email"],
     input[type="password"],
@@ -4792,7 +4781,7 @@ body:not(.dark-mode) .hero-gradient .hero-date {
 }
 
 /* Better card stacking on mobile */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
     .card {
         margin-bottom: 1rem;
     }
@@ -4805,7 +4794,7 @@ body:not(.dark-mode) .hero-gradient .hero-date {
     gap: 0.5rem;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
     .filter-buttons a,
     .filter-buttons button {
         flex: 1 1 calc(50% - 0.25rem);
@@ -4815,7 +4804,7 @@ body:not(.dark-mode) .hero-gradient .hero-date {
 }
 
 /* Status badges responsive */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
     .badge,
     [class*="badge"],
     .status-badge {
@@ -4947,7 +4936,7 @@ main {
     }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1025px) {
     main {
         margin-left: var(--sidebar-width-lg);
     }
@@ -5420,7 +5409,7 @@ a, span, label, li {
 }
 
 /* Mobile-specific refinements for long-text content (≤ 640px) */
-@media (max-width: 640px) {
+@media (max-width: 767px) {
     .event-description,
     .profile-about,
     .blog-content,
@@ -5467,7 +5456,7 @@ a, span, label, li {
     opacity: 1;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
     /* Better table UX on mobile */
     .table-responsive {
         border-radius: var(--radius-md);
@@ -5800,7 +5789,7 @@ img:not([loading]) {
     border-color: rgba(255, 255, 255, 0.08);
 }
 
-@media (max-width: 575px) {
+@media (max-width: 480px) {
     .directory-toolbar form {
         flex-direction: column;
     }
@@ -5993,7 +5982,7 @@ html, body {
    iPhone SE, older Android phones
    ============================================================ */
 
-@media (max-width: 375px) {
+@media (max-width: 480px) {
     /* Reduce card padding for very small screens */
     .card {
         padding: 0.875rem !important;
@@ -6096,7 +6085,7 @@ html, body {
     gap: 1.25rem;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
     .grid-auto-responsive {
         gap: 1rem;
     }
@@ -6134,7 +6123,7 @@ html, body {
    Slides up from bottom on small screens (Bootstrap compatible)
    ============================================================ */
 
-@media (max-width: 575px) {
+@media (max-width: 480px) {
     /* Modals slide up from bottom on mobile for better UX */
     .modal.slide-up .modal-dialog {
         position: fixed;
@@ -6927,7 +6916,7 @@ a:focus-visible {
     padding-right: 1rem;
 }
 
-@media (min-width: 576px) {
+@media (min-width: 481px) {
     .container,
     .container-fluid,
     .container-xxl {
@@ -6936,7 +6925,7 @@ a:focus-visible {
     }
 }
 
-@media (min-width: 992px) {
+@media (min-width: 1025px) {
     .container,
     .container-fluid,
     .container-xxl {
@@ -6994,7 +6983,7 @@ body.dark-mode .card:hover {
     font-size: 0.9375rem;
 }
 
-@media (max-width: 575px) {
+@media (max-width: 480px) {
     .page-header h1 { font-size: 1.5rem; }
 }
 
@@ -7134,7 +7123,7 @@ body.dark-mode .alert-info    { background: rgba(59,130,246,0.15) !important; }
 }
 
 /* ── Responsive Bootstrap row & col improvements ────────────── */
-@media (max-width: 575px) {
+@media (max-width: 480px) {
     .row > [class*="col-"] {
         margin-bottom: 0.75rem;
     }
@@ -7155,13 +7144,13 @@ body.dark-mode .alert-info    { background: rgba(59,130,246,0.15) !important; }
     gap: 1.25rem;
 }
 
-@media (min-width: 576px) {
+@media (min-width: 481px) {
     .card-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
-@media (min-width: 992px) {
+@media (min-width: 1025px) {
     .card-grid {
         grid-template-columns: repeat(3, 1fr);
     }
@@ -7227,7 +7216,7 @@ body.dark-mode .input-group-text {
 }
 
 /* ── Responsive typography improvements ─────────────────────── */
-@media (max-width: 575px) {
+@media (max-width: 480px) {
     h1 { font-size: clamp(1.5rem, 5vw, 2rem) !important; }
     h2 { font-size: clamp(1.25rem, 4vw, 1.75rem) !important; }
     h3 { font-size: clamp(1.125rem, 3.5vw, 1.5rem) !important; }
@@ -7238,7 +7227,7 @@ body.dark-mode .input-group-text {
 }
 
 /* ── Better mobile card padding ─────────────────────────────── */
-@media (max-width: 575px) {
+@media (max-width: 480px) {
     .card .p-6 { padding: 1.25rem !important; }
     .card .p-8 { padding: 1.5rem !important; }
     .card .px-6 { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
@@ -7291,7 +7280,7 @@ body.dark-mode .modal-footer {
 }
 
 /* ── Responsive nav-tabs: horizontal scroll on small screens ── */
-@media (max-width: 575px) {
+@media (max-width: 480px) {
     .nav-tabs {
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -7442,7 +7431,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
 }
 
 /* ── Enhanced mobile main content area ─────────────────────── */
-@media (max-width: 575px) {
+@media (max-width: 480px) {
     main#main-content {
         padding-top: 4.5rem !important;
         padding-left: 0.875rem !important;
@@ -7532,7 +7521,7 @@ td, th {
 }
 
 /* ── Better footer link grid ────────────────────────────────── */
-@media (max-width: 575px) {
+@media (max-width: 480px) {
     .sidebar-footer {
         padding: 0.75rem !important;
     }
@@ -7550,7 +7539,7 @@ td, th {
     gap: 0.75rem;
 }
 
-@media (max-width: 575px) {
+@media (max-width: 480px) {
     .action-bar {
         flex-direction: column;
         align-items: stretch;
@@ -7561,7 +7550,7 @@ td, th {
 }
 
 /* ── Card-table mobile improvements ─────────────────────────── */
-@media (max-width: 575px) {
+@media (max-width: 480px) {
     .card-table tr {
         border-radius: 0.75rem !important;
         margin-bottom: 0.625rem !important;
@@ -7911,7 +7900,7 @@ body:not(.dark-mode) a:not(.btn):not(.no-hover):not(.sidebar a):not([class~="tex
 
 /* Additional max-width safety net for devices that may report
    (hover: hover) despite being primarily touch-based */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
     /* Disable the infinite gradient on the primary button on small screens */
     .btn-primary {
         animation: none;
@@ -8455,7 +8444,7 @@ body {
    a single row on larger phones.
    ──────────────────────────────────────────────────────────── */
 
-@media (max-width: 479px) {
+@media (max-width: 480px) {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 0.75rem !important;
@@ -8983,7 +8972,7 @@ body:not(.dark-mode) .dash-stat-card * {
 }
 
 /* ── EXTRA SMALL SCREEN IMPROVEMENTS (< 360px) ─────────────── */
-@media (max-width: 359px) {
+@media (max-width: 480px) {
     .mobile-topbar {
         padding-left: 0.5rem !important;
         padding-right: 0.5rem !important;
@@ -9009,7 +8998,7 @@ body:not(.dark-mode) .dash-stat-card * {
 }
 
 /* ── LANDSCAPE MOBILE IMPROVEMENTS ─────────────────────────── */
-@media (max-height: 500px) and (orientation: landscape) and (max-width: 896px) {
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 1024px) {
     /* In landscape mobile, sidebar should scroll better */
     .sidebar {
         overflow-y: auto;
@@ -9627,7 +9616,7 @@ body {
    Use fluid type that smoothly scales between breakpoints so
    text is always readable without overflow.
    ──────────────────────────────────────────────────────────── */
-@media (max-width: 479px) {
+@media (max-width: 480px) {
     /* Page headings */
     h1 { font-size: clamp(1.375rem, 7vw, 1.875rem) !important; }
     h2 { font-size: clamp(1.125rem, 5.5vw, 1.5rem) !important; }
@@ -9955,7 +9944,7 @@ img[src="#"] {
    without the !important grid override causing issues
    with intentional 2-col / 3-col grids.
    ──────────────────────────────────────────────────────────── */
-@media (max-width: 479px) {
+@media (max-width: 480px) {
     /* Only collapse grids that are NOT explicitly 2-col or intentional */
     .grid-auto-cols {
         grid-template-columns: 1fr !important;
@@ -10051,9 +10040,9 @@ a:focus-visible,
 
 /* Show/hide at specific breakpoints */
 .hide-xs  { display: none !important; }
-@media (min-width: 480px)  { .hide-xs  { display: revert !important; } }
-@media (max-width: 479px)  { .show-xs  { display: revert !important; } }
-@media (min-width: 480px)  { .show-xs  { display: none !important; } }
+@media (min-width: 481px)  { .hide-xs  { display: revert !important; } }
+@media (max-width: 480px)  { .show-xs  { display: revert !important; } }
+@media (min-width: 481px)  { .show-xs  { display: none !important; } }
 
 /* Truncate with tooltip support */
 .truncate-responsive {
@@ -10064,7 +10053,7 @@ a:focus-visible,
 }
 
 /* Stack flex items vertically on mobile */
-@media (max-width: 640px) {
+@media (max-width: 767px) {
     .flex-col-mobile {
         flex-direction: column !important;
         align-items: stretch !important;
@@ -10436,18 +10425,18 @@ textarea {
 }
 
 /* ── RESPONSIVE GRID: BETTER COLUMN BREAKPOINTS ─────────────── */
-@media (min-width: 640px) and (max-width: 767px) {
+@media (min-width: 481px) and (max-width: 767px) {
     /* 2-column grids on larger phones */
     .sm\:grid-cols-2 { grid-template-columns: repeat(2, 1fr) !important; }
 }
 
-@media (min-width: 768px) and (max-width: 1023px) {
+@media (min-width: 768px) and (max-width: 1024px) {
     /* Tablets: 2 columns by default for stat grids */
     .md\:grid-cols-3 { grid-template-columns: repeat(2, 1fr) !important; }
     .md\:grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1025px) {
     /* Desktops: restore 3/4 column grids */
     .md\:grid-cols-3 { grid-template-columns: repeat(3, 1fr) !important; }
     .md\:grid-cols-4 { grid-template-columns: repeat(4, 1fr) !important; }
@@ -10462,14 +10451,14 @@ textarea {
     }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1025px) {
     #main-content {
         padding: 2.5rem 3rem 2.5rem 3rem !important;
     }
 }
 
 /* ── TYPOGRAPHY: FLUID SCALE REFINEMENT ─────────────────────── */
-@media (max-width: 640px) {
+@media (max-width: 767px) {
     /* Compact headings on tiny screens */
     .text-2xl { font-size: 1.25rem !important; }
     .text-3xl { font-size: 1.5rem !important; }
@@ -11180,8 +11169,8 @@ body:not(.dark-mode) .sidebar p.text-xs {
 
 /* ── 4. RESPONSIVE DESIGN – SURGICAL GRID BREAKPOINTS ───────── */
 
-/* Mobile (max 639px): only collapse 3+ column grids, not 2-column */
-@media (max-width: 639px) {
+/* Medium Mobile (max 767px): only collapse 3+ column grids, not 2-column */
+@media (max-width: 767px) {
     /* Allow 2-column grids to persist at smaller sizes */
     .grid-cols-2,
     .sm\:grid-cols-2 {
@@ -11192,23 +11181,23 @@ body:not(.dark-mode) .sidebar p.text-xs {
     .grid { gap: 0.75rem !important; }
 }
 
-/* For very narrow screens (below 400px), collapse 2-column grids too */
-@media (max-width: 399px) {
+/* For very narrow screens (below 480px), collapse 2-column grids too */
+@media (max-width: 480px) {
     .grid-cols-2 {
         grid-template-columns: 1fr !important;
     }
 }
 
-/* Small tablet (640-767px): 2-column max for all grids */
-@media (min-width: 640px) and (max-width: 767px) {
+/* Medium Mobile Refinements (481px - 767px): 2-column max for all grids */
+@media (min-width: 481px) and (max-width: 767px) {
     .grid:not(.grid-no-stack):not(.grid-cols-1):not(.grid-cols-2) {
         grid-template-columns: repeat(2, 1fr) !important;
     }
     .grid { gap: 1rem !important; }
 }
 
-/* Tablet (768-1023px): content padding compensated correctly */
-@media (min-width: 768px) and (max-width: 1023px) {
+/* Tablet (768-1024px): content padding compensated correctly */
+@media (min-width: 768px) and (max-width: 1024px) {
     #main-content {
         padding: 1.5rem 1.5rem 2rem !important;
     }
@@ -11218,15 +11207,8 @@ body:not(.dark-mode) .sidebar p.text-xs {
     }
 }
 
-/* Small desktop */
-@media (min-width: 1024px) and (max-width: 1279px) {
-    #main-content {
-        padding: 2rem 2rem 2.5rem !important;
-    }
-}
-
-/* Large desktop */
-@media (min-width: 1280px) {
+/* Desktop (1025px+) - Standard desktop styling */
+@media (min-width: 1025px) {
     #main-content {
         padding: 2.5rem 2.5rem 3rem !important;
         max-width: 1600px;
@@ -11311,8 +11293,8 @@ body:not(.dark-mode) .mobile-topbar {
     }
 }
 
-/* Extra small screens (below 390px) */
-@media (max-width: 389px) {
+/* Extra small screens (below 480px) */
+@media (max-width: 480px) {
     #main-content {
         padding-left: 0.75rem !important;
         padding-right: 0.75rem !important;
@@ -11606,7 +11588,7 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
 /* ── RESPONSIVE HERO SECTION IMPROVEMENTS ─────────────────────
    Better hero section padding & text sizing on extra small screens.
    ──────────────────────────────────────────────────────────── */
-@media (max-width: 479px) {
+@media (max-width: 480px) {
     .hero-gradient {
         min-height: auto !important;
         padding: 1.5rem 1.25rem !important;
@@ -11660,7 +11642,7 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
     align-items: center;
 }
 
-@media (max-width: 639px) {
+@media (max-width: 767px) {
     .page-header-row {
         flex-direction: column;
         align-items: stretch;
@@ -11687,7 +11669,7 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
     gap: 1rem;
 }
 
-@media (max-width: 639px) {
+@media (max-width: 767px) {
     .form-grid-2 {
         grid-template-columns: 1fr;
     }
@@ -11702,13 +11684,13 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
     gap: 1.25rem;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
     .card-grid-3 {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
-@media (max-width: 639px) {
+@media (max-width: 767px) {
     .card-grid-3 {
         grid-template-columns: 1fr;
         gap: 0.875rem;
@@ -11724,13 +11706,13 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
     gap: 1rem;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
     .stat-grid-4 {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
-@media (max-width: 479px) {
+@media (max-width: 480px) {
     .stat-grid-4 {
         grid-template-columns: repeat(2, 1fr);
         gap: 0.75rem;
@@ -11892,7 +11874,7 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
    On very small screens, key=value table rows become card-style
    stacked items for readability.
    ──────────────────────────────────────────────────────────── */
-@media (max-width: 479px) {
+@media (max-width: 480px) {
     table.table-card-mobile {
         display: block;
     }
@@ -11968,7 +11950,7 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
    ============================================================ */
 
 /* ── Directory card: compact layout on small screens (<640px) ─── */
-@media (max-width: 639px) {
+@media (max-width: 767px) {
     /* Slightly shorter header band so the card fits tightly */
     .directory-card-header {
         height: 68px;
@@ -12026,7 +12008,7 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
     padding: 1rem;
 }
 
-@media (min-width: 480px) {
+@media (min-width: 481px) {
     .directory-profile-header {
         padding: 1.5rem;
     }
@@ -12043,14 +12025,14 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
     padding: 1rem;
 }
 
-@media (min-width: 480px) {
+@media (min-width: 481px) {
     .directory-detail-card {
         padding: 1.5rem;
     }
 }
 
 /* ── Directory toolbar: refined spacing on mobile ─────────────── */
-@media (max-width: 479px) {
+@media (max-width: 480px) {
     .directory-toolbar {
         padding: 0.75rem 0.875rem;
     }
@@ -12059,9 +12041,9 @@ body.dark-mode .sidebar .sidebar-nav-item--active {
     }
 }
 
-/* ── Directory grid: 2 columns starting at ~440px ─────────────── */
-/* Fills the dead space between 1-col (xs) and 2-col (sm/640px+)   */
-@media (min-width: 440px) and (max-width: 639px) {
+/* ── Directory grid: 2 columns starting at medium mobile (481px+) ─────────────── */
+/* Fills the dead space between 1-col (small mobile) and 2-col (medium mobile+)   */
+@media (min-width: 481px) and (max-width: 767px) {
     .directory-grid-responsive {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
