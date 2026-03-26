@@ -67,14 +67,14 @@ if ($useFullLayout) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .error-box { background: #fff; border-radius: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.10); padding: 3rem 2.5rem; max-width: 480px; width: 100%; text-align: center; }
-        .error-code { font-size: 5rem; font-weight: 900; color: #0066b3; line-height: 1; }
-        h1 { font-size: 1.75rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; overflow-x: hidden; }
+        .error-box { background: #fff; border-radius: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.10); padding: 3rem 2.5rem; max-width: 480px; width: 100%; text-align: center; box-sizing: border-box; }
+        .error-code { font-size: clamp(2.5rem, 12vw, 5rem); font-weight: 900; color: #0066b3; line-height: 1; }
+        h1 { font-size: clamp(1.1rem, 4vw, 1.75rem); font-weight: 700; margin: 1rem 0 0.5rem; }
         p { color: #475569; font-size: 1.05rem; margin-bottom: 2rem; }
         .btn-dashboard { display: inline-flex; align-items: center; gap: 0.5rem; background: #0066b3; color: #fff; font-weight: 600; padding: 0.75rem 1.75rem; border-radius: 0.75rem; text-decoration: none; font-size: 1rem; transition: background 0.2s; min-height: 44px; }
         .btn-dashboard:hover { background: #004f8c; color: #fff; }
-        @media (max-width: 480px) { .btn-dashboard { width: 100%; justify-content: center; } }
+        @media (max-width: 480px) { .btn-dashboard { width: 100%; justify-content: center; } .error-box { padding: 1.5rem 1rem; } }
     </style>
 </head>
 <body>
