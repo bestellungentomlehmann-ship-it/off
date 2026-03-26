@@ -145,7 +145,7 @@ class MailService {
     <div class="email-wrapper">
         <div class="email-container">
             <div class="email-header">
-                <img src="cid:ibc_logo" alt="IBC Logo" />
+                <img src="cid:ibc_logo" alt="IBC Logo" style="max-width: 100%; height: auto; display: block;" />
             </div>
             <div class="email-body">
                 <h1 class="email-title">' . htmlspecialchars($title) . '</h1>

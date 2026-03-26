@@ -91,7 +91,7 @@ ob_start();
 <div class="max-w-7xl mx-auto">
     <!-- Print-only header (hidden on screen, shown when printing) -->
     <div class="invoice-print-header hidden">
-        <img src="<?php echo asset('assets/img/ibc_logo_original.webp'); ?>" alt="IBC Logo">
+        <img src="<?php echo asset('assets/img/ibc_logo_original.webp'); ?>" alt="IBC Logo" class="img-fluid">
         <div class="invoice-print-header-meta">
             IBC – International Business Club<br>
             Rechnungsübersicht<br>
