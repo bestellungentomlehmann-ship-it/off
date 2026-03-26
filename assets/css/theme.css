@@ -4873,16 +4873,18 @@ body.dark-mode {
 
 /* --- MOBILE RESPONSIVENESS --- */
 @media (max-width: 767px) {
+    /* Mobile navigation: vertical dropdown from topbar, pushes content down */
     .sidebar {
         position: fixed;
-        top: 0;
+        top: var(--topbar-safe-height, 60px) !important;
         left: 0;
-        height: 100vh !important;
-        height: 100dvh !important;
-        width: 85%;
-        max-width: 320px;
+        right: 0;
+        height: auto !important;
+        max-height: calc(100dvh - var(--topbar-safe-height, 60px));
+        width: 100% !important;
+        max-width: 100% !important;
         z-index: 1050 !important; /* Must be above overlay (1040); !important overrides Tailwind z-40 */
-        transform: translate3d(-100%, 0, 0); /* Standardmäßig versteckt */
+        transform: translateY(-100vh) !important; /* Standardmäßig versteckt (oberhalb des Viewports) */
         transition: transform 0.3s ease-in-out;
         display: flex;
         flex-direction: column;
@@ -4893,46 +4895,28 @@ body.dark-mode {
         touch-action: pan-y;
     }
     .sidebar.open {
-        transform: translate3d(0, 0, 0) !important; /* Zeigen wenn Klasse 'open' */
+        transform: translateY(0) !important; /* Sichtbar: nach unten öffnen */
     }
+    /* Inner scroll area scrolls as part of the outer sidebar on mobile */
     .sidebar nav,
     .sidebar .sidebar-scroll {
         max-width: 100%;
         overflow-x: hidden;
+        overflow-y: visible !important;
+        flex: 0 0 auto !important;
     }
     .main-content {
         margin-left: 0 !important; /* Kein Rand auf Handy */
         width: 100% !important;
     }
-    /* Overlay wenn Sidebar offen - smooth fade transition */
+    /* Overlay: nicht benötigt bei vertikalem Dropdown (kein Überlappen) */
     .sidebar-overlay {
-        display: block;
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 1040;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-        -webkit-backdrop-filter: none;
-        backdrop-filter: none;
+        display: none !important;
     }
-    .sidebar-overlay.active {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
-    }
-
-    /* Body scroll lock when sidebar is open (iOS Safari fix: use JS to set top) */
+    /* Body scroll lock: nicht benötigt bei Push-Down-Muster auf Mobilgeräten */
     body.sidebar-open {
-        overflow: hidden;
-        position: fixed;
-        width: 100%;
-        /* top is set dynamically via JavaScript to preserve scroll position */
+        overflow: auto;
+        position: static;
     }
 }
 
