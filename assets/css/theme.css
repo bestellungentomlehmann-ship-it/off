@@ -9414,9 +9414,9 @@ body {
     }
 
     /* Push main content below the expanded topbar.
-       Matches the 0.5rem offset used in main_layout.php inline styles. */
+       Exactly matches the height of #mobile-header (incl. safe area). */
     #main-content {
-        padding-top: calc(var(--topbar-safe-height) + 0.5rem) !important;
+        padding-top: var(--topbar-safe-height) !important;
     }
 }
 
@@ -11252,7 +11252,7 @@ body:not(.dark-mode) .mobile-topbar {
 @media (max-width: 767px) {
     #main-content {
         padding: 1rem 1rem 5rem !important; /* bottom pad for bottom nav */
-        padding-top: calc(var(--topbar-height, 60px) + env(safe-area-inset-top, 0px) + 0.75rem) !important;
+        padding-top: var(--topbar-safe-height) !important;
     }
 
     /* Better card on mobile */
